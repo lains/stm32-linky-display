@@ -2,16 +2,16 @@
 
 ## Overview
 
-This repository contains a blinky-button project for the STM32 [Nucleo-144 development board](https://www.st.com/en/evaluation-tools/nucleo-f767zi.html) targeting the STM32F767ZI microcontroller. The project uses:
+This repository contains a polling-based UART TX/RX sample project between two boards for the STM32 [STM32F469-IDISCO development board](https://www.st.com/en/evaluation-tools/32f469idiscovery.htmL) targeting the STM32F469NI microcontroller. The project uses:
 
 * GNU Make (Build System)
 * GNU ARM Embedded Toolchain (Compiler)
-* STM32CubeF7 MCU Firmware Package (BSP/Drivers)
+* STM32CubeF4 MCU Firmware Package (BSP/Drivers)
 * ST-Link or OpenOCD (Debug)
 
 ## Motivation
 
-I often need to develop software for STM32 microcontrollers and want to use GNU Make as the build system. While STM bundles example projects and templates in the STM32Cube packages (such as [STM32CubeF7](https://github.com/STMicroelectronics/STM32CubeF7)), the projects do not support GNU Make and instead support IAR, Keil, and Eclipse (Atollic or AC6). These projects also don't include debug configurations. While I enjoy using those tools for navigating code and debugging, I prefer to manage the build system with human readable files.
+I often need to develop software for STM32 microcontrollers and want to use GNU Make as the build system. While STM bundles example projects and templates in the STM32Cube packages (such as [STM32CubeF4](https://github.com/STMicroelectronics/STM32CubeF4)), the projects do not support GNU Make and instead support IAR, Keil, and Eclipse (Atollic or AC6). These projects also don't include debug configurations. While I enjoy using those tools for navigating code and debugging, I prefer to manage the build system with human readable files.
 
 ## Existing Solutions
 
@@ -26,7 +26,7 @@ Other projects that address this problem:
 
 * _GNU Make_ - Usually installed by default on Linux and macOS, so no work to do here.
 * _GNU ARM Embedded Toolchain_ - [Download](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) the toolchain and update the `TOOLCHAIN_ROOT` variable at the top of the Makefile. If you've added the `bin/` directory of the toolchain to your system `PATH` then you can leave this variable blank.
-* _STM32CubeF7 MCU Firmware Package_ - This is a submodule of this repository, so it can be downloaded by running `git submodule init && git submodule update`. However if you already have it installed on your system, skip the submodule commands and just update the `VENDOR_ROOT` variable in the Makefile to point to your copy.
+* _STM32CubeF4 MCU Firmware Package_ - This can be cloned directly from https://github.com/STMicroelectronics/STM32CubeF4 into the bsp/ subdirectory. However if you already have it installed on your system, skip the submodule commands and just update the `VENDOR_ROOT` variable in the Makefile to point to your copy.
 * _ST-Link or OpenOCD_ - For debugging, you will need software that knows how to talk to your debug hardware over USB. On the Nucleo-144 board, there is an ST-Link debugger. You can talk to it using [ST-Link tools](https://github.com/stlink-org/stlink) or [OpenOCD](https://sourceforge.net/p/openocd/code/ci/master/tree/). On Linux I was able to build both of these packages from source easily following the instructions. On macOS both packages were downloadable in binary form using `brew install stlink openocd`.
 
 ### Build and Debug

@@ -1,5 +1,5 @@
 handle SIGTRAP nostop noprint
-target remote :4242
+target remote :3333
 monitor reset
 load
 break main
