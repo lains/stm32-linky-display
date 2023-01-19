@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains a polling-based UART TX/RX sample project between two boards for the STM32 [STM32F469-IDISCO development board](https://www.st.com/en/evaluation-tools/32f469idiscovery.htmL) targeting the STM32F469NI microcontroller. The project uses:
+This repository contains a Linky TIC decoder project for [STM32F469-IDISCO development board](https://www.st.com/en/evaluation-tools/32f469idiscovery.htmL) targeting the STM32F469NI microcontroller. The project uses:
 
 * GNU Make (Build System)
 * GNU ARM Embedded Toolchain (Compiler)
@@ -11,14 +11,7 @@ This repository contains a polling-based UART TX/RX sample project between two b
 
 ## Motivation
 
-I often need to develop software for STM32 microcontrollers and want to use GNU Make as the build system. While STM bundles example projects and templates in the STM32Cube packages (such as [STM32CubeF4](https://github.com/STMicroelectronics/STM32CubeF4)), the projects do not support GNU Make and instead support IAR, Keil, and Eclipse (Atollic or AC6). These projects also don't include debug configurations. While I enjoy using those tools for navigating code and debugging, I prefer to manage the build system with human readable files.
-
-## Existing Solutions
-
-Other projects that address this problem:
-
-* [damheinrich/cm-makefile](https://github.com/adamheinrich/cm-makefile): Makefiles for Cortex-M processors. Not STM32 specific, but should be easily configurable. Overall the level of configurability and complexity is not needed for a small project.
-* [STM32-base/STM32-base](https://github.com/STM32-base/STM32-base): Essentially solves the exact problem I have, combining GNU Make with STM32 source code. I tried to use this project but ran into a lot of bugs and problems. At the time of writing I do not have bandwidth to contribute, but eventually should debug this more. It also has more configurability and complexity than needed, since it supports many STM32 devices.
+The makefile structure has been initially developped by [Ben Brown](https://github.com/bbrown1867/stm32-makefile).
 
 ## User Guide
 
