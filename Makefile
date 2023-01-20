@@ -4,24 +4,33 @@ Q		:= @
 NULL		:= 2>/dev/null
 endif
 
+PREFIX		?= arm-none-eabi
+
 # Path you your toolchain installation, leave empty if already in system PATH
-TOOLCHAIN_ROOT = /opt/st/gcc-arm-none-eabi-10.3-2021.10/bin/
+TOOLCHAIN_ROOT = /opt/st/gcc-arm-none-eabi-10.3-2021.10/bin
 
 # Path to the STM32 codebase, make sure to update the submodule to get the code
 VENDOR_ROOT = ./bsp/STM32CubeF4/
 
 ###############################################################################
 
+BINARY=stm32-linky
+
 # Project specific
-HEX_IMAGE = main.hex
-TARGET = $(HEX_IMAGE:.hex=.elf)
 SRC_DIR = src/
 INC_DIR = inc/
 
 # Toolchain
-CC = $(TOOLCHAIN_ROOT)arm-none-eabi-gcc
-CXX = $(CC)
-CPP = $(TOOLCHAIN_ROOT)arm-none-eabi-g++
+CC		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-gcc
+CXX		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-g++
+LD		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-gcc
+AR		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-ar
+AS		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-as
+OBJCOPY		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-objcopy
+OBJDUMP		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-objdump
+GDB		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-gdb
+STFLASH		= $(shell which st-flash)
+
 DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
 # Project sources
@@ -77,6 +86,7 @@ CXXFLAGS += $(INCLUDES)
 
 # Linker Flags
 LDFLAGS = -Wl,--gc-sections -Wl,-T$(LDSCRIPT) --specs=rdimon.specs
+LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 ###############################################################################
 
@@ -96,7 +106,14 @@ ALL_OBJS = $(ASM_OBJS) $(CXX_OBJS)
 
 .PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
 
-all: $(TARGET)
+all: elf
+
+elf: $(BINARY).elf
+bin: $(BINARY).bin
+hex: $(BINARY).hex
+srec: $(BINARY).srec
+list: $(BINARY).list
+GENERATED_BINARIES=$(BINARY).elf $(BINARY).bin $(BINARY).hex $(BINARY).srec $(BINARY).list $(BINARY).map
 
 # Compile
 
@@ -108,24 +125,26 @@ all: $(TARGET)
 	@echo "  CC      $(*).c"
 	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(*).o -c $(*).c
 
-%.o: %.cxx
+%.o: %.cxx %.cpp
 	@echo "  CXX     $(*).cxx"
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cxx
-
-%.o: %.cpp
-	@echo "  CPP     $(*).cpp"
-	$(Q)$(CPP) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cpp
 
 # Link
 %.elf: $(ALL_OBJS) $(LDSCRIPT)
 	@echo "  LD      $(*).elf"
 	$(Q)$(CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(*).elf
 
+%.bin: %.elf
+	@echo "  OBJCOPY $(*).bin"
+	$(Q)$(OBJCOPY) -Obinary $(*).elf $(*).bin
+
 %.hex: %.elf
-	arm-none-eabi-objcopy -O ihex $< $@
+	@echo "  OBJCOPY $(*).hex"
+	$(Q)$(OBJCOPY) -Oihex $(*).elf $(*).hex
 
 # Program using st-flash utility
-flash: $(HEX_IMAGE)
+flash: $(BINARY).hex
+	@echo "  FLASH  $<"
 	$(ST_FLASH_PREFIX)st-flash --format ihex write $<
 
 # Clean
@@ -139,5 +158,5 @@ gdb-server_stlink:
 gdb-server_openocd:
 	openocd -f ./openocd.cfg
 
-gdb-client: $(TARGET)
+gdb-client: $(BINARY).elf
 	$(DB) -tui $(TARGET)
