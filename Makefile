@@ -1,3 +1,9 @@
+# Be quiet per default, but 'make V=1' will show all compiler calls.
+ifneq ($(V),1)
+Q		:= @
+NULL		:= 2>/dev/null
+endif
+
 # Path you your toolchain installation, leave empty if already in system PATH
 TOOLCHAIN_ROOT = /opt/st/gcc-arm-none-eabi-10.3-2021.10/bin/
 
@@ -14,12 +20,14 @@ INC_DIR = inc/
 
 # Toolchain
 CC = $(TOOLCHAIN_ROOT)arm-none-eabi-gcc
+CXX = $(CC)
+CPP = $(TOOLCHAIN_ROOT)arm-none-eabi-g++
 DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
 # Project sources
-SRC_FILES = $(wildcard $(SRC_DIR)*.c) $(wildcard $(SRC_DIR)*/*.c)
+SRC_FILES = $(wildcard $(SRC_DIR)*.c) $(wildcard $(SRC_DIR)*/*.c) $(wildcard $(SRC_DIR)*.cpp) $(wildcard $(SRC_DIR)*/*.cpp)
 ASM_FILES = $(wildcard $(SRC_DIR)*.s) $(wildcard $(SRC_DIR)*/*.s)
-LD_SCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
+LDSCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
 
 # Project includes
 INCLUDES   = -I$(INC_DIR)
@@ -60,14 +68,15 @@ INCLUDES += -I$(VENDOR_ROOT)Drivers/STM32F4xx_HAL_Driver/Inc
 INCLUDES += -I$(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery
 
 # Compiler Flags
-CFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter
-CFLAGS += -mcpu=cortex-m7 -mthumb -mlittle-endian -mthumb-interwork
-CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
-CFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
-CFLAGS += $(INCLUDES)
+CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter
+CXXFLAGS += -mcpu=cortex-m7 -mthumb -mlittle-endian -mthumb-interwork
+CXXFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
+CXXFLAGS += $(INCLUDES)
+
 
 # Linker Flags
-LFLAGS = -Wl,--gc-sections -Wl,-T$(LD_SCRIPT) --specs=rdimon.specs
+LDFLAGS = -Wl,--gc-sections -Wl,-T$(LDSCRIPT) --specs=rdimon.specs
 
 ###############################################################################
 
@@ -75,25 +84,42 @@ LFLAGS = -Wl,--gc-sections -Wl,-T$(LD_SCRIPT) --specs=rdimon.specs
 # files into a build directory would be a better solution, but the goal was to
 # keep this file very simple.
 
-CXX_OBJS = $(SRC_FILES:.c=.o)
+C_SRC_FILES = $(filter %.c, $(SRC_FILES))
+CPP_SRC_FILES = $(filter %.cpp, $(SRC_FILES))
+C_OBJS = $(C_SRC_FILES:.c=.o)
+CPP_OBJS = $(CPP_SRC_FILES:.cpp=.o)
+CXX_OBJS = $(C_OBJS) $(CPP_OBJS)
 ASM_OBJS = $(ASM_FILES:.s=.o)
 ALL_OBJS = $(ASM_OBJS) $(CXX_OBJS)
+
+.PRECIOUS: %.o	# Avoid deleting intermediate .o files at the end of make (see https://stackoverflow.com/questions/42830131/an-unexpected-rm-occur-after-make)
 
 .PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
 
 all: $(TARGET)
 
 # Compile
-$(CXX_OBJS): %.o: %.c
-$(ASM_OBJS): %.o: %.s
-$(ALL_OBJS):
-	@echo "[CC] $@"
-	@$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.s
+	@echo "  CC      $(*).s"
+	$(Q)$(CC) $(CFLAGS) -o $(*).o -c $(*).s
+
+%.o: %.c
+	@echo "  CC      $(*).c"
+	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(*).o -c $(*).c
+
+%.o: %.cxx
+	@echo "  CXX     $(*).cxx"
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cxx
+
+%.o: %.cpp
+	@echo "  CPP     $(*).cpp"
+	$(Q)$(CPP) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cpp
 
 # Link
-%.elf: $(ALL_OBJS)
-	@echo "[LD] $@"
-	@$(CC) $(CFLAGS) $(LFLAGS) $(ALL_OBJS) -o $@
+%.elf: $(ALL_OBJS) $(LDSCRIPT)
+	@echo "  LD      $(*).elf"
+	$(Q)$(CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(*).elf
 
 %.hex: %.elf
 	arm-none-eabi-objcopy -O ihex $< $@
@@ -104,7 +130,7 @@ flash: $(HEX_IMAGE)
 
 # Clean
 clean:
-	@rm -f $(ALL_OBJS) $(TARGET)
+	rm -f $(ALL_OBJS) $(TARGET)
 
 # Debug
 gdb-server_stlink:
