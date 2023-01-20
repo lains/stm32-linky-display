@@ -125,9 +125,9 @@ GENERATED_BINARIES=$(BINARY).elf $(BINARY).bin $(BINARY).hex $(BINARY).srec $(BI
 	@echo "  CC      $(*).c"
 	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(*).o -c $(*).c
 
-%.o: %.cxx %.cpp
-	@echo "  CXX     $(*).cxx"
-	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cxx
+%.o: %.cpp
+	@echo "  CXX     $(*).cpp"
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cpp
 
 # Link
 %.elf: $(ALL_OBJS) $(LDSCRIPT)
