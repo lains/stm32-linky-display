@@ -4,14 +4,15 @@
 #include <functional>
 
 class TICUnframer {
+public:
 /* Types */
-typedef std::function<void (const uint8_t* buf, size_t cnt)> FFrameParserFunc;
+    typedef std::function<void (const uint8_t* buf, size_t cnt)> FFrameParserFunc;
+
+/* Constants */
+    static const uint8_t TIC_STX = 0x02;
+    static const uint8_t TIC_ETX = 0x03;
 
 /* Methods */
-public:
-    const uint8_t TIC_STX = 0x02;
-    const uint8_t TIC_ETX = 0x03;
-
     TICUnframer(FFrameParserFunc onFrameComplete);
 
     /**
