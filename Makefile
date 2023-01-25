@@ -36,7 +36,7 @@ CROSS_OBJDUMP   := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-objdump
 CROSS_GDB       := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gdb
 STFLASH         := $(shell which st-flash)
 
-DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
+CROSS_DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
 # Project target build dirs
 SRC_BUILD_PREFIX = build/
@@ -170,6 +170,10 @@ $(SRC_BUILD_PREFIX)/%.hex: %.elf
 	@mkdir -p $(dir $@)
 	$(Q)$(CROSS_OBJCOPY) -Oihex $(*).elf $(*).hex
 
+# Unit tests
+check:
+	$(MAKE) -C tests/ check
+
 # Program using st-flash utility
 flash: $(BINARY).hex
 	@echo "  FLASH   $<"
@@ -177,7 +181,7 @@ flash: $(BINARY).hex
 
 # Clean
 clean:
-	@rm -f $(ALL_OBJS) $(GENERATED_BINARIES) $(TEST_BINARY)
+	@rm -f $(ALL_OBJS) $(GENERATED_BINARIES)
 
 # Debug
 gdb-server_stlink:
@@ -187,4 +191,4 @@ gdb-server_openocd:
 	openocd -f ./openocd.cfg
 
 gdb-client: $(BINARY).elf
-	$(DB) -tui $(TARGET)
+	$(CROSS_DB) -tui $(TARGET)
