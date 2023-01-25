@@ -33,6 +33,7 @@ size_t TICUnframer::pushBytes(uint8_t* buffer, size_t len) {
             size_t leadingBytesInPreviousFrame = etx - buffer;
             usedBytes = this->pushBytes(buffer, leadingBytesInPreviousFrame); /* Copy the buffer up to (but exclusing the ETX marker) */
             this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame);
+            this->nextWriteInCurrentFrame = 0; /* Wipe any data in the current frame, start over */
             if (leadingBytesInPreviousFrame < len) { /* We have at least one byte after ETX */
                 leadingBytesInPreviousFrame++; /* Skip the ETX marker */
                 usedBytes++;
