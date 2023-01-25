@@ -15,9 +15,15 @@ VENDOR_ROOT = ./bsp/STM32CubeF4/
 ###############################################################################
 
 BINARY=stm32-linky
+TEST_BINARY = test_runner
+
+# User-defined makefile function
+# path_simplify removes ./ prefixes, /./ and // occurrences in a path
+path_simplify = $(subst //,/,$(subst /./,/,$(1:./%=%)))
 
 # Project specific
 SRC_DIR = src/
+TEST_SRC_DIR = test/src/
 INC_DIR = inc/
 
 # Toolchain
@@ -33,17 +39,23 @@ STFLASH		= $(shell which st-flash)
 
 DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
-# Project sources
-SRC_FILES = $(wildcard $(SRC_DIR)*.c) $(wildcard $(SRC_DIR)*/*.c) $(wildcard $(SRC_DIR)*.cpp) $(wildcard $(SRC_DIR)*/*.cpp)
-ASM_FILES = $(wildcard $(SRC_DIR)*.s) $(wildcard $(SRC_DIR)*/*.s)
+# Project target build dir
+SRC_BUILD_PREFIX = build/
+
+# Own project sources
+SRC_FILES = $(shell find $(SRC_DIR) -name '*.c' -o -name '*.cpp')
+ASM_FILES = $(shell find $(SRC_DIR) -name '*.s')
 LDSCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
 
+# Own projet unit test sources
+TEST_SRCS_FILES += $(shell find $(SRC_DIR) -name '*.c' -o -name '*.cpp')
+
 # Project includes
-INCLUDES   = -I$(INC_DIR)
-INCLUDES  += -I$(INC_DIR)hal/
+INCLUDES_FILES   = $(INC_DIR)
+INCLUDES_FILES  += $(INC_DIR)hal/
 
 # Vendor sources: Note that files in "Templates" are normally copied into project for customization,
-# but that is not necessary for this simple project.
+# but we direclty use provided source files whenever possible.
 ASM_FILES += $(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f469xx.s
 SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery.c
 SRC_FILES += $(VENDOR_ROOT)Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c
@@ -70,13 +82,16 @@ SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_s
 SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
 SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_qspi.c
 
-SRC_BUILD_PREFIX = build/
+
 
 # Vendor includes
-INCLUDES += -I$(VENDOR_ROOT)Drivers/CMSIS/Core/Include
-INCLUDES += -I$(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32F4xx/Include
-INCLUDES += -I$(VENDOR_ROOT)Drivers/STM32F4xx_HAL_Driver/Inc
-INCLUDES += -I$(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery
+INCLUDES_FILES += $(VENDOR_ROOT)Drivers/CMSIS/Core/Include
+INCLUDES_FILES += $(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32F4xx/Include
+INCLUDES_FILES += $(VENDOR_ROOT)Drivers/STM32F4xx_HAL_Driver/Inc
+INCLUDES_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery
+INCLUDES_FILES_TO_SIMPLIFY = $(INCLUDES_FILES)
+INCLUDES_FILES_SIMPLIFIED = $(call path_simplify,$(INCLUDES_FILES_TO_SIMPLIFY))
+INCLUDES += $(INCLUDES_FILES_SIMPLIFIED:%=-I%)
 
 # Compiler Flags
 CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter
@@ -96,14 +111,16 @@ LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 # keep this file very simple.
 
 C_SRC_FILES = $(filter %.c, $(SRC_FILES))
-CPP_SRC_FILES = $(filter %.cpp, $(SRC_FILES))
 C_OBJS_WITHOUT_PREFIX = $(C_SRC_FILES:.c=.o)
-C_OBJS = $(C_OBJS_WITHOUT_PREFIX:%=$(SRC_BUILD_PREFIX)/%)
-CPP_OBJS = $($(CPP_SRC_FILES:.cpp=.o):%=$(SRC_BUILD_PREFIX)/%)
-CXX_OBJS = $(C_OBJS) $(CPP_OBJS)
+CPP_SRC_FILES = $(filter %.cpp, $(SRC_FILES))
+CPP_OBJS_WITHOUT_PREFIX = $(CPP_SRC_FILES:.cpp=.o)
+CXX_OBJS_WITHOUT_PREFIX = $(C_OBJS_WITHOUT_PREFIX) $(CPP_OBJS_WITHOUT_PREFIX)
 ASM_OBJS_WITHOUT_PREFIX = $(ASM_FILES:.s=.o)
-ASM_OBJS = $(ASM_OBJS_WITHOUT_PREFIX:%=$(SRC_BUILD_PREFIX)/%)
-ALL_OBJS = $(ASM_OBJS) $(CXX_OBJS)
+ALL_OBJS_WITHOUT_PREFIX  =  $(ASM_OBJS_WITHOUT_PREFIX) $(CXX_OBJS_WITHOUT_PREFIX)
+ALL_OBJS_FILES_TO_SIMPLIFY = $(ALL_OBJS_WITHOUT_PREFIX:%=$(SRC_BUILD_PREFIX)/%)
+ALL_OBJS_SIMPLIFIED = $(call path_simplify,$(ALL_OBJS_FILES_TO_SIMPLIFY))
+ALL_OBJS = $(ALL_OBJS_SIMPLIFIED)
+
 
 .PRECIOUS: $(SRC_BUILD_PREFIX)/%.o	# Avoid deleting intermediate .o files at the end of make (see https://stackoverflow.com/questions/42830131/an-unexpected-rm-occur-after-make)
 
@@ -130,36 +147,38 @@ sanity:
 # Compile
 
 $(SRC_BUILD_PREFIX)/%.o: %.s
-	@echo "  CC      $(*).s"
+	@echo "  CC      $(call path_simplify,$(*)).s"
 	@mkdir -p $(dir $@)
 	$(Q)$(CC) $(CFLAGS) -o $@ -c $<
 
 $(SRC_BUILD_PREFIX)/%.o: %.c
-	@echo "  CC      $(*).c"
+	@echo "  CC      $(call path_simplify,$(*)).c"
 	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $@ -c $<
+	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(call path_simplify,$(@)) -c $<
 
 $(SRC_BUILD_PREFIX)/%.o: %.cpp
-	@echo "  CXX     $(*).cpp"
+	@echo "  CXX     $(call path_simplify,$(*)).cpp"
 	@mkdir -p $(dir $@)
-	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $@ -c $<
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
-# Link
-%.elf: $(ALL_OBJS) $(LDSCRIPT)
-	@echo "  LD      $(*).elf"
-	$(Q)$(CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(*).elf
+$(SRC_BUILD_PREFIX)/%.elf: $(ALL_OBJS_FILES_TO_SIMPLIFY) $(LDSCRIPT)
+	@echo "  LD      $(call path_simplify,$(*)).elf"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(call path_simplify,$(@))
 
-%.bin: %.elf
+$(SRC_BUILD_PREFIX)/%.bin: %.elf
 	@echo "  OBJCOPY $(*).bin"
+	@mkdir -p $(dir $@)
 	$(Q)$(OBJCOPY) -Obinary $(*).elf $(*).bin
 
-%.hex: %.elf
+$(SRC_BUILD_PREFIX)/%.hex: %.elf
 	@echo "  OBJCOPY $(*).hex"
+	@mkdir -p $(dir $@)
 	$(Q)$(OBJCOPY) -Oihex $(*).elf $(*).hex
 
 # Program using st-flash utility
 flash: $(BINARY).hex
-	@echo "  FLASH  $<"
+	@echo "  FLASH   $<"
 	$(ST_FLASH_PREFIX)st-flash --format ihex write $<
 
 # Clean
