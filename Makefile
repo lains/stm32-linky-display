@@ -4,7 +4,7 @@ Q		:= @
 NULL		:= 2>/dev/null
 endif
 
-PREFIX		?= arm-none-eabi
+CROSS_PREFIX    ?= arm-none-eabi
 
 # Path you your toolchain installation, leave empty if already in system PATH
 TOOLCHAIN_ROOT = /opt/st/gcc-arm-none-eabi-10.3-2021.10/bin
@@ -27,15 +27,15 @@ TEST_SRC_DIR = test/src/
 INC_DIR = inc/
 
 # Toolchain
-CC		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-gcc
-CXX		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-g++
-LD		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-gcc
-AR		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-ar
-AS		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-as
-OBJCOPY		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-objcopy
-OBJDUMP		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-objdump
-GDB		:= $(TOOLCHAIN_ROOT)/$(PREFIX)-gdb
-STFLASH		= $(shell which st-flash)
+CROSS_CC        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gcc
+CROSS_CXX       := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-g++
+CROSS_LD        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gcc
+CROSS_AR        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-ar
+CROSS_AS        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-as
+CROSS_OBJCOPY   := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-objcopy
+CROSS_OBJDUMP   := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-objdump
+CROSS_GDB       := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gdb
+STFLASH         := $(shell which st-flash)
 
 DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
@@ -101,8 +101,8 @@ CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -
 CXXFLAGS += $(INCLUDES)
 
 # Linker Flags
-LDFLAGS = -Wl,--gc-sections -Wl,-T$(LDSCRIPT) --specs=rdimon.specs
-LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
+LDFLAGS   = -Wl,--gc-sections -Wl,-T$(LDSCRIPT) --specs=rdimon.specs
+LDLIBS   += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 ###############################################################################
 
@@ -116,8 +116,8 @@ CPP_SRC_FILES = $(filter %.cpp, $(SRC_FILES))
 CPP_OBJS_WITHOUT_PREFIX = $(CPP_SRC_FILES:.cpp=.o)
 CXX_OBJS_WITHOUT_PREFIX = $(C_OBJS_WITHOUT_PREFIX) $(CPP_OBJS_WITHOUT_PREFIX)
 ASM_OBJS_WITHOUT_PREFIX = $(ASM_FILES:.s=.o)
-ALL_OBJS_WITHOUT_PREFIX  =  $(ASM_OBJS_WITHOUT_PREFIX) $(CXX_OBJS_WITHOUT_PREFIX)
-ALL_OBJS_FILES_TO_SIMPLIFY = $(ALL_OBJS_WITHOUT_PREFIX:%=$(SRC_BUILD_PREFIX)/%)
+ALL_OBJS_WITHOUT_PREFIX = $(ASM_OBJS_WITHOUT_PREFIX) $(CXX_OBJS_WITHOUT_PREFIX)
+ALL_OBJS_FILES_TO_SIMPLIFY = $(addprefix $(SRC_BUILD_PREFIX)/,$(ALL_OBJS_WITHOUT_PREFIX))
 ALL_OBJS_SIMPLIFIED = $(call path_simplify,$(ALL_OBJS_FILES_TO_SIMPLIFY))
 ALL_OBJS = $(ALL_OBJS_SIMPLIFIED)
 
@@ -149,37 +149,37 @@ sanity:
 $(SRC_BUILD_PREFIX)/%.o: %.s
 	@echo "  CC      $(call path_simplify,$(*)).s"
 	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(CFLAGS) -o $@ -c $<
+	$(Q)$(CROSS_CC) $(CFLAGS) -o $@ -c $<
 
 $(SRC_BUILD_PREFIX)/%.o: %.c
 	@echo "  CC      $(call path_simplify,$(*)).c"
 	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(call path_simplify,$(@)) -c $<
+	$(Q)$(CROSS_CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(call path_simplify,$(@)) -c $<
 
 $(SRC_BUILD_PREFIX)/%.o: %.cpp
 	@echo "  CXX     $(call path_simplify,$(*)).cpp"
 	@mkdir -p $(dir $@)
-	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
+	$(Q)$(CROSS_CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
 $(SRC_BUILD_PREFIX)/%.elf: $(ALL_OBJS_FILES_TO_SIMPLIFY) $(LDSCRIPT)
 	@echo "  LD      $(call path_simplify,$(*)).elf"
 	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(call path_simplify,$(@))
+	$(Q)$(CROSS_CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(call path_simplify,$(@))
 
 $(SRC_BUILD_PREFIX)/%.bin: %.elf
 	@echo "  OBJCOPY $(*).bin"
 	@mkdir -p $(dir $@)
-	$(Q)$(OBJCOPY) -Obinary $(*).elf $(*).bin
+	$(Q)$(CROSS_OBJCOPY) -Obinary $(*).elf $(*).bin
 
 $(SRC_BUILD_PREFIX)/%.hex: %.elf
 	@echo "  OBJCOPY $(*).hex"
 	@mkdir -p $(dir $@)
-	$(Q)$(OBJCOPY) -Oihex $(*).elf $(*).hex
+	$(Q)$(CROSS_OBJCOPY) -Oihex $(*).elf $(*).hex
 
 # Program using st-flash utility
 flash: $(BINARY).hex
 	@echo "  FLASH   $<"
-	$(ST_FLASH_PREFIX)st-flash --format ihex write $<
+	$(STFLASH) --format ihex write $<
 
 # Clean
 clean:
