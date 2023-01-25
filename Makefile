@@ -70,6 +70,8 @@ SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_s
 SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
 SRC_FILES += $(VENDOR_ROOT)Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_qspi.c
 
+SRC_BUILD_PREFIX = build/
+
 # Vendor includes
 INCLUDES += -I$(VENDOR_ROOT)Drivers/CMSIS/Core/Include
 INCLUDES += -I$(VENDOR_ROOT)Drivers/CMSIS/Device/ST/STM32F4xx/Include
@@ -83,7 +85,6 @@ CXXFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
 CXXFLAGS += $(INCLUDES)
 
-
 # Linker Flags
 LDFLAGS = -Wl,--gc-sections -Wl,-T$(LDSCRIPT) --specs=rdimon.specs
 LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
@@ -96,38 +97,52 @@ LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 C_SRC_FILES = $(filter %.c, $(SRC_FILES))
 CPP_SRC_FILES = $(filter %.cpp, $(SRC_FILES))
-C_OBJS = $(C_SRC_FILES:.c=.o)
-CPP_OBJS = $(CPP_SRC_FILES:.cpp=.o)
+C_OBJS_WITHOUT_PREFIX = $(C_SRC_FILES:.c=.o)
+C_OBJS = $(C_OBJS_WITHOUT_PREFIX:%=$(SRC_BUILD_PREFIX)/%)
+CPP_OBJS = $($(CPP_SRC_FILES:.cpp=.o):%=$(SRC_BUILD_PREFIX)/%)
 CXX_OBJS = $(C_OBJS) $(CPP_OBJS)
-ASM_OBJS = $(ASM_FILES:.s=.o)
+ASM_OBJS_WITHOUT_PREFIX = $(ASM_FILES:.s=.o)
+ASM_OBJS = $(ASM_OBJS_WITHOUT_PREFIX:%=$(SRC_BUILD_PREFIX)/%)
 ALL_OBJS = $(ASM_OBJS) $(CXX_OBJS)
 
-.PRECIOUS: %.o	# Avoid deleting intermediate .o files at the end of make (see https://stackoverflow.com/questions/42830131/an-unexpected-rm-occur-after-make)
+.PRECIOUS: $(SRC_BUILD_PREFIX)/%.o	# Avoid deleting intermediate .o files at the end of make (see https://stackoverflow.com/questions/42830131/an-unexpected-rm-occur-after-make)
 
 .PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
 
-all: elf
+all: sanity elf
 
-elf: $(BINARY).elf
-bin: $(BINARY).bin
-hex: $(BINARY).hex
-srec: $(BINARY).srec
-list: $(BINARY).list
-GENERATED_BINARIES=$(BINARY).elf $(BINARY).bin $(BINARY).hex $(BINARY).srec $(BINARY).list $(BINARY).map
+elf: $(SRC_BUILD_PREFIX)/$(BINARY).elf
+bin: $(SRC_BUILD_PREFIX)/$(BINARY).bin
+hex: $(SRC_BUILD_PREFIX)/$(BINARY).hex
+srec: $(SRC_BUILD_PREFIX)/$(BINARY).srec
+list: $(SRC_BUILD_PREFIX)/$(BINARY).list
+map: $(SRC_BUILD_PREFIX)/$(BINARY).map
+
+GENERATED_BINARIES=$(SRC_BUILD_PREFIX)/$(BINARY).elf \
+	$(SRC_BUILD_PREFIX)/$(BINARY).bin \
+	$(SRC_BUILD_PREFIX)/$(BINARY).hex \
+	$(SRC_BUILD_PREFIX)/$(BINARY).srec \
+	$(SRC_BUILD_PREFIX)/$(BINARY).list \
+	$(SRC_BUILD_PREFIX)/$(BINARY).map
+
+sanity:
 
 # Compile
 
-%.o: %.s
+$(SRC_BUILD_PREFIX)/%.o: %.s
 	@echo "  CC      $(*).s"
-	$(Q)$(CC) $(CFLAGS) -o $(*).o -c $(*).s
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: %.c
+$(SRC_BUILD_PREFIX)/%.o: %.c
 	@echo "  CC      $(*).c"
-	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(*).o -c $(*).c
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $@ -c $<
 
-%.o: %.cpp
+$(SRC_BUILD_PREFIX)/%.o: %.cpp
 	@echo "  CXX     $(*).cpp"
-	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(*).o -c $(*).cpp
+	@mkdir -p $(dir $@)
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $@ -c $<
 
 # Link
 %.elf: $(ALL_OBJS) $(LDSCRIPT)
@@ -149,7 +164,7 @@ flash: $(BINARY).hex
 
 # Clean
 clean:
-	rm -f $(ALL_OBJS) $(TARGET)
+	@rm -f $(ALL_OBJS) $(GENERATED_BINARIES) $(TEST_BINARY)
 
 # Debug
 gdb-server_stlink:
