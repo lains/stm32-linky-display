@@ -14,17 +14,16 @@ VENDOR_ROOT = ./bsp/STM32CubeF4/
 
 ###############################################################################
 
-BINARY=stm32-linky
-TEST_BINARY = test_runner
+BINARY = stm32-linky
 
 # User-defined makefile function
 # path_simplify removes ./ prefixes, /./ and // occurrences in a path
 path_simplify = $(subst //,/,$(subst /./,/,$(1:./%=%)))
 
-# Project specific
+# Project specific path
 SRC_DIR = src/
-TEST_SRC_DIR = test/src/
 INC_DIR = inc/
+TEST_DIR = tests/
 
 # Toolchain
 CROSS_CC        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gcc
@@ -39,16 +38,13 @@ STFLASH         := $(shell which st-flash)
 
 DB = $(TOOLCHAIN_ROOT)arm-none-eabi-gdb
 
-# Project target build dir
+# Project target build dirs
 SRC_BUILD_PREFIX = build/
 
 # Own project sources
 SRC_FILES = $(shell find $(SRC_DIR) -name '*.c' -o -name '*.cpp')
 ASM_FILES = $(shell find $(SRC_DIR) -name '*.s')
 LDSCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
-
-# Own projet unit test sources
-TEST_SRCS_FILES += $(shell find $(SRC_DIR) -name '*.c' -o -name '*.cpp')
 
 # Project includes
 INCLUDES_FILES   = $(INC_DIR)
@@ -121,7 +117,6 @@ ALL_OBJS_FILES_TO_SIMPLIFY = $(addprefix $(SRC_BUILD_PREFIX)/,$(ALL_OBJS_WITHOUT
 ALL_OBJS_SIMPLIFIED = $(call path_simplify,$(ALL_OBJS_FILES_TO_SIMPLIFY))
 ALL_OBJS = $(ALL_OBJS_SIMPLIFIED)
 
-
 .PRECIOUS: $(SRC_BUILD_PREFIX)/%.o	# Avoid deleting intermediate .o files at the end of make (see https://stackoverflow.com/questions/42830131/an-unexpected-rm-occur-after-make)
 
 .PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
@@ -144,8 +139,7 @@ GENERATED_BINARIES=$(SRC_BUILD_PREFIX)/$(BINARY).elf \
 
 sanity:
 
-# Compile
-
+# Cross-compilation targets
 $(SRC_BUILD_PREFIX)/%.o: %.s
 	@echo "  CC      $(call path_simplify,$(*)).s"
 	@mkdir -p $(dir $@)
