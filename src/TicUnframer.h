@@ -9,9 +9,9 @@ public:
     typedef std::function<void (const uint8_t* buf, size_t cnt)> FFrameParserFunc;
 
 /* Constants */
-    static const uint8_t TIC_STX = 0x02;
-    static const uint8_t TIC_ETX = 0x03;
-
+    static constexpr uint8_t TIC_STX = 0x02;
+    static constexpr uint8_t TIC_ETX = 0x03;
+    static constexpr size_t MAX_FRAME_SIZE = 512; /* Make acceptable TIC frame payload size (excluding STX and ETX markers) */
 /* Methods */
     TICUnframer(FFrameParserFunc onFrameComplete);
 
@@ -22,7 +22,7 @@ public:
      * @param len The number of bytes to read from @p buffer
      * @return size_t The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
      */
-    size_t pushBytes(uint8_t* buffer, size_t len);
+    size_t pushBytes(const uint8_t* buffer, size_t len);
 
     bool isInSync();
 
@@ -31,7 +31,7 @@ private:
 
 /* Attributes */
     bool sync;
-    uint8_t currentFrame[256];
+    uint8_t currentFrame[MAX_FRAME_SIZE];
     unsigned int nextWriteInCurrentFrame;
     FFrameParserFunc onFrameComplete;
 };

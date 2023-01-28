@@ -7,7 +7,12 @@ onFrameComplete(onFrameComplete) {
     memset(currentFrame, 0, sizeof(currentFrame));
 }
 
-size_t TICUnframer::pushBytes(uint8_t* buffer, size_t len) {
+/* TODO: check result implementation using either:
+https://github.com/oktal/result
+Or (seems better) https://github.com/bitwizeshift/result */
+
+
+size_t TICUnframer::pushBytes(const uint8_t* buffer, size_t len) {
     size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of frame */
         uint8_t* firstStx = (uint8_t*)(memchr(buffer, TICUnframer::TIC_STX, len));
@@ -34,10 +39,10 @@ size_t TICUnframer::pushBytes(uint8_t* buffer, size_t len) {
             usedBytes = this->pushBytes(buffer, leadingBytesInPreviousFrame); /* Copy the buffer up to (but exclusing the ETX marker) */
             this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame);
             this->nextWriteInCurrentFrame = 0; /* Wipe any data in the current frame, start over */
-            if (leadingBytesInPreviousFrame < len) { /* We have at least one byte after ETX */
-                leadingBytesInPreviousFrame++; /* Skip the ETX marker */
-                usedBytes++;
-                this->sync = false; /* Consider we are outside of a frame now */
+            leadingBytesInPreviousFrame++; /* Skip the ETX marker */
+            usedBytes++;
+            this->sync = false; /* Consider we are outside of a frame now */
+            if (leadingBytesInPreviousFrame < len) { /* We have at least one byte after the frame ETX */
                 usedBytes += this->pushBytes(buffer + leadingBytesInPreviousFrame, len - leadingBytesInPreviousFrame); /* Process the trailing bytes (probably the next frame, starting with STX) */
             }
         }
@@ -45,7 +50,7 @@ size_t TICUnframer::pushBytes(uint8_t* buffer, size_t len) {
             size_t maxCopy = this->getFreeBytes();
             size_t szCopy = len;
             if (szCopy > maxCopy) {  /* currentFrame overflow */
-                szCopy = maxCopy;
+                szCopy = maxCopy; /* FIXME: Error case */
             }
             memcpy(this->currentFrame + nextWriteInCurrentFrame, buffer, szCopy);
             nextWriteInCurrentFrame += szCopy;
@@ -60,5 +65,5 @@ bool TICUnframer::isInSync() {
 }
 
 size_t TICUnframer::getFreeBytes() {
-    return sizeof(currentFrame) - nextWriteInCurrentFrame;
+    return MAX_FRAME_SIZE - nextWriteInCurrentFrame;
 }
