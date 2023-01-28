@@ -86,6 +86,10 @@ $(TEST_BUILD_OBJ_PREFIX)src/TicUnframer_tests.o: src/TicUnframer_tests.cpp
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
+$(TEST_BUILD_OBJ_PREFIX)src/FixedSizeRingBuffer_tests.o: src/FixedSizeRingBuffer_tests.cpp
+	@mkdir -p $(dir $@)
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
+
 $(TEST_BUILD_OBJ_PREFIX)src/main.o: src/main.cpp
 	mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<

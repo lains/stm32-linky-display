@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef> // For std::size_t
+#include <string.h> // For memset()
 
 /* T is the type of stored items and N is the number of items */
 template <class T, int N>
