@@ -37,7 +37,7 @@ INCLUDES_FILES_SIMPLIFIED = $(call path_simplify,$(INCLUDES_FILES_TO_SIMPLIFY))
 INCLUDES += $(INCLUDES_FILES_SIMPLIFIED:%=-I%)
 
 # Compiler Flags
-CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter
+CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter -Weffc++
 CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
 CXXFLAGS += $(INCLUDES)
 
