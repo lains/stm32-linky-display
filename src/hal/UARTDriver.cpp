@@ -1,3 +1,4 @@
+#include "UARTDriver.h"
 /* Includes ------------------------------------------------------------------*/
 extern "C" {
 #include "main.h"
@@ -12,16 +13,9 @@ static uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-
 static unsigned char TIC_rxBuffer[256];
 static unsigned int TIC_rxBufferLen = 0;
 
-/* Private function prototypes -----------------------------------------------*/
-extern "C" {
-void MX_USART6_UART_Init(void);
-}
-
-/* Private functions ---------------------------------------------------------*/
-
 extern "C" {
 
-void MX_USART6_UART_Init(void) {
+static void MX_USART6_UART_Init(void) {
   huart6.Instance = USART6;
   huart6.Init.BaudRate = 9600;
   huart6.Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
@@ -115,6 +109,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     BSP_LED_Toggle(LED2);
     HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
 }
+} // extern "C"
 
 void write_byte_as_hex(unsigned char byte) {
   char msg[]="0x@@";
@@ -130,11 +125,9 @@ void write_byte_as_hex(unsigned char byte) {
 }
 
 void TIC_UART_Init() {
-  memset(TIC_rxBuffer, 0, sizeof(TIC_rxBuffer));
+    memset(TIC_rxBuffer, 0, sizeof(TIC_rxBuffer));
     /* Initialize the USART for TIC */
-  MX_USART6_UART_Init();
+    MX_USART6_UART_Init();
 
-  HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
+    HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
 }
-
-} // extern C

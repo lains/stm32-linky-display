@@ -1,12 +1,11 @@
 /* Includes ------------------------------------------------------------------*/
+#include "UARTDriver.h"
+
 extern "C" {
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
 
-void MX_USART6_UART_Init(void); /* Implemented in UARTDrivers.cpp */
-void write_byte_as_hex(unsigned char byte);  /* Implemented in UARTDrivers.cpp */
-void TIC_UART_Init(void); /* Implemented in UARTDrivers.cpp */
 static void SystemClock_Config(void); /* Defined below */
 static uint8_t LCD_Init(void); /* Defined below */
 static void LTDC_Init(void); /* Defined below */
