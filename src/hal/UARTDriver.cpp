@@ -34,10 +34,9 @@ static void MX_USART6_UART_Init(UART_HandleTypeDef* huart) {
     huart->Init.Parity = UART_PARITY_EVEN;
     huart->Init.Mode = UART_MODE_TX_RX;
     huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-/*    if (HAL_UART_DeInit(huart) != HAL_OK)
-    {
-        OnError_Handler(1);
-    }*/
+    // if (HAL_UART_DeInit(huart) != HAL_OK) {
+    //     OnError_Handler(1);
+    // }
     if (HAL_UART_Init(huart) != HAL_OK) {
 	      OnError_Handler(1);
     }
@@ -47,11 +46,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
-    if(huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) {
+    if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) {
         return;
     }
 
-    if(huart->Instance==USART6) {
+    if (huart->Instance==USART6) {
         USART6_TX_GPIO_CLK_ENABLE();
         USART6_RX_GPIO_CLK_ENABLE();
 
@@ -81,8 +80,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
 
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     /*##-1- Reset peripherals ##################################################*/
-    if(huart->Instance==USART6)
-    {
+    if (huart->Instance==USART6) {
         /* Peripheral clock disable */
         USART6_FORCE_RESET();
         USART6_RELEASE_RESET();
@@ -154,4 +152,4 @@ extern "C" {
 UART_HandleTypeDef* get_huart6() {
     return getTicUartHandle();
 }
-}
+} // extern "C"
