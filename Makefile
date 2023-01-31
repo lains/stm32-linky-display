@@ -160,22 +160,22 @@ $(SRC_BUILD_PREFIX)/%.elf: $(ALL_OBJS_FILES_TO_SIMPLIFY) $(LDSCRIPT)
 	@mkdir -p $(dir $@)
 	$(Q)$(CROSS_CC) $(CXXFLAGS) $(LDFLAGS) $(ALL_OBJS) $(LDLIBS) -o $(call path_simplify,$(@))
 
-$(SRC_BUILD_PREFIX)/%.bin: %.elf
+$(SRC_BUILD_PREFIX)/%.bin: $(SRC_BUILD_PREFIX)/%.elf
 	@echo "  OBJCOPY $(*).bin"
 	@mkdir -p $(dir $@)
-	$(Q)$(CROSS_OBJCOPY) -Obinary $(*).elf $(*).bin
+	$(Q)$(CROSS_OBJCOPY) -Obinary $< $@
 
-$(SRC_BUILD_PREFIX)/%.hex: %.elf
+$(SRC_BUILD_PREFIX)/%.hex: $(SRC_BUILD_PREFIX)/%.elf
 	@echo "  OBJCOPY $(*).hex"
 	@mkdir -p $(dir $@)
-	$(Q)$(CROSS_OBJCOPY) -Oihex $(*).elf $(*).hex
+	$(Q)$(CROSS_OBJCOPY) -Oihex $< $@
 
 # Unit tests
 check:
 	$(MAKE) -C tests/ check
 
 # Program using st-flash utility
-flash: $(BINARY).hex
+flash: $(SRC_BUILD_PREFIX)/$(BINARY).hex
 	@echo "  FLASH   $<"
 	$(STFLASH) --format ihex write $<
 

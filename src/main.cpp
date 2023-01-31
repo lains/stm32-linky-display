@@ -1,4 +1,5 @@
 /* Includes ------------------------------------------------------------------*/
+extern "C" {
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@ extern LTDC_HandleTypeDef hltdc_eval;
 static DMA2D_HandleTypeDef           hdma2d;
 extern DSI_HandleTypeDef hdsi_eval;
 UART_HandleTypeDef huart6;
+}
 
 /* Private define ------------------------------------------------------------*/
 const unsigned int LCDWidth = 800;
@@ -44,27 +46,28 @@ static __IO LCD_Display_Update_State display_state = SwitchToDraftIsPending;
   life_augmented_argb8888,  
 };*/
 
-static void* const draft_fb_address = (void *)LCD_FB_START_ADDRESS;
-static void* const final_fb_address = draft_fb_address + LCDWidth*LCDHeight*BytesPerPixel;
+extern "C" {
+  static void* const draft_fb_address = (void *)LCD_FB_START_ADDRESS;
+  static void* const final_fb_address = draft_fb_address + LCDWidth*LCDHeight*BytesPerPixel; //(void *)(LCD_FB_START_ADDRESS + LCDWidth*LCDHeight*BytesPerPixel);
+}
 
 static uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
 static unsigned char TIC_rxBuffer[256];
 static unsigned int TIC_rxBufferLen = 0;
 
 /* Private function prototypes -----------------------------------------------*/
+extern "C" {
 static void SystemClock_Config(void);
 static void OnError_Handler(uint32_t condition);
-static void copy_framebuffer(const uint32_t* pSrc,
-                           uint32_t* pDst,
-                           uint16_t x, 
-                           uint16_t y, 
-                           uint16_t xsize, 
-                           uint16_t ysize);
+static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
 static uint8_t LCD_Init(void);
 void LTDC_Init(void);
 static void MX_USART6_UART_Init(void);
+}
 
 /* Private functions ---------------------------------------------------------*/
+
+extern "C" {
 
 static void MX_USART6_UART_Init(void)
 {
@@ -106,7 +109,8 @@ static void Error_Handler()
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
  {
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitTypeDef GPIO_InitStruct;
+  memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
     if(huart->Instance!=USART6 /*&& huart->Instance!=USART3*/)
     {
@@ -181,6 +185,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     BSP_LED_Toggle(LED2);
     HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
 }
+} // extern C
 
 // void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) { }
 
@@ -263,7 +268,7 @@ int main(void)
 
   while (display_state==SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
-  copy_framebuffer(draft_fb_address, final_fb_address, 0, 0, LCDWidth, LCDHeight);
+  copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
   display_state = SwitchToFinalIsPending;
 
   HAL_DSI_Refresh(&hdsi_eval);
@@ -301,7 +306,7 @@ int main(void)
 
       while (display_state==SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
-      copy_framebuffer(draft_fb_address, final_fb_address, 0, 0, LCDWidth, LCDHeight);
+      copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
 
       display_state = SwitchToFinalIsPending;	/* Now we have copied the content to display to final framebuffer, we can perform the switch */
 
@@ -321,6 +326,8 @@ void set_active_fb_addr(void* fb) {
     /* Enable DSI Wrapper */
     __HAL_DSI_WRAPPER_ENABLE(&hdsi_eval);
 }
+
+extern "C" {
 /**
   * @brief  End of Refresh DSI callback.
   * @param  hdsi: pointer to a DSI_HandleTypeDef structure that contains
@@ -586,7 +593,9 @@ void LTDC_Init(void)
 
   HAL_LTDC_Init(&hltdc_eval);
 }
+}
 
+extern "C" {
 /**
   * @brief  Converts a line to an ARGB8888 pixel format.
   * @param  pSrc: Pointer to source buffer
@@ -597,7 +606,8 @@ void LTDC_Init(void)
   */
 static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize)
 {   
-  
+  //const uint32_t* pSrc = static_cast<const uint32_t*>(src);
+  //uint32_t* pDst = static_cast<uint32_t*>(dst);
   uint32_t destination = (uint32_t)pDst + (y * LCDWidth + x) * 4;
   uint32_t source      = (uint32_t)pSrc;
   
@@ -629,6 +639,7 @@ static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, u
       }
     }
   }   
+}
 }
 #ifdef  USE_FULL_ASSERT
 
