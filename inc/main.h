@@ -52,5 +52,7 @@
 /* Exported functions ------------------------------------------------------- */
 void Toggle_Leds(void);
 
+void Error_Handler(void);
+void OnError_Handler(uint32_t condition);
 
 #endif /* __MAIN_H */
