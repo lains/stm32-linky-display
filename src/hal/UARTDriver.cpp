@@ -1,8 +1,24 @@
 #include "UARTDriver.h"
-/* Includes ------------------------------------------------------------------*/
 extern "C" {
 #include "main.h"
-} // Extern "C"
+}
+
+/* Definition for USARTx HAL functions */
+#define USART6_CLK_ENABLE()              __HAL_RCC_USART6_CLK_ENABLE()
+#define USART6_CLK_DISABLE()             __HAL_RCC_USART6_CLK_DISABLE()
+#define USART6_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOC_CLK_ENABLE()
+#define USART6_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOC_CLK_ENABLE()
+
+#define USART6_FORCE_RESET()             __HAL_RCC_USART6_FORCE_RESET()
+#define USART6_RELEASE_RESET()           __HAL_RCC_USART6_RELEASE_RESET()
+
+/* Definition for USARTx Pins */
+#define USART6_TX_PIN                    GPIO_PIN_6
+#define USART6_TX_GPIO_PORT              GPIOC
+#define USART6_TX_AF                     GPIO_AF8_USART6
+#define USART6_RX_PIN                    GPIO_PIN_7
+#define USART6_RX_GPIO_PORT              GPIOC
+#define USART6_RX_AF                     GPIO_AF8_USART6
 
 static uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
 static unsigned char TIC_rxBuffer[256];
@@ -84,7 +100,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     }
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     unsigned char Received_Data = UART6_rxBuffer[0];
 
