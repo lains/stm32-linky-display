@@ -114,10 +114,21 @@ void write_byte_as_hex(unsigned char byte) {
     }
 }
 
-void TIC_UART_Init() {
-    memset(TIC_rxBuffer, 0, sizeof(TIC_rxBuffer));
-    /* Initialize the USART for TIC */
-    MX_USART6_UART_Init();
+TICUart TICUart::instance=TICUart();
 
+TICUart::TICUart() : TIC_rxBufferLen(0) {
+    memset(this->TIC_rxBuffer, 0, sizeof(this->TIC_rxBuffer));
+}
+
+TICUart::~TICUart() {
+}
+
+void TICUart::start() {
+    MX_USART6_UART_Init();
     HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
+}
+
+TICUart& TICUart::get()
+{
+    return TICUart::instance;
 }

@@ -120,7 +120,9 @@ int main(void)
   BSP_SDRAM_Init();
   //BSP_SD_Init();
   
-  TIC_UART_Init();
+  TICUart& ticUart = TICUart::get();
+
+  ticUart.start();
 
   //BSP_TS_Init(800,480);
   /* Initialize the LCD   */
