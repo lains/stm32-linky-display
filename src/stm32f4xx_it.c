@@ -31,13 +31,13 @@
   */
 
 /* Private typedef -----------------------------------------------------------*/
-extern UART_HandleTypeDef huart6;
 extern LTDC_HandleTypeDef hltdc_eval;   
 extern DSI_HandleTypeDef hdsi_eval;
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
+extern UART_HandleTypeDef* get_huart6(void);
 /* Private functions ---------------------------------------------------------*/
 
 /******************************************************************************/
@@ -154,7 +154,8 @@ void SysTick_Handler(void)
   */
 void USART6_IRQHandler(void)
 {
-  HAL_UART_IRQHandler(&huart6);
+  UART_HandleTypeDef* huart6_ptr = get_huart6();
+  HAL_UART_IRQHandler(huart6_ptr);
 }
 
 /**

@@ -2,9 +2,6 @@
 /* Includes ------------------------------------------------------------------*/
 extern "C" {
 #include "main.h"
-
-/* Private typedef -----------------------------------------------------------*/
-UART_HandleTypeDef huart6;
 } // Extern "C"
 
 static uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
@@ -13,19 +10,19 @@ static unsigned int TIC_rxBufferLen = 0;
 
 extern "C" {
 
-static void MX_USART6_UART_Init(void) {
-    huart6.Instance = USART6;
-    huart6.Init.BaudRate = 9600;
-    huart6.Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
-    huart6.Init.StopBits = UART_STOPBITS_1;
-    huart6.Init.Parity = UART_PARITY_EVEN;
-    huart6.Init.Mode = UART_MODE_TX_RX;
-    huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-/*    if (HAL_UART_DeInit(&huart6) != HAL_OK)
+static void MX_USART6_UART_Init(UART_HandleTypeDef* huart) {
+    huart->Instance = USART6;
+    huart->Init.BaudRate = 9600;
+    huart->Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
+    huart->Init.StopBits = UART_STOPBITS_1;
+    huart->Init.Parity = UART_PARITY_EVEN;
+    huart->Init.Mode = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+/*    if (HAL_UART_DeInit(huart) != HAL_OK)
     {
         OnError_Handler(1);
     }*/
-    if (HAL_UART_Init(&huart6) != HAL_OK) {
+    if (HAL_UART_Init(huart) != HAL_OK) {
 	      OnError_Handler(1);
     }
 }
@@ -98,37 +95,47 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
 
     BSP_LED_Toggle(LED2);
-    HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
+    HAL_UART_Receive_IT(huart, UART6_rxBuffer, 1);
 }
 } // extern "C"
 
-void write_byte_as_hex(unsigned char byte) {
+TICUart::TICUart() : TIC_rxBufferLen(0) {
+    memset(this->TIC_rxBuffer, 0, sizeof(this->TIC_rxBuffer));
+}
+
+TICUart TICUart::instance=TICUart();
+
+
+TICUart::~TICUart() {
+}
+
+TICUart& TICUart::get() {
+    return TICUart::instance;
+}
+
+void TICUart::start() {
+    MX_USART6_UART_Init(&(this->huart));
+    HAL_UART_Receive_IT(&(this->huart), UART6_rxBuffer, 1);
+}
+
+void TICUart::writeByteHexdump(unsigned char byte) {
     char msg[]="0x@@";
     unsigned char nibble;
     nibble = ((byte >> 4) & 0xf);
     msg[2]=(nibble<=9)?'0'+nibble:nibble-10+'a';
     nibble = (byte & 0xf);
     msg[3]=(nibble<=9)?'0'+nibble:nibble-10+'a';
-    if (HAL_UART_Transmit(&huart6, (uint8_t*)msg, (uint16_t)strlen(msg), 500)!= HAL_OK) {
+    if (HAL_UART_Transmit(&(this->huart), (uint8_t*)msg, (uint16_t)strlen(msg), 500)!= HAL_OK) {
         Error_Handler();
     }
 }
 
-TICUart TICUart::instance=TICUart();
-
-TICUart::TICUart() : TIC_rxBufferLen(0) {
-    memset(this->TIC_rxBuffer, 0, sizeof(this->TIC_rxBuffer));
+UART_HandleTypeDef* getTicUartHandle() {
+    return &(TICUart::get().huart);
 }
 
-TICUart::~TICUart() {
+extern "C" {
+UART_HandleTypeDef* get_huart6() {
+    return getTicUartHandle();
 }
-
-void TICUart::start() {
-    MX_USART6_UART_Init();
-    HAL_UART_Receive_IT(&huart6, UART6_rxBuffer, 1);
-}
-
-TICUart& TICUart::get()
-{
-    return TICUart::instance;
 }
