@@ -54,7 +54,7 @@ static __IO LCD_Display_Update_State display_state = SwitchToDraftIsPending;
 
 extern "C" {
   static void* const draft_fb_address = (void *)LCD_FB_START_ADDRESS;
-  static void* const final_fb_address = draft_fb_address + LCDWidth*LCDHeight*BytesPerPixel; //(void *)(LCD_FB_START_ADDRESS + LCDWidth*LCDHeight*BytesPerPixel);
+  static void* const final_fb_address = (void *)((uint8_t*)draft_fb_address + LCDWidth*LCDHeight*BytesPerPixel);
 }
 
 /**
