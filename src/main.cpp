@@ -148,11 +148,7 @@ int main(void)
 
   HAL_DSI_Refresh(&hdsi_eval);
 
-  //char msg1[]="Buffers created. Starting...\r\n";
-  //if (HAL_UART_Transmit(&huart3, (uint8_t*)msg1, (uint16_t)strlen(msg1), 500)!= HAL_OK)
-  //{
-  //  Error_Handler();
-  //}
+  ticUart.print("Buffers created. Starting...\r\n");
 
   //set_active_fb_addr(final_fb_address);	/* Draw the copy on the LCD, not the pending one */
 

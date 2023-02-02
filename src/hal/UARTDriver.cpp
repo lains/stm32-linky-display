@@ -21,8 +21,7 @@ extern "C" {
 #define USART6_RX_AF                     GPIO_AF8_USART6
 
 static uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
-static unsigned char TIC_rxBuffer[256];
-static unsigned int TIC_rxBufferLen = 0;
+static void onTicUartRx(uint8_t incomingByte);
 
 extern "C" {
 
@@ -98,18 +97,18 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     }
 }
 
+inline void UART6_Enable_interrupt_callback(UART_HandleTypeDef* huart) {
+    HAL_UART_Receive_IT(huart, UART6_rxBuffer, 1);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
-    unsigned char Received_Data = UART6_rxBuffer[0];
-
-    TIC_rxBuffer[TIC_rxBufferLen] = Received_Data;
-    TIC_rxBufferLen++;
-    if (TIC_rxBufferLen>=sizeof(TIC_rxBuffer)) {
-        TIC_rxBufferLen=0;	/* FIXME: Wrap around in case of buffer overflow */
+    if (huart->Instance==USART6) {
+        unsigned char Received_Data = UART6_rxBuffer[0];
+        onTicUartRx((uint8_t)Received_Data);
+        BSP_LED_Toggle(LED2);
+        UART6_Enable_interrupt_callback(huart);
     }
-
-    BSP_LED_Toggle(LED2);
-    HAL_UART_Receive_IT(huart, UART6_rxBuffer, 1);
 }
 } // extern "C"
 
@@ -129,7 +128,15 @@ TICUart& TICUart::get() {
 
 void TICUart::start() {
     MX_USART6_UART_Init(&(this->huart));
-    HAL_UART_Receive_IT(&(this->huart), UART6_rxBuffer, 1);
+    UART6_Enable_interrupt_callback(&(this->huart));
+}
+
+void TICUart::onRx(uint8_t incomingByte) {
+    this->TIC_rxBuffer[this->TIC_rxBufferLen] = incomingByte;
+    this->TIC_rxBufferLen++;
+    if (this->TIC_rxBufferLen>=sizeof(this->TIC_rxBuffer)) {
+        this->TIC_rxBufferLen = 0;	/* FIXME: Wrap around in case of buffer overflow */
+    }
 }
 
 void TICUart::writeByteHexdump(unsigned char byte) {
@@ -144,8 +151,18 @@ void TICUart::writeByteHexdump(unsigned char byte) {
     }
 }
 
+void TICUart::print(const char *str) {
+    if (HAL_UART_Transmit(&(this->huart), (uint8_t*)str, (uint16_t)strlen(str), 500)!= HAL_OK) {
+        Error_Handler();
+    }
+}
+
 UART_HandleTypeDef* getTicUartHandle() {
     return &(TICUart::get().huart);
+}
+
+void onTicUartRx(uint8_t incomingByte) {
+    TICUart::get().onRx(incomingByte);
 }
 
 extern "C" {

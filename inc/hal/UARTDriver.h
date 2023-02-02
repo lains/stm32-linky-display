@@ -13,6 +13,8 @@ public:
     static TICUart& get();
     void start();
     void writeByteHexdump(unsigned char byte);
+    void print(const char *str) ;
+    void onRx(uint8_t incomingByte);
 
     friend UART_HandleTypeDef* getTicUartHandle();
 
