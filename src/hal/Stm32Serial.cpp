@@ -106,13 +106,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
     if (huart->Instance==USART6) {
         unsigned char Received_Data = UART6_rxBuffer[0];
         onTicUartRx((uint8_t)Received_Data);
-        BSP_LED_Toggle(LED2);
+        BSP_LED_Toggle(LED3); // Toggle the orange LED when new serial data is received on the TIC UART
         UART6_Enable_interrupt_callback(huart);
     }
 }
 } // extern "C"
 
-Stm32Serial::Stm32Serial() : serialRxBufferLen(0) {
+Stm32Serial::Stm32Serial() :
+serialRxBufferLen(0),
+serialRxBufferOverflowed(false) {
     memset(this->serialRxBuffer, 0, sizeof(this->serialRxBuffer));
 }
 
@@ -131,10 +133,24 @@ void Stm32Serial::start() {
     UART6_Enable_interrupt_callback(&(this->huart));
 }
 
+void Stm32Serial::resetRxOverflowFlag() {
+    this->serialRxBufferOverflowed = false;
+}
+
+bool Stm32Serial::getRxOverflowFlag(bool reset) {
+    // FIXME race condition with interrupt handler here
+    bool result = this->serialRxBufferOverflowed;
+    if (reset) {
+        this->resetRxOverflowFlag();
+    }
+    return result;
+}
+
 void Stm32Serial::onRx(uint8_t incomingByte) {
     this->serialRxBuffer[this->serialRxBufferLen] = incomingByte;
     this->serialRxBufferLen++;
-    if (this->serialRxBufferLen>=sizeof(this->serialRxBuffer)) {
+    if (this->serialRxBufferLen >= sizeof(this->serialRxBuffer)) {
+        this->serialRxBufferOverflowed = true;
         this->serialRxBufferLen = 0;	/* FIXME: Wrap around in case of buffer overflow */
     }
 }

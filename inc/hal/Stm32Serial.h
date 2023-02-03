@@ -29,6 +29,19 @@ public:
     void start();
 
     /**
+     * @brief Reset the reception buffer overflow flag
+     */
+    void resetRxOverflowFlag();
+
+    /**
+     * @brief Get the reception buffer overflow flag
+     * 
+     * @param reset Shall we reset the overflow flag once returned?
+     * @return true is there was an internal reception buffer overflow since the last reset of this flag (incoming data bytes have been lost)
+     */
+    bool getRxOverflowFlag(bool reset = false);
+
+    /**
      * @brief Write the human-readable hexadecimal value of a data byte to the serial link (formatted as ASCII)
      * 
      * @param byte The byte to dump
@@ -77,6 +90,7 @@ private:
     static Stm32Serial instance;    /*!< Lazy singleton instance */
     unsigned char serialRxBuffer[256];    /*!< Internal serial reception buffer */
     unsigned int serialRxBufferLen;   /*!< Length of valid data bytes in the above buffer */
+    bool serialRxBufferOverflowed;  /*!< Did the serial reception buffer overflow since last reset */
     UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
 };
 
