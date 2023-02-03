@@ -2,9 +2,10 @@
 
 
 
-TICUnframer::TICUnframer(FFrameParserFunc onFrameComplete) :
+TICUnframer::TICUnframer(FFrameParserFunc onFrameComplete, void* onFrameCompleteContext) :
 sync(false),
 onFrameComplete(onFrameComplete),
+onFrameCompleteContext(onFrameCompleteContext),
 frameSizeHistory(),
 nextWriteInCurrentFrame(0) {
     memset(this->currentFrame, 0, MAX_FRAME_SIZE);
@@ -65,7 +66,7 @@ std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
 
 void TICUnframer::processCurrentFrame() {
     this->recordFrameSize(this->nextWriteInCurrentFrame);
-    this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame);
+    this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame, this->onFrameCompleteContext);
 }
 
 bool TICUnframer::isInSync() {

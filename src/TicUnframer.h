@@ -2,13 +2,13 @@
 #include <cstddef> // For std::size_t
 #include <stdint.h>
 #include <string.h> // For memset()
-#include <functional>
 #include "FixedSizeRingBuffer.h"
 
+/* Use catch2 framework for unit testing? https://github.com/catchorg/Catch2 */
 class TICUnframer {
 public:
 /* Types */
-    typedef std::function<void (const uint8_t* buf, std::size_t cnt)> FFrameParserFunc;
+    typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context) ;
 
 /* Constants */
     static constexpr uint8_t TIC_STX = 0x02;
@@ -17,7 +17,17 @@ public:
     static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 
 /* Methods */
-    TICUnframer(FFrameParserFunc onFrameComplete);
+    /**
+     * @brief Construct a new TICUnframer object
+     * 
+     * @param onFrameComplete A FFrameParserFunc function to invoke for each full TIC frame received
+     * @param onFrameCompleteContext A user-defined pointer that will be passed as last argument when invoking onFrameComplete()
+     * 
+     * @note We are using C-style function pointers here (with data-encapsulation via a context pointer)
+     *       This is because we don't have 100% guarantee that exceptions are allowed (especially on embedded targets) and using std::function requires enabling exceptions.
+     *       We can still use non-capturing lambdas as function pointer if needed (see https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer)
+     */
+    TICUnframer(FFrameParserFunc onFrameComplete = nullptr, void* onFrameCompleteContext = nullptr);
 
     /**
      * @brief Take new incoming bytes into account
@@ -39,8 +49,9 @@ private:
 
 /* Attributes */
     bool sync;
-    FFrameParserFunc onFrameComplete;
-    FixedSizeRingBuffer<unsigned int, STATS_NB_FRAMES> frameSizeHistory;
-    unsigned int nextWriteInCurrentFrame;
-    uint8_t currentFrame[MAX_FRAME_SIZE];
+    FFrameParserFunc onFrameComplete; /*!< A function pointer invoked for each full TIC frame received */
+    void* onFrameCompleteContext; /*!< A context pointer passed to onFrameComplete() at invokation */
+    FixedSizeRingBuffer<unsigned int, STATS_NB_FRAMES> frameSizeHistory;  /* A rotating buffer containing the history of received TIC frames sizes */
+    uint8_t currentFrame[MAX_FRAME_SIZE]; /*!< Our internal accumulating buffer */
+    unsigned int nextWriteInCurrentFrame; /*!< The index of the next bytes to receive in buffer currentFrame */
 };

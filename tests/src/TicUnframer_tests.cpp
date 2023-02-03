@@ -48,6 +48,13 @@ public:
 	std::vector<std::vector<uint8_t> > decodedFramesList;
 };
 
+void frameDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
+    if (context == NULL)
+        return; /* Failsafe, discard if no context */
+    FrameDecoderStub* stub = static_cast<FrameDecoderStub*>(context);
+    stub->onDecodeCallback(buf, cnt);
+}
+
 inline std::vector<uint8_t> readVectorFromDisk(const std::string& inputFilename)
 {
 	std::ifstream instream(inputFilename, std::ios::in | std::ios::binary);
@@ -72,9 +79,7 @@ void onFrameDecode(const uint8_t* buf, size_t cnt) {
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
 	uint8_t buffer[] = { TICUnframer::TIC_STX, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, TICUnframer::TIC_ETX };
 	FrameDecoderStub stub;
-	TICUnframer tu([&stub](const uint8_t* buf, size_t cnt) {
-		stub.onDecodeCallback(buf, cnt);
-	} );
+	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(buffer, sizeof(buffer));
 	if (stub.decodedFramesList.size() != 1) {
 		FAILF("Wrong frame count: %ld", stub.decodedFramesList.size());
@@ -89,9 +94,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_marke
 	uint8_t etx_marker = TICUnframer::TIC_ETX;
 	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TICUnframer tu([&stub](const uint8_t* buf, size_t cnt) {
-		stub.onDecodeCallback(buf, cnt);
-	} );
+	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(&stx_marker, 1);
 	tu.pushBytes(buffer, sizeof(buffer));
 	tu.pushBytes(&etx_marker, 1);
@@ -108,9 +111,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes
 	uint8_t etx_marker = TICUnframer::TIC_ETX;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TICUnframer tu([&stub](const uint8_t* buf, size_t cnt) {
-		stub.onDecodeCallback(buf, cnt);
-	} );
+	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(&stx_marker, 1);
 	for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
@@ -136,9 +137,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_256bytes_hal
 	}
 	buffer[sizeof(buffer) - 1] = TICUnframer::TIC_ETX;
 	FrameDecoderStub stub;
-	TICUnframer tu([&stub](const uint8_t* buf, size_t cnt) {
-		stub.onDecodeCallback(buf, cnt);
-	} );
+	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(buffer, sizeof(buffer) / 2);
 	tu.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
 	if (stub.decodedFramesList.size() != 1) {
@@ -154,9 +153,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
 	uint8_t etx_marker = TICUnframer::TIC_ETX;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TICUnframer tu([&stub](const uint8_t* buf, size_t cnt) {
-		stub.onDecodeCallback(buf, cnt);
-	} );
+	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(&stx_marker, 1);
 	for (uint8_t pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
@@ -195,9 +192,7 @@ TEST(TicUnframer_tests, TicUnframer_test_sample_frames_chunked) {
 
 	for (size_t chunkSize = 1; chunkSize <= TICUnframer::MAX_FRAME_SIZE; chunkSize++) {
 		FrameDecoderStub stub;
-		TICUnframer tu([&stub](const uint8_t* buf, size_t cnt) {
-			stub.onDecodeCallback(buf, cnt);
-		} );
+		TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
 
 		TicUnframer_test_file_sent_by_chunks(ticData, TICUnframer::MAX_FRAME_SIZE, tu);
 
