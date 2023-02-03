@@ -1,5 +1,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Stm32Serial.h"
+#include "TicUnframer.h"
 
 extern "C" {
 #include "main.h"
@@ -66,7 +67,7 @@ void OnError_Handler(uint32_t condition)
 {
   if(condition)
   {
-    BSP_LED_On(LED3);
+    BSP_LED_On(LED2);
     while(1) { ; } /* Blocking on error */
   }
 }
@@ -82,6 +83,15 @@ void Error_Handler()
 //void DRV_Com_UART_1_Send(u8* Data, u16 Length) {
 //    HAL_UART_Transmit_IT(&huart6, (uint8_t*)Data, (uint16_t)Length);
 //}
+
+class TicFrameParser {
+public:
+    TicFrameParser() { }
+
+    void parseFrame(const uint8_t* buf, std::size_t cnt) {
+        BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
+    }
+};
 
 /**
   * @brief  Main program
@@ -120,9 +130,9 @@ int main(void)
   BSP_SDRAM_Init();
   //BSP_SD_Init();
   
-  Stm32Serial& ticUart = Stm32Serial::get();
+  Stm32Serial& ticSerial = Stm32Serial::get();
 
-  ticUart.start();
+  ticSerial.start();
 
   //BSP_TS_Init(800,480);
   /* Initialize the LCD   */
@@ -148,7 +158,16 @@ int main(void)
 
   HAL_DSI_Refresh(&hdsi_eval);
 
-  ticUart.print("Buffers created. Starting...\r\n");
+  ticSerial.print("Buffers created. Starting...\r\n");
+
+  TicFrameParser ticParser;
+
+	TICUnframer ticUnframer([](const uint8_t* buf, std::size_t cnt, void* context) {
+    if (context) {  /* Failsafe, do not dereference if no context */
+      TicFrameParser* frameParser = static_cast<TicFrameParser*>(context);
+      frameParser->parseFrame(buf, cnt);
+    }
+  }, (void *)(&ticParser));
 
   //set_active_fb_addr(final_fb_address);	/* Draw the copy on the LCD, not the pending one */
 
@@ -167,9 +186,9 @@ int main(void)
       BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
       BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
       BSP_LCD_DisplayStringAtLine(4, (uint8_t *)count_as_str);
-	  BSP_LED_On(LED1);
-	  HAL_Delay(250);
-	  BSP_LED_Off(LED1);
+	  //BSP_LED_On(LED1);
+	  //HAL_Delay(250);
+	  //BSP_LED_Off(LED1);
 
       display_state = SwitchToDraftIsPending;
 
