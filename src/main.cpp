@@ -1,5 +1,5 @@
 /* Includes ------------------------------------------------------------------*/
-#include "UARTDriver.h"
+#include "Stm32Serial.h"
 
 extern "C" {
 #include "main.h"
@@ -120,7 +120,7 @@ int main(void)
   BSP_SDRAM_Init();
   //BSP_SD_Init();
   
-  TICUart& ticUart = TICUart::get();
+  Stm32Serial& ticUart = Stm32Serial::get();
 
   ticUart.start();
 

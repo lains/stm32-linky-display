@@ -1,4 +1,4 @@
-#include "UARTDriver.h"
+#include "Stm32Serial.h"
 extern "C" {
 #include "main.h"
 }
@@ -112,26 +112,26 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 }
 } // extern "C"
 
-TICUart::TICUart() : TIC_rxBufferLen(0) {
+Stm32Serial::Stm32Serial() : TIC_rxBufferLen(0) {
     memset(this->TIC_rxBuffer, 0, sizeof(this->TIC_rxBuffer));
 }
 
-TICUart TICUart::instance=TICUart();
+Stm32Serial Stm32Serial::instance=Stm32Serial();
 
 
-TICUart::~TICUart() {
+Stm32Serial::~Stm32Serial() {
 }
 
-TICUart& TICUart::get() {
-    return TICUart::instance;
+Stm32Serial& Stm32Serial::get() {
+    return Stm32Serial::instance;
 }
 
-void TICUart::start() {
+void Stm32Serial::start() {
     MX_USART6_UART_Init(&(this->huart));
     UART6_Enable_interrupt_callback(&(this->huart));
 }
 
-void TICUart::onRx(uint8_t incomingByte) {
+void Stm32Serial::onRx(uint8_t incomingByte) {
     this->TIC_rxBuffer[this->TIC_rxBufferLen] = incomingByte;
     this->TIC_rxBufferLen++;
     if (this->TIC_rxBufferLen>=sizeof(this->TIC_rxBuffer)) {
@@ -139,7 +139,7 @@ void TICUart::onRx(uint8_t incomingByte) {
     }
 }
 
-void TICUart::writeByteHexdump(unsigned char byte) {
+void Stm32Serial::writeByteHexdump(unsigned char byte) {
     char msg[]="0x@@";
     unsigned char nibble;
     nibble = ((byte >> 4) & 0xf);
@@ -151,24 +151,24 @@ void TICUart::writeByteHexdump(unsigned char byte) {
     }
 }
 
-void TICUart::print(const char* str) {
+void Stm32Serial::print(const char* str) {
     if (HAL_UART_Transmit(&(this->huart), (uint8_t*)str, (uint16_t)strlen(str), 500)!= HAL_OK) {
         Error_Handler();
     }
 }
 
 #ifdef USE_ALLOCATION
-void TICUart::print(const std::string& str) {
+void Stm32Serial::print(const std::string& str) {
     this->print(str.c_str());
 }
 #endif
 
 UART_HandleTypeDef* getTicUartHandle() {
-    return &(TICUart::get().huart);
+    return &(Stm32Serial::get().huart);
 }
 
 void onTicUartRx(uint8_t incomingByte) {
-    TICUart::get().onRx(incomingByte);
+    Stm32Serial::get().onRx(incomingByte);
 }
 
 extern "C" {

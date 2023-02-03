@@ -14,14 +14,14 @@ UART_HandleTypeDef* get_huart6(void);   // C-linkage exported getter for huart6 
 /**
  * @brief Serial link communication class (singleton)
  */
-class TICUart {
+class Stm32Serial {
 public:
     /**
      * @brief Singleton instance getter
      * 
      * @return The singleton instance of this class
      */
-    static TICUart& get();
+    static Stm32Serial& get();
 
     /**
      * @brief Initialize the serial link and start receiving data from it
@@ -68,13 +68,13 @@ public:
     friend UART_HandleTypeDef* getTicUartHandle();
 
 private:
-    TICUart& operator= (const TICUart&) { return *this; }
-    TICUart(const TICUart&) {}
+    Stm32Serial& operator= (const Stm32Serial&) { return *this; }
+    Stm32Serial(const Stm32Serial&) {}
 
-    TICUart();
-    ~TICUart();
+    Stm32Serial();
+    ~Stm32Serial();
 
-    static TICUart instance;    /*!< Lazy singleton instance */
+    static Stm32Serial instance;    /*!< Lazy singleton instance */
     unsigned char TIC_rxBuffer[256];    /*!< Internal serial reception buffer */
     unsigned int TIC_rxBufferLen;   /*!< Length of valid data bytes in the above buffer */
     UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
