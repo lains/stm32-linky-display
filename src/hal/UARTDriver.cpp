@@ -151,11 +151,17 @@ void TICUart::writeByteHexdump(unsigned char byte) {
     }
 }
 
-void TICUart::print(const char *str) {
+void TICUart::print(const char* str) {
     if (HAL_UART_Transmit(&(this->huart), (uint8_t*)str, (uint16_t)strlen(str), 500)!= HAL_OK) {
         Error_Handler();
     }
 }
+
+#ifdef USE_ALLOCATION
+void TICUart::print(const std::string& str) {
+    this->print(str.c_str());
+}
+#endif
 
 UART_HandleTypeDef* getTicUartHandle() {
     return &(TICUart::get().huart);

@@ -3,19 +3,68 @@
 
 #include "stm32f4xx_hal.h"
 #include <cstdint>
+#ifdef USE_ALLOCATION
+#include <string>
+#endif
 
 extern "C" {
 UART_HandleTypeDef* get_huart6(void);   // C-linkage exported getter for huart6 handler
 }
 
+/**
+ * @brief Serial link communication class (singleton)
+ */
 class TICUart {
 public:
+    /**
+     * @brief Singleton instance getter
+     * 
+     * @return The singleton instance of this class
+     */
     static TICUart& get();
+
+    /**
+     * @brief Initialize the serial link and start receiving data from it
+     */
     void start();
+
+    /**
+     * @brief Write the human-readable hexadecimal value of a data byte to the serial link (formatted as ASCII)
+     * 
+     * @param byte The byte to dump
+     */
     void writeByteHexdump(unsigned char byte);
-    void print(const char *str) ;
+
+    /**
+     * @brief Print a string to the serial link
+     * 
+     * @param str The C-style string to output
+     */
+    void print(const char* str);
+
+#ifdef USE_ALLOCATION
+    /**
+     * @brief Print a string to the serial link
+     * 
+     * @param str The C++ std::string to output
+     */
+    void print(const std::string& str);
+#endif
+
+    /**
+     * @brief Receive one data byte from the serial link
+     * 
+     * This method is to be used as the callback for new data bytes coming in on the serial link
+     * 
+     * @param incomingByte The new data byte
+     */
     void onRx(uint8_t incomingByte);
 
+    /**
+     * @brief Get the low-level serial link handler object
+     * 
+     * @return UART_HandleTypeDef* The STM32 low level UART hanlder
+     */
     friend UART_HandleTypeDef* getTicUartHandle();
 
 private:
@@ -26,10 +75,9 @@ private:
     ~TICUart();
 
     static TICUart instance;    /*!< Lazy singleton instance */
-    uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
-    unsigned char TIC_rxBuffer[256];
-    unsigned int TIC_rxBufferLen;
-    UART_HandleTypeDef huart;  /*!< Internal UART handle */
+    unsigned char TIC_rxBuffer[256];    /*!< Internal serial reception buffer */
+    unsigned int TIC_rxBufferLen;   /*!< Length of valid data bytes in the above buffer */
+    UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
 };
 
 #endif
