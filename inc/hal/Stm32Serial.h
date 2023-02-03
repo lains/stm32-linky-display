@@ -75,8 +75,8 @@ private:
     ~Stm32Serial();
 
     static Stm32Serial instance;    /*!< Lazy singleton instance */
-    unsigned char TIC_rxBuffer[256];    /*!< Internal serial reception buffer */
-    unsigned int TIC_rxBufferLen;   /*!< Length of valid data bytes in the above buffer */
+    unsigned char serialRxBuffer[256];    /*!< Internal serial reception buffer */
+    unsigned int serialRxBufferLen;   /*!< Length of valid data bytes in the above buffer */
     UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
 };
 

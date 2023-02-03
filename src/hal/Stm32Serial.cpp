@@ -112,8 +112,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 }
 } // extern "C"
 
-Stm32Serial::Stm32Serial() : TIC_rxBufferLen(0) {
-    memset(this->TIC_rxBuffer, 0, sizeof(this->TIC_rxBuffer));
+Stm32Serial::Stm32Serial() : serialRxBufferLen(0) {
+    memset(this->serialRxBuffer, 0, sizeof(this->serialRxBuffer));
 }
 
 Stm32Serial Stm32Serial::instance=Stm32Serial();
@@ -132,10 +132,10 @@ void Stm32Serial::start() {
 }
 
 void Stm32Serial::onRx(uint8_t incomingByte) {
-    this->TIC_rxBuffer[this->TIC_rxBufferLen] = incomingByte;
-    this->TIC_rxBufferLen++;
-    if (this->TIC_rxBufferLen>=sizeof(this->TIC_rxBuffer)) {
-        this->TIC_rxBufferLen = 0;	/* FIXME: Wrap around in case of buffer overflow */
+    this->serialRxBuffer[this->serialRxBufferLen] = incomingByte;
+    this->serialRxBufferLen++;
+    if (this->serialRxBufferLen>=sizeof(this->serialRxBuffer)) {
+        this->serialRxBufferLen = 0;	/* FIXME: Wrap around in case of buffer overflow */
     }
 }
 
