@@ -48,6 +48,13 @@ public:
 	std::vector<std::vector<uint8_t> > decodedFramesList;
 };
 
+/**
+ * @brief Utility function to unwrap and invoke a FrameDecoderStub instance's onDecodeCallback() from a callback call from TICUnframer
+ * 
+ * @param buf A buffer containing the full TIC frame bytes
+ * @param len The number of bytes stored inside @p buf
+ * @param context A context as provided by TICUnframer, used to retrieve the wrapped FrameDecoderStub instance
+ */
 void frameDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
     if (context == NULL)
         return; /* Failsafe, discard if no context */
