@@ -134,25 +134,65 @@ void Stm32Serial::start() {
 }
 
 void Stm32Serial::resetRxOverflowFlag() {
+    uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
+    __disable_irq();
     this->serialRxBufferOverflowed = false;
+    if (!primask) {
+        __enable_irq();
+    }
 }
 
 bool Stm32Serial::getRxOverflowFlag(bool reset) {
-    // FIXME race condition with interrupt handler here
+    uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
+    __disable_irq();
     bool result = this->serialRxBufferOverflowed;
     if (reset) {
         this->resetRxOverflowFlag();
     }
+    if (!primask) {
+		__enable_irq();
+	}
     return result;
 }
 
-void Stm32Serial::onRx(uint8_t incomingByte) {
+void Stm32Serial::pushReceivedByte(uint8_t incomingByte) {
+    /* This code is called in an interrupt context */
+    this->serialRxBytesTotal++;
     this->serialRxBuffer[this->serialRxBufferLen] = incomingByte;
     this->serialRxBufferLen++;
     if (this->serialRxBufferLen >= sizeof(this->serialRxBuffer)) {
         this->serialRxBufferOverflowed = true;
         this->serialRxBufferLen = 0;	/* FIXME: Wrap around in case of buffer overflow */
     }
+}
+
+unsigned long Stm32Serial::getRxBytesTotal() const {
+    unsigned long result;
+    uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
+    __disable_irq();
+    result = this->serialRxBytesTotal;
+    if (!primask) {
+        __enable_irq();
+    }
+    return result;
+}
+size_t Stm32Serial::read(uint8_t* buffer, size_t maxLen) {
+    uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
+    __disable_irq();
+    size_t copiedBytesCount = this->serialRxBufferLen;
+    if (copiedBytesCount > 0) {
+        if (copiedBytesCount > maxLen) {    /* Too many pending bytes, won't fit in the provided buffer */
+            copiedBytesCount = maxLen;
+        }
+        /* FIXME: race condition with interrupt here */
+        memcpy(static_cast<void *>(buffer), static_cast<void *>(this->serialRxBuffer), copiedBytesCount);
+        memmove(static_cast<void *>(this->serialRxBuffer), static_cast<void *>(this->serialRxBuffer + copiedBytesCount), this->serialRxBufferLen - copiedBytesCount);
+        this->serialRxBufferLen -= copiedBytesCount;
+    }
+    if (!primask) {
+        __enable_irq();
+    }
+    return copiedBytesCount;
 }
 
 void Stm32Serial::writeByteHexdump(unsigned char byte) {
@@ -184,7 +224,7 @@ UART_HandleTypeDef* getTicUartHandle() {
 }
 
 void onTicUartRx(uint8_t incomingByte) {
-    Stm32Serial::get().onRx(incomingByte);
+    Stm32Serial::get().pushReceivedByte(incomingByte);
 }
 
 extern "C" {

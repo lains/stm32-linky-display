@@ -42,6 +42,13 @@ public:
     bool getRxOverflowFlag(bool reset = false);
 
     /**
+     * @brief Get the total number of received bytes on the serial port since the last reset
+     * 
+     * @return The number of received bytes
+     */
+    unsigned long getRxBytesTotal() const;
+
+    /**
      * @brief Write the human-readable hexadecimal value of a data byte to the serial link (formatted as ASCII)
      * 
      * @param byte The byte to dump
@@ -71,7 +78,17 @@ public:
      * 
      * @param incomingByte The new data byte
      */
-    void onRx(uint8_t incomingByte);
+    void pushReceivedByte(uint8_t incomingByte);
+
+    /**
+     * @brief Collect the new data bytes read from the serial link and store them in the caller's buffer
+     * 
+     * @param buffer The buffer where new data bytes will be written
+     * @param maxLen The maximum number of bytes that can be stored in @p buffer (aka the storage size of buffer in bytes)
+     * 
+     * @return The number of bytes actually copied to @p buffer (will be <= maxLen, can be 0 if no data was available)
+     */
+    size_t read(uint8_t* buffer, size_t maxLen);
 
     /**
      * @brief Get the low-level serial link handler object
@@ -91,6 +108,7 @@ private:
     unsigned char serialRxBuffer[256];    /*!< Internal serial reception buffer */
     unsigned int serialRxBufferLen;   /*!< Length of valid data bytes in the above buffer */
     bool serialRxBufferOverflowed;  /*!< Did the serial reception buffer overflow since last reset */
+    unsigned long serialRxBytesTotal;   /*!< How many bytes were received since last reset? */
     UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
 };
 

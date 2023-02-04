@@ -78,11 +78,14 @@ void Error_Handler() {
 
 class TicFrameParser {
 public:
-    TicFrameParser() { }
+    TicFrameParser() : nbFramesParsed(0) { }
 
     void parseFrame(const uint8_t* buf, std::size_t cnt) {
         BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
+        this->nbFramesParsed++;
     }
+
+    unsigned int nbFramesParsed;
 };
 
 /**
@@ -162,21 +165,48 @@ int main(void) {
 
     //set_active_fb_addr(final_fb_address);	/* Draw the copy on the LCD, not the pending one */
 
-    unsigned int count = 0;
+    auto streamTicRxBytesToUnframer = [&ticSerial, &ticUnframer]() {
+        uint8_t streamedBytesBuffer[64];  /* We allow copies of max 64 bytes at a time */
+        size_t incomingBytesCount = ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
+        if (ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount) != incomingBytesCount) {
+            /* FIXME: Error case bytes were lost in the transaction */
+        }
+    };
+
+    unsigned int lcdRefreshCount = 0;
     while (1) {
-        while (display_state == SwitchToDraftIsPending); /* Wait until the LCD displays the final framebuffer */
+        while (display_state == SwitchToDraftIsPending) {
+            streamTicRxBytesToUnframer();
+        }; /* Wait until the LCD displays the final framebuffer */
         /* We can now work on pending buffer */
-        char count_as_str[]="@@@@";
-        count_as_str[0]=(count / 1000) % 10 + '0';
-        count_as_str[1]=(count / 100) % 10 + '0';
-        count_as_str[2]=(count / 10) % 10 + '0';
-        count_as_str[3]=(count / 1) % 10 + '0';
+        char statusLine[]="@@@@L - @@@@F - @@@@@@B";
+        statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
+        statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
+        statusLine[2]=(lcdRefreshCount / 10) % 10 + '0';
+        statusLine[3]=(lcdRefreshCount / 1) % 10 + '0';
+
+        unsigned int framesCount = ticParser.nbFramesParsed;
+        statusLine[8]=(framesCount / 1000) % 10 + '0';
+        statusLine[9]=(framesCount / 100) % 10 + '0';
+        statusLine[10]=(framesCount / 10) % 10 + '0';
+        statusLine[11]=(framesCount / 1) % 10 + '0';
+
+        unsigned long rxBytesCount = ticSerial.getRxBytesTotal();
+        statusLine[16]=(rxBytesCount / 100000) % 10 + '0';
+        statusLine[17]=(rxBytesCount / 10000) % 10 + '0';
+        statusLine[18]=(rxBytesCount / 1000) % 10 + '0';
+        statusLine[19]=(rxBytesCount / 100) % 10 + '0';
+        statusLine[20]=(rxBytesCount / 10) % 10 + '0';
+        statusLine[21]=(rxBytesCount / 1) % 10 + '0';
+
+        /* We're getting a lot of bytes in RX, but somehow we're missing frames */
         BSP_LCD_SetFont(&Font24);
         BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
         BSP_LCD_FillRect(0, 24*3, 800, 24*2);
         BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
         BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-        BSP_LCD_DisplayStringAtLine(4, (uint8_t *)count_as_str);
+        BSP_LCD_DisplayStringAtLine(4, (uint8_t *)statusLine);
+
         //BSP_LED_On(LED1);
         //HAL_Delay(250);
         //BSP_LED_Off(LED1);
@@ -185,7 +215,9 @@ int main(void) {
 
         HAL_DSI_Refresh(&hdsi_eval);
 
-        while (display_state==SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
+        while (display_state==SwitchToDraftIsPending) {
+            streamTicRxBytesToUnframer();
+        }	/* Wait until the LCD displays the draft framebuffer */
 
         copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
 
@@ -194,7 +226,7 @@ int main(void) {
         HAL_DSI_Refresh(&hdsi_eval);
 
         HAL_Delay(1000);
-        count++;
+        lcdRefreshCount++;
     }
 }
 
