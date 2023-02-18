@@ -165,10 +165,25 @@ int main(void) {
 
     //set_active_fb_addr(final_fb_address);	/* Draw the copy on the LCD, not the pending one */
 
-    auto streamTicRxBytesToUnframer = [&ticSerial, &ticUnframer]() {
+    struct TicProcessingContext {
+        /* Default constructor */
+        TicProcessingContext(Stm32Serial& ticSerial, TICUnframer& ticUnframer) :
+            ticSerial(ticSerial),
+            ticUnframer(ticUnframer) { }
+
+        Stm32Serial& ticSerial;
+        TICUnframer& ticUnframer;
+    };
+
+    TicProcessingContext ticContext(ticSerial, ticUnframer);
+
+    auto streamTicRxBytesToUnframer = [](void* context) {
+        if (context == nullptr)
+            return;
+        TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
         uint8_t streamedBytesBuffer[64];  /* We allow copies of max 64 bytes at a time */
-        size_t incomingBytesCount = ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
-        if (ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount) != incomingBytesCount) {
+        size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
+        if (ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount) != incomingBytesCount) {
             /* FIXME: Error case bytes were lost in the transaction */
         }
     };
@@ -176,7 +191,7 @@ int main(void) {
     unsigned int lcdRefreshCount = 0;
     while (1) {
         while (display_state == SwitchToDraftIsPending) {
-            streamTicRxBytesToUnframer();
+            streamTicRxBytesToUnframer(&ticContext);
         }; /* Wait until the LCD displays the final framebuffer */
         /* We can now work on pending buffer */
         char statusLine[]="@@@@L - @@@@F - @@@@@@B";
@@ -216,7 +231,7 @@ int main(void) {
         HAL_DSI_Refresh(&hdsi_eval);
 
         while (display_state==SwitchToDraftIsPending) {
-            streamTicRxBytesToUnframer();
+            streamTicRxBytesToUnframer(&ticContext);
         }	/* Wait until the LCD displays the draft framebuffer */
 
         copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);

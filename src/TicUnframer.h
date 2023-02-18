@@ -8,7 +8,7 @@
 class TICUnframer {
 public:
 /* Types */
-    typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context) ;
+    typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context);
 
 /* Constants */
     static constexpr uint8_t TIC_STX = 0x02;
