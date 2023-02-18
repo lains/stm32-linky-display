@@ -75,6 +75,31 @@ void Error_Handler() {
 	  OnError_Handler(1);
 }
 
+typedef void(*FHalDelayRefreshFunc)(void* context);
+
+/**
+ * @brief Wait for a given delay in ms, while running a function in background
+ * 
+ * @param toRunWhileWaiting A function to run continously while waiting
+ * @param context A context pointer provided to toRunWhileWaiting as argument
+ * @param Delay The delay to wait for (in ms)
+ * 
+ */
+void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) {
+    uint32_t tickstart = HAL_GetTick();
+    uint32_t wait = Delay;
+
+    /* Add a freq to guarantee minimum wait */
+    if (wait < HAL_MAX_DELAY) {
+        wait += (uint32_t)(uwTickFreq);
+    }
+
+    while((HAL_GetTick() - tickstart) < wait) {
+        if (toRunWhileWaiting != nullptr) {
+            toRunWhileWaiting(context);
+        }
+    }
+}
 
 class TicFrameParser {
 public:
@@ -117,7 +142,7 @@ int main(void) {
     BSP_LED_Init(LED3);
     BSP_LED_Init(LED4);
     BSP_LED_On(LED2);
-    HAL_Delay(250);
+    waitDelay(250);
     BSP_LED_Off(LED2);
 
     /* Initialize the SDRAM */
@@ -234,7 +259,7 @@ int main(void) {
         BSP_LCD_DisplayStringAtLine(4, (uint8_t *)statusLine);
 
         //BSP_LED_On(LED1);
-        //HAL_Delay(250);
+        //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
         //BSP_LED_Off(LED1);
 
         display_state = SwitchToDraftIsPending;
@@ -251,7 +276,7 @@ int main(void) {
 
         HAL_DSI_Refresh(&hdsi_eval);
 
-        HAL_Delay(1000);
+        waitDelay(1000, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
         lcdRefreshCount++;
     }
 }
