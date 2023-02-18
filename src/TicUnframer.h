@@ -13,7 +13,7 @@ public:
 /* Constants */
     static constexpr uint8_t TIC_STX = 0x02;
     static constexpr uint8_t TIC_ETX = 0x03;
-    static constexpr std::size_t MAX_FRAME_SIZE = 512; /* Make acceptable TIC frame payload size (excluding STX and ETX markers) */
+    static constexpr std::size_t MAX_FRAME_SIZE = 2048; /* Make acceptable TIC frame payload size (excluding STX and ETX markers) */
     static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 
 /* Methods */

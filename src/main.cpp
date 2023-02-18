@@ -208,7 +208,7 @@ int main(void) {
         if (context == nullptr)
             return;
         TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
-        uint8_t streamedBytesBuffer[64];  /* We allow copies of max 64 bytes at a time */
+        uint8_t streamedBytesBuffer[256];  /* We allow copies of max 256 bytes at a time */
         size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
         std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
