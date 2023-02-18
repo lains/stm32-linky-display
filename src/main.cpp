@@ -195,11 +195,13 @@ int main(void) {
         TicProcessingContext(Stm32Serial& ticSerial, TICUnframer& ticUnframer) :
             ticSerial(ticSerial),
             ticUnframer(ticUnframer),
-            lostTicBytes(0) { }
+            lostTicBytes(0),
+            serialRxOverflowCount(0) { }
 
-        Stm32Serial& ticSerial;
-        TICUnframer& ticUnframer;
-        size_t lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
+        Stm32Serial& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
+        TICUnframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
+        unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
+        unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
     };
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
@@ -212,7 +214,25 @@ int main(void) {
         size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
         std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
-            ticContext->lostTicBytes += incomingBytesCount - processedBytesCount;
+            size_t lostBytesCount = incomingBytesCount - processedBytesCount;
+            if (lostBytesCount > static_cast<unsigned int>(-1)) {
+                lostBytesCount = static_cast<unsigned int>(-1); /* Does not fit in an unsigned int! */
+            }
+            if (static_cast<unsigned int>(-1) - lostBytesCount < ticContext->lostTicBytes) {
+                /* Adding lostBytesCount will imply an overflow an overflow of our counter */
+                ticContext->lostTicBytes = static_cast<unsigned int>(-1); /* Maxmimize our counter, we can't do better than this */
+            }
+            else {
+                ticContext->lostTicBytes += lostBytesCount;
+            }
+        }
+        unsigned int serialRxOverflowCount = ticContext->ticSerial.getRxOverflowCount(true);
+        if (static_cast<unsigned int>(-1) - serialRxOverflowCount < ticContext->serialRxOverflowCount) {
+            /* Adding serialRxOverflowBytes will imply an overflow of our counter */
+            ticContext->serialRxOverflowCount = static_cast<unsigned int>(-1); /* Maxmimize our counter, we can't do better than this */
+        }
+        else {
+            ticContext->serialRxOverflowCount += serialRxOverflowCount;
         }
     };
 
@@ -222,7 +242,7 @@ int main(void) {
             streamTicRxBytesToUnframer(&ticContext);
         }; /* Wait until the LCD displays the final framebuffer */
         /* We can now work on pending buffer */
-        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@@@XB";
+        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@@@XB - @@@@XR";
         statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
         statusLine[2]=(lcdRefreshCount / 10) % 10 + '0';
@@ -249,6 +269,12 @@ int main(void) {
         statusLine[29]=(lostTicBytes / 100) % 10 + '0';
         statusLine[30]=(lostTicBytes / 10) % 10 + '0';
         statusLine[31]=(lostTicBytes / 1) % 10 + '0';
+
+        unsigned int serialRxOverflowCount = ticContext.serialRxOverflowCount;
+        statusLine[37]=(serialRxOverflowCount / 1000) % 10 + '0';
+        statusLine[38]=(serialRxOverflowCount / 100) % 10 + '0';
+        statusLine[39]=(serialRxOverflowCount / 10) % 10 + '0';
+        statusLine[40]=(serialRxOverflowCount / 1) % 10 + '0';
 
         /* We're getting a lot of bytes in RX, but somehow we're missing frames */
         BSP_LCD_SetFont(&Font24);
