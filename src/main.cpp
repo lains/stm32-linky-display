@@ -169,10 +169,12 @@ int main(void) {
         /* Default constructor */
         TicProcessingContext(Stm32Serial& ticSerial, TICUnframer& ticUnframer) :
             ticSerial(ticSerial),
-            ticUnframer(ticUnframer) { }
+            ticUnframer(ticUnframer),
+            lostTicBytes(0) { }
 
         Stm32Serial& ticSerial;
         TICUnframer& ticUnframer;
+        size_t lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
     };
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
@@ -183,8 +185,9 @@ int main(void) {
         TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
         uint8_t streamedBytesBuffer[64];  /* We allow copies of max 64 bytes at a time */
         size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
-        if (ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount) != incomingBytesCount) {
-            /* FIXME: Error case bytes were lost in the transaction */
+        std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
+        if (processedBytesCount < incomingBytesCount) {
+            ticContext->lostTicBytes += incomingBytesCount - processedBytesCount;
         }
     };
 
@@ -194,7 +197,7 @@ int main(void) {
             streamTicRxBytesToUnframer(&ticContext);
         }; /* Wait until the LCD displays the final framebuffer */
         /* We can now work on pending buffer */
-        char statusLine[]="@@@@L - @@@@F - @@@@@@B";
+        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@@@XB";
         statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
         statusLine[2]=(lcdRefreshCount / 10) % 10 + '0';
@@ -213,6 +216,14 @@ int main(void) {
         statusLine[19]=(rxBytesCount / 100) % 10 + '0';
         statusLine[20]=(rxBytesCount / 10) % 10 + '0';
         statusLine[21]=(rxBytesCount / 1) % 10 + '0';
+
+        unsigned long lostTicBytes = ticContext.lostTicBytes;
+        statusLine[26]=(lostTicBytes / 100000) % 10 + '0';
+        statusLine[27]=(lostTicBytes / 10000) % 10 + '0';
+        statusLine[28]=(lostTicBytes / 1000) % 10 + '0';
+        statusLine[29]=(lostTicBytes / 100) % 10 + '0';
+        statusLine[30]=(lostTicBytes / 10) % 10 + '0';
+        statusLine[31]=(lostTicBytes / 1) % 10 + '0';
 
         /* We're getting a lot of bytes in RX, but somehow we're missing frames */
         BSP_LCD_SetFont(&Font24);
