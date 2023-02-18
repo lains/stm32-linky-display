@@ -29,17 +29,17 @@ public:
     void start();
 
     /**
-     * @brief Reset the reception buffer overflow flag
+     * @brief Reset the reception buffer overflow counter
      */
-    void resetRxOverflowFlag();
+    void resetRxOverflowCount();
 
     /**
-     * @brief Get the reception buffer overflow flag
+     * @brief Get the reception buffer overflow count
      * 
      * @param reset Shall we reset the overflow flag once returned?
-     * @return true is there was an internal reception buffer overflow since the last reset of this flag (incoming data bytes have been lost)
+     * @return The number of times the internal reception buffer overflowed since the last reset of this counter (incoming data bytes have been lost)
      */
-    bool getRxOverflowFlag(bool reset = false);
+    unsigned int getRxOverflowCount(bool reset = false);
 
     /**
      * @brief Get the total number of received bytes on the serial port since the last reset
@@ -107,7 +107,7 @@ private:
     static Stm32Serial instance;    /*!< Lazy singleton instance */
     unsigned char serialRxBuffer[256];    /*!< Internal serial reception buffer */
     unsigned int serialRxBufferLen;   /*!< Length of valid data bytes in the above buffer */
-    bool serialRxBufferOverflowed;  /*!< Did the serial reception buffer overflow since last reset */
+    unsigned int serialRxBufferOverflowCount;  /*!< How many times the serial reception buffer overflowed since last reset */
     unsigned long serialRxBytesTotal;   /*!< How many bytes were received since last reset? */
     UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
 };

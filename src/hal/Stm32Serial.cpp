@@ -114,7 +114,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 
 Stm32Serial::Stm32Serial() :
 serialRxBufferLen(0),
-serialRxBufferOverflowed(false) {
+serialRxBufferOverflowCount(0) {
     memset(this->serialRxBuffer, 0, sizeof(this->serialRxBuffer));
 }
 
@@ -133,21 +133,21 @@ void Stm32Serial::start() {
     UART6_Enable_interrupt_callback(&(this->huart));
 }
 
-void Stm32Serial::resetRxOverflowFlag() {
+void Stm32Serial::resetRxOverflowCount() {
     uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
     __disable_irq();
-    this->serialRxBufferOverflowed = false;
+    this->serialRxBufferOverflowCount = 0;
     if (!primask) {
         __enable_irq();
     }
 }
 
-bool Stm32Serial::getRxOverflowFlag(bool reset) {
+unsigned int Stm32Serial::getRxOverflowCount(bool reset) {
     uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
     __disable_irq();
-    bool result = this->serialRxBufferOverflowed;
+    unsigned int result = this->serialRxBufferOverflowCount;
     if (reset) {
-        this->resetRxOverflowFlag();
+        this->resetRxOverflowCount();
     }
     if (!primask) {
 		__enable_irq();
@@ -161,7 +161,7 @@ void Stm32Serial::pushReceivedByte(uint8_t incomingByte) {
     this->serialRxBuffer[this->serialRxBufferLen] = incomingByte;
     this->serialRxBufferLen++;
     if (this->serialRxBufferLen >= sizeof(this->serialRxBuffer)) {
-        this->serialRxBufferOverflowed = true;
+        this->serialRxBufferOverflowCount++;
         this->serialRxBufferLen = 0;	/* FIXME: Wrap around in case of buffer overflow */
     }
 }
