@@ -252,8 +252,8 @@ Stm32LcdDriver& Stm32LcdDriver::get() {
     return Stm32LcdDriver::instance;
 }
 
-bool Stm32LcdDriver::start(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_eval) {
-    return (LCD_Init(hdsi_eval, hltdc_eval) == LCD_OK);
+bool Stm32LcdDriver::start() {
+    return (LCD_Init(&(this->hdsi), &(this->hltdc)) == LCD_OK);
 }
 
 /**

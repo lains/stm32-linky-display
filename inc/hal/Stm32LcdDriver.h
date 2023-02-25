@@ -29,7 +29,7 @@ public:
      */
     static Stm32LcdDriver& get();
 
-    bool start(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_eval);
+    bool start();
 
     void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
 

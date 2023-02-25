@@ -148,7 +148,7 @@ int main(void) {
 
     //BSP_TS_Init(800,480);
     /* Initialize the LCD   */
-    OnError_Handler(!lcd.start(&(lcd.hdsi), &(lcd.hltdc)));
+    OnError_Handler(!lcd.start());
 
     BSP_LCD_LayerDefaultInit(0, (uint32_t)draft_fb_address);
     BSP_LCD_SelectLayer(0); 
