@@ -1,6 +1,9 @@
 #include "Stm32LcdDriver.h"
 extern "C" {
 #include "main.h"
+
+extern LTDC_HandleTypeDef hltdc_eval; // Imported definition from stm32469i_discovery_lcd.c
+extern DSI_HandleTypeDef hdsi_eval; // Imported definition from stm32469i_discovery_lcd.c
 }
 
 const unsigned int LCDWidth = 800;
@@ -233,7 +236,10 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
 
 
 Stm32LcdDriver::Stm32LcdDriver() :
-display_state(SwitchToDraftIsPending) {
+display_state(SwitchToDraftIsPending),
+hltdc(hltdc_eval),
+hdsi(hdsi_eval)
+{
 }
 
 Stm32LcdDriver Stm32LcdDriver::instance=Stm32LcdDriver();
@@ -348,19 +354,14 @@ void Stm32LcdDriver::copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint
 }
 
 LTDC_HandleTypeDef* getLcdLtdcHandle() {
-    return &(Stm32LcdDriver::get().hltdc_eval);
+    return &(Stm32LcdDriver::get().hltdc);
 }
 
 DSI_HandleTypeDef* getLcdDsiHandle() {
-    return &(Stm32LcdDriver::get().hdsi_eval);
-}
-
-DMA2D_HandleTypeDef* getDma2dHandle() {
-    return &(Stm32LcdDriver::get().hdma2d);
+    return &(Stm32LcdDriver::get().hdsi);
 }
 
 /* FIXME: remove before flight... only for debug */
-
 extern "C" {
 LTDC_HandleTypeDef* get_hltdc() {
     return getLcdLtdcHandle();
@@ -369,10 +370,5 @@ LTDC_HandleTypeDef* get_hltdc() {
 DSI_HandleTypeDef* get_hdsi() {
     return getLcdDsiHandle();
 }
-
-/* FIXME: remove before flight... only for debug */
-DMA2D_HandleTypeDef* get_hdma2d() {
-    return getDma2dHandle();
-}
-
 } // extern "C"
+

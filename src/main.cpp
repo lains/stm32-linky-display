@@ -9,10 +9,6 @@ extern "C" {
 #include <stdio.h>
 
 static void SystemClock_Config(void); /* Defined below */
-
-/* Private typedef -----------------------------------------------------------*/
-extern LTDC_HandleTypeDef hltdc_eval;
-extern DSI_HandleTypeDef hdsi_eval;
 }
 
 /* Private define ------------------------------------------------------------*/
@@ -152,7 +148,7 @@ int main(void) {
 
     //BSP_TS_Init(800,480);
     /* Initialize the LCD   */
-    OnError_Handler(!lcd.start(&hdsi_eval, &hltdc_eval));
+    OnError_Handler(!lcd.start(&(lcd.hdsi), &(lcd.hltdc)));
 
     BSP_LCD_LayerDefaultInit(0, (uint32_t)draft_fb_address);
     BSP_LCD_SelectLayer(0); 
@@ -164,14 +160,14 @@ int main(void) {
 
     display_state = SwitchToDraftIsPending;
 
-    HAL_DSI_Refresh(&hdsi_eval);
+    HAL_DSI_Refresh(&(lcd.hdsi));
 
     while (display_state==SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
     lcd.copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
     display_state = SwitchToFinalIsPending;
 
-    HAL_DSI_Refresh(&hdsi_eval);
+    HAL_DSI_Refresh(&(lcd.hdsi));
 
     ticSerial.print("Buffers created. Starting...\r\n");
 
@@ -286,7 +282,7 @@ int main(void) {
 
         display_state = SwitchToDraftIsPending;
 
-        HAL_DSI_Refresh(&hdsi_eval);
+        HAL_DSI_Refresh(&(lcd.hdsi));
 
         while (display_state==SwitchToDraftIsPending) {
             streamTicRxBytesToUnframer(&ticContext);
@@ -296,7 +292,7 @@ int main(void) {
 
         display_state = SwitchToFinalIsPending;	/* Now we have copied the content to display to final framebuffer, we can perform the switch */
 
-        HAL_DSI_Refresh(&hdsi_eval);
+        HAL_DSI_Refresh(&(lcd.hdsi));
 
         waitDelay(1000, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
         lcdRefreshCount++;
@@ -305,12 +301,12 @@ int main(void) {
 
 void set_active_fb_addr(void* fb) {
     /* Disable DSI Wrapper */
-    __HAL_DSI_WRAPPER_DISABLE(&hdsi_eval);
+    __HAL_DSI_WRAPPER_DISABLE(&(Stm32LcdDriver::get().hdsi));
     /* Update LTDC configuration */
-    LTDC_LAYER(&hltdc_eval, 0)->CFBAR = (uint32_t)(fb);
-    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(&hltdc_eval);
+    LTDC_LAYER(&(Stm32LcdDriver::get().hltdc), 0)->CFBAR = (uint32_t)(fb);
+    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(&(Stm32LcdDriver::get().hltdc));
     /* Enable DSI Wrapper */
-    __HAL_DSI_WRAPPER_ENABLE(&hdsi_eval);
+    __HAL_DSI_WRAPPER_ENABLE(&(Stm32LcdDriver::get().hdsi));
 }
 
 extern "C" {

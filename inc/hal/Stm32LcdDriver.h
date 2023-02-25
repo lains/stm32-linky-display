@@ -35,7 +35,7 @@ public:
 
 private:
     Stm32LcdDriver& operator= (const Stm32LcdDriver&) { return *this; }
-    Stm32LcdDriver(const Stm32LcdDriver&) {}
+    Stm32LcdDriver(const Stm32LcdDriver& other) : hltdc(other.hltdc), hdsi(other.hdsi) {}
 
     Stm32LcdDriver();
     ~Stm32LcdDriver();
@@ -43,9 +43,9 @@ private:
     static Stm32LcdDriver instance;    /*!< Lazy singleton instance */
     LCD_Display_Update_State display_state;
 public:
-    LTDC_HandleTypeDef hltdc_eval;  /*!< Handle on the LCD/TFT display controller (LTDC) */
+    LTDC_HandleTypeDef& hltdc;  /*!< Handle on the LCD/TFT display controller (LTDC), it is unfortunately external to us, defined in stm32469i_discovery_lcd.c */
     DMA2D_HandleTypeDef hdma2d; /*!< Handle on the DMA2D controller */
-    DSI_HandleTypeDef hdsi_eval; /*!< Handle on the Dsiplay Serial Interface (DSI) controller */
+    DSI_HandleTypeDef& hdsi; /*!< Handle on the Dsiplay Serial Interface (DSI) controller, it is unfortunately external to us, defined in stm32469i_discovery_lcd.c */
 };
 
 #endif
