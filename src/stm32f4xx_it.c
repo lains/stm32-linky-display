@@ -31,8 +31,8 @@
   */
 
 /* Private typedef -----------------------------------------------------------*/
-extern LTDC_HandleTypeDef hltdc_eval;   
-extern DSI_HandleTypeDef hdsi_eval;
+LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
+DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -165,7 +165,7 @@ void USART6_IRQHandler(void)
   */
 void LTDC_IRQHandler(void)
 {
-  HAL_LTDC_IRQHandler(&hltdc_eval);
+  HAL_LTDC_IRQHandler(get_hltdc());
 }
 
 /**
@@ -175,7 +175,7 @@ void LTDC_IRQHandler(void)
   */
 void DSI_IRQHandler(void)
 {
-  HAL_DSI_IRQHandler(&hdsi_eval);
+  HAL_DSI_IRQHandler(get_hdsi());
 }
 
 /**
