@@ -1,4 +1,4 @@
-#include "Stm32Serial.h"
+#include "Stm32SerialDriver.h"
 extern "C" {
 #include "main.h"
 }
@@ -112,28 +112,28 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 }
 } // extern "C"
 
-Stm32Serial::Stm32Serial() :
+Stm32SerialDriver::Stm32SerialDriver() :
 serialRxBufferLen(0),
 serialRxBufferOverflowCount(0) {
     memset(this->serialRxBuffer, 0, sizeof(this->serialRxBuffer));
 }
 
-Stm32Serial Stm32Serial::instance=Stm32Serial();
+Stm32SerialDriver Stm32SerialDriver::instance=Stm32SerialDriver();
 
 
-Stm32Serial::~Stm32Serial() {
+Stm32SerialDriver::~Stm32SerialDriver() {
 }
 
-Stm32Serial& Stm32Serial::get() {
-    return Stm32Serial::instance;
+Stm32SerialDriver& Stm32SerialDriver::get() {
+    return Stm32SerialDriver::instance;
 }
 
-void Stm32Serial::start() {
+void Stm32SerialDriver::start() {
     MX_USART6_UART_Init(&(this->huart));
     UART6_Enable_interrupt_callback(&(this->huart));
 }
 
-void Stm32Serial::resetRxOverflowCount() {
+void Stm32SerialDriver::resetRxOverflowCount() {
     uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
     __disable_irq();
     this->serialRxBufferOverflowCount = 0;
@@ -142,7 +142,7 @@ void Stm32Serial::resetRxOverflowCount() {
     }
 }
 
-unsigned int Stm32Serial::getRxOverflowCount(bool reset) {
+unsigned int Stm32SerialDriver::getRxOverflowCount(bool reset) {
     uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
     __disable_irq();
     unsigned int result = this->serialRxBufferOverflowCount;
@@ -155,7 +155,7 @@ unsigned int Stm32Serial::getRxOverflowCount(bool reset) {
     return result;
 }
 
-void Stm32Serial::pushReceivedByte(uint8_t incomingByte) {
+void Stm32SerialDriver::pushReceivedByte(uint8_t incomingByte) {
     /* This code is called in an interrupt context */
     this->serialRxBytesTotal++;
     this->serialRxBuffer[this->serialRxBufferLen] = incomingByte;
@@ -166,7 +166,7 @@ void Stm32Serial::pushReceivedByte(uint8_t incomingByte) {
     }
 }
 
-unsigned long Stm32Serial::getRxBytesTotal() const {
+unsigned long Stm32SerialDriver::getRxBytesTotal() const {
     unsigned long result;
     uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
     __disable_irq();
@@ -176,7 +176,7 @@ unsigned long Stm32Serial::getRxBytesTotal() const {
     }
     return result;
 }
-size_t Stm32Serial::read(uint8_t* buffer, size_t maxLen) {
+size_t Stm32SerialDriver::read(uint8_t* buffer, size_t maxLen) {
     uint32_t primask = __get_PRIMASK(); /* Read PRIMASK register, will contain 0 if interrupts are enabled, or non-zero if disabled */
     __disable_irq();
     size_t copiedBytesCount = this->serialRxBufferLen;
@@ -195,7 +195,7 @@ size_t Stm32Serial::read(uint8_t* buffer, size_t maxLen) {
     return copiedBytesCount;
 }
 
-void Stm32Serial::writeByteHexdump(unsigned char byte) {
+void Stm32SerialDriver::writeByteHexdump(unsigned char byte) {
     char msg[]="0x@@";
     unsigned char nibble;
     nibble = ((byte >> 4) & 0xf);
@@ -207,24 +207,24 @@ void Stm32Serial::writeByteHexdump(unsigned char byte) {
     }
 }
 
-void Stm32Serial::print(const char* str) {
+void Stm32SerialDriver::print(const char* str) {
     if (HAL_UART_Transmit(&(this->huart), (uint8_t*)str, (uint16_t)strlen(str), 500)!= HAL_OK) {
         Error_Handler();
     }
 }
 
 #ifdef USE_ALLOCATION
-void Stm32Serial::print(const std::string& str) {
+void Stm32SerialDriver::print(const std::string& str) {
     this->print(str.c_str());
 }
 #endif
 
 UART_HandleTypeDef* getTicUartHandle() {
-    return &(Stm32Serial::get().huart);
+    return &(Stm32SerialDriver::get().huart);
 }
 
 void onTicUartRx(uint8_t incomingByte) {
-    Stm32Serial::get().pushReceivedByte(incomingByte);
+    Stm32SerialDriver::get().pushReceivedByte(incomingByte);
 }
 
 extern "C" {

@@ -1,5 +1,5 @@
 /* Includes ------------------------------------------------------------------*/
-#include "Stm32Serial.h"
+#include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "TicUnframer.h"
 
@@ -129,7 +129,7 @@ int main(void) {
     BSP_SDRAM_Init();
     //BSP_SD_Init();
 
-    Stm32Serial& ticSerial = Stm32Serial::get();
+    Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
 
     ticSerial.start();
 
@@ -154,13 +154,13 @@ int main(void) {
 
     struct TicProcessingContext {
         /* Default constructor */
-        TicProcessingContext(Stm32Serial& ticSerial, TICUnframer& ticUnframer) :
+        TicProcessingContext(Stm32SerialDriver& ticSerial, TICUnframer& ticUnframer) :
             ticSerial(ticSerial),
             ticUnframer(ticUnframer),
             lostTicBytes(0),
             serialRxOverflowCount(0) { }
 
-        Stm32Serial& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
+        Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
         TICUnframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
         unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
         unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */

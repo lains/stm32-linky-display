@@ -14,14 +14,14 @@ UART_HandleTypeDef* get_huart6(void);   // C-linkage exported getter for huart6 
 /**
  * @brief Serial link communication class (singleton)
  */
-class Stm32Serial {
+class Stm32SerialDriver {
 public:
     /**
      * @brief Singleton instance getter
      * 
      * @return The singleton instance of this class
      */
-    static Stm32Serial& get();
+    static Stm32SerialDriver& get();
 
     /**
      * @brief Initialize the serial link and start receiving data from it
@@ -98,13 +98,13 @@ public:
     friend UART_HandleTypeDef* getTicUartHandle();
 
 private:
-    Stm32Serial& operator= (const Stm32Serial&) { return *this; }
-    Stm32Serial(const Stm32Serial&) {}
+    Stm32SerialDriver& operator= (const Stm32SerialDriver&) { return *this; }
+    Stm32SerialDriver(const Stm32SerialDriver&) {}
 
-    Stm32Serial();
-    ~Stm32Serial();
+    Stm32SerialDriver();
+    ~Stm32SerialDriver();
 
-    static Stm32Serial instance;    /*!< Lazy singleton instance */
+    static Stm32SerialDriver instance;    /*!< Lazy singleton instance */
     unsigned char serialRxBuffer[256];    /*!< Internal serial reception buffer */
     unsigned int serialRxBufferLen;   /*!< Length of valid data bytes in the above buffer */
     unsigned int serialRxBufferOverflowCount;  /*!< How many times the serial reception buffer overflowed since last reset */
