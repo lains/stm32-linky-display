@@ -31,6 +31,12 @@ public:
 
     bool start();
 
+    void requestDisplayDraft();
+
+    void requestDisplayFinal();
+
+    void copyDraftToFinal();
+
     void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
 
 private:
@@ -41,6 +47,7 @@ private:
     ~Stm32LcdDriver();
 
     static Stm32LcdDriver instance;    /*!< Lazy singleton instance */
+public: // For debug only
     LCD_Display_Update_State display_state;
 public:
     LTDC_HandleTypeDef& hltdc;  /*!< Handle on the LCD/TFT display controller (LTDC), it is unfortunately external to us, defined in stm32469i_discovery_lcd.c */

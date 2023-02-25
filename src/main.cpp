@@ -28,17 +28,6 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
-typedef enum {
-    SwitchToDraftIsPending = 0,
-    DisplayingDraft,
-    CopyingDraftToFinalIsPending,
-    CopyDraftToFinalIsDone, /* Unused, would be nice not to poll on DMA2D while copying */
-    SwitchToFinalIsPending,
-    DisplayingFinal
-} LCD_Display_Update_State;
-
-static __IO LCD_Display_Update_State display_state = SwitchToDraftIsPending;
-
 //static uint32_t ImageIndex = 0;
 /*static const uint32_t * Images[] = 
 {
@@ -150,25 +139,6 @@ int main(void) {
     /* Initialize the LCD   */
     OnError_Handler(!lcd.start());
 
-    BSP_LCD_LayerDefaultInit(0, (uint32_t)draft_fb_address);
-    BSP_LCD_SelectLayer(0); 
-
-    BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-    BSP_LCD_FillRect(0, 0, LCDWidth, LCDHeight);
-    BSP_LCD_SetTextColor(LCD_COLOR_RED);
-    BSP_LCD_FillCircle(30, 30, 30);
-
-    display_state = SwitchToDraftIsPending;
-
-    HAL_DSI_Refresh(&(lcd.hdsi));
-
-    while (display_state==SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
-
-    lcd.copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
-    display_state = SwitchToFinalIsPending;
-
-    HAL_DSI_Refresh(&(lcd.hdsi));
-
     ticSerial.print("Buffers created. Starting...\r\n");
 
     TicFrameParser ticParser;
@@ -230,7 +200,7 @@ int main(void) {
 
     unsigned int lcdRefreshCount = 0;
     while (1) {
-        while (display_state == SwitchToDraftIsPending) {
+        while (lcd.display_state == Stm32LcdDriver::SwitchToDraftIsPending) {
             streamTicRxBytesToUnframer(&ticContext);
         }; /* Wait until the LCD displays the final framebuffer */
         /* We can now work on pending buffer */
@@ -280,57 +250,22 @@ int main(void) {
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
         //BSP_LED_Off(LED1);
 
-        display_state = SwitchToDraftIsPending;
+        lcd.requestDisplayDraft();
 
-        HAL_DSI_Refresh(&(lcd.hdsi));
-
-        while (display_state==SwitchToDraftIsPending) {
+        while (lcd.display_state == Stm32LcdDriver::SwitchToDraftIsPending) {
             streamTicRxBytesToUnframer(&ticContext);
         }	/* Wait until the LCD displays the draft framebuffer */
 
         lcd.copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
 
-        display_state = SwitchToFinalIsPending;	/* Now we have copied the content to display to final framebuffer, we can perform the switch */
-
-        HAL_DSI_Refresh(&(lcd.hdsi));
+        lcd.requestDisplayFinal(); /* Now we have copied the content to display to final framebuffer, we can perform the switch */
 
         waitDelay(1000, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
         lcdRefreshCount++;
     }
 }
 
-void set_active_fb_addr(void* fb) {
-    /* Disable DSI Wrapper */
-    __HAL_DSI_WRAPPER_DISABLE(&(Stm32LcdDriver::get().hdsi));
-    /* Update LTDC configuration */
-    LTDC_LAYER(&(Stm32LcdDriver::get().hltdc), 0)->CFBAR = (uint32_t)(fb);
-    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(&(Stm32LcdDriver::get().hltdc));
-    /* Enable DSI Wrapper */
-    __HAL_DSI_WRAPPER_ENABLE(&(Stm32LcdDriver::get().hdsi));
-}
-
 extern "C" {
-/**
-  * @brief  End of Refresh DSI callback.
-  * @param  hdsi: pointer to a DSI_HandleTypeDef structure that contains
-  *               the configuration information for the DSI.
-  * @retval None
-  *
-  * The blue LED is On when we are displaying the displayed fb, and Off when where are temporarily switching to the pending buffer while copying to the displayed
-  */
-void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
-    if (display_state == SwitchToDraftIsPending) {
-        set_active_fb_addr(draft_fb_address);
-        display_state = DisplayingDraft;
-        BSP_LED_Off(LED4);
-    }
-    else if (display_state == SwitchToFinalIsPending) {
-        set_active_fb_addr(final_fb_address);
-        display_state = DisplayingFinal;
-        BSP_LED_On(LED4);
-    }
-}
-
 /**
   * @brief  System Clock Configuration
   *         The system Clock is configured as follow : 
