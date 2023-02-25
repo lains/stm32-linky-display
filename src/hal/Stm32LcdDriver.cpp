@@ -288,7 +288,7 @@ void Stm32LcdDriver::requestDisplayFinal() {
 }
 
 void Stm32LcdDriver::copyDraftToFinal() {
-    this->copy_framebuffer(static_cast<const uint32_t*>(draft_framebuffer_address), static_cast<uint32_t*>(final_framebuffer_address), 0, 0, LCDWidth, LCDHeight);
+    this->hdma2dCopyFramebuffer(static_cast<const uint32_t*>(draft_framebuffer_address), static_cast<uint32_t*>(final_framebuffer_address), 0, 0, LCDWidth, LCDHeight);
 }
 
 /**
@@ -299,7 +299,7 @@ void Stm32LcdDriver::copyDraftToFinal() {
   * @param  ColorMode: Input color mode   
   * @retval None
   */
-void Stm32LcdDriver::copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
+void Stm32LcdDriver::hdma2dCopyFramebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
     //const uint32_t* pSrc = static_cast<const uint32_t*>(src);
     //uint32_t* pDst = static_cast<uint32_t*>(dst);
     uint32_t destination = (uint32_t)pDst + (y * LCDWidth + x) * 4;

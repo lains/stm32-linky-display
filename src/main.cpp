@@ -35,11 +35,6 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
     life_augmented_argb8888,
 };*/
 
-extern "C" {
-    static void* const draft_fb_address = (void *)LCD_FB_START_ADDRESS;
-    static void* const final_fb_address = (void *)((uint8_t*)draft_fb_address + LCDWidth*LCDHeight*BytesPerPixel);
-}
-
 /**
   * @brief  On Error Handler on condition TRUE.
   * @param  condition : Can be TRUE or FALSE
@@ -256,7 +251,7 @@ int main(void) {
             streamTicRxBytesToUnframer(&ticContext);
         }	/* Wait until the LCD displays the draft framebuffer */
 
-        lcd.copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
+        lcd.copyDraftToFinal();
 
         lcd.requestDisplayFinal(); /* Now we have copied the content to display to final framebuffer, we can perform the switch */
 

@@ -37,7 +37,8 @@ public:
 
     void copyDraftToFinal();
 
-    void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
+private:
+    void hdma2dCopyFramebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
 
 private:
     Stm32LcdDriver& operator= (const Stm32LcdDriver&) { return *this; }
