@@ -231,7 +231,25 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
 
 } // extern "C"
 
-extern "C" {
+
+Stm32LcdDriver::Stm32LcdDriver() :
+display_state(SwitchToDraftIsPending) {
+}
+
+Stm32LcdDriver Stm32LcdDriver::instance=Stm32LcdDriver();
+
+
+Stm32LcdDriver::~Stm32LcdDriver() {
+}
+
+Stm32LcdDriver& Stm32LcdDriver::get() {
+    return Stm32LcdDriver::instance;
+}
+
+bool Stm32LcdDriver::start(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_eval) {
+    return (LCD_Init(hdsi_eval, hltdc_eval) == LCD_OK);
+}
+
 /**
   * @brief  Converts a line to an ARGB8888 pixel format.
   * @param  pSrc: Pointer to source buffer
@@ -240,34 +258,34 @@ extern "C" {
   * @param  ColorMode: Input color mode   
   * @retval None
   */
-static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
+void Stm32LcdDriver::copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
     //const uint32_t* pSrc = static_cast<const uint32_t*>(src);
     //uint32_t* pDst = static_cast<uint32_t*>(dst);
     uint32_t destination = (uint32_t)pDst + (y * LCDWidth + x) * 4;
     uint32_t source      = (uint32_t)pSrc;
 
     /*##-1- Configure the DMA2D Mode, Color Mode and output offset #############*/
-    Stm32LcdDriver::get().hdma2d.Init.Mode         = DMA2D_M2M;
-    Stm32LcdDriver::get().hdma2d.Init.ColorMode    = DMA2D_ARGB8888;
-    Stm32LcdDriver::get().hdma2d.Init.OutputOffset = LCDWidth - xsize;
+    this->hdma2d.Init.Mode         = DMA2D_M2M;
+    this->hdma2d.Init.ColorMode    = DMA2D_ARGB8888;
+    this->hdma2d.Init.OutputOffset = LCDWidth - xsize;
 
     /*##-2- DMA2D Callbacks Configuration ######################################*/
-    Stm32LcdDriver::get().hdma2d.XferCpltCallback  = NULL;
+    this->hdma2d.XferCpltCallback  = NULL;
 
     /*##-3- Foreground Configuration ###########################################*/
-    Stm32LcdDriver::get().hdma2d.LayerCfg[1].AlphaMode = DMA2D_NO_MODIF_ALPHA;
-    Stm32LcdDriver::get().hdma2d.LayerCfg[1].InputAlpha = 0xFF;
-    Stm32LcdDriver::get().hdma2d.LayerCfg[1].InputColorMode = DMA2D_INPUT_ARGB8888;
-    Stm32LcdDriver::get().hdma2d.LayerCfg[1].InputOffset = 0;
+    this->hdma2d.LayerCfg[1].AlphaMode = DMA2D_NO_MODIF_ALPHA;
+    this->hdma2d.LayerCfg[1].InputAlpha = 0xFF;
+    this->hdma2d.LayerCfg[1].InputColorMode = DMA2D_INPUT_ARGB8888;
+    this->hdma2d.LayerCfg[1].InputOffset = 0;
 
-    Stm32LcdDriver::get().hdma2d.Instance          = DMA2D;
+    this->hdma2d.Instance          = DMA2D;
 
     /* DMA2D Initialization */
-    if (HAL_DMA2D_Init(&(Stm32LcdDriver::get().hdma2d)) == HAL_OK) {
-        if (HAL_DMA2D_ConfigLayer(&(Stm32LcdDriver::get().hdma2d), 1) == HAL_OK) {
-            if (HAL_DMA2D_Start(&(Stm32LcdDriver::get().hdma2d), source, destination, xsize, ysize) == HAL_OK) {
+    if (HAL_DMA2D_Init(&(this->hdma2d)) == HAL_OK) {
+        if (HAL_DMA2D_ConfigLayer(&(this->hdma2d), 1) == HAL_OK) {
+            if (HAL_DMA2D_Start(&(this->hdma2d), source, destination, xsize, ysize) == HAL_OK) {
                 /* Polling For DMA transfer */
-                HAL_DMA2D_PollForTransfer(&(Stm32LcdDriver::get().hdma2d), 100);
+                HAL_DMA2D_PollForTransfer(&(this->hdma2d), 100);
 #if 0
     /* STM32's instructions could allow us to switch to interrupt mode and continue forwarding incoming bytes to the tic unframer even during DMA2D transfers
     *** Polling mode IO operation ***
@@ -327,25 +345,6 @@ static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, u
             }
         }
     }
-}
-} // extern "C"
-
-Stm32LcdDriver::Stm32LcdDriver() :
-display_state(SwitchToDraftIsPending) {
-}
-
-Stm32LcdDriver Stm32LcdDriver::instance=Stm32LcdDriver();
-
-
-Stm32LcdDriver::~Stm32LcdDriver() {
-}
-
-Stm32LcdDriver& Stm32LcdDriver::get() {
-    return Stm32LcdDriver::instance;
-}
-
-bool Stm32LcdDriver::start(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_eval) {
-    return (LCD_Init(hdsi_eval, hltdc_eval) == LCD_OK);
 }
 
 LTDC_HandleTypeDef* getLcdLtdcHandle() {

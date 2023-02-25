@@ -9,11 +9,9 @@ extern "C" {
 #include <stdio.h>
 
 static void SystemClock_Config(void); /* Defined below */
-static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize); /* Defined below */
 
 /* Private typedef -----------------------------------------------------------*/
 extern LTDC_HandleTypeDef hltdc_eval;
-static DMA2D_HandleTypeDef           hdma2d;
 extern DSI_HandleTypeDef hdsi_eval;
 }
 
@@ -170,7 +168,7 @@ int main(void) {
 
     while (display_state==SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
-    copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
+    lcd.copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
     display_state = SwitchToFinalIsPending;
 
     HAL_DSI_Refresh(&hdsi_eval);
@@ -294,7 +292,7 @@ int main(void) {
             streamTicRxBytesToUnframer(&ticContext);
         }	/* Wait until the LCD displays the draft framebuffer */
 
-        copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
+        lcd.copy_framebuffer((const uint32_t*)draft_fb_address, (uint32_t*)final_fb_address, 0, 0, LCDWidth, LCDHeight);
 
         display_state = SwitchToFinalIsPending;	/* Now we have copied the content to display to final framebuffer, we can perform the switch */
 
@@ -408,47 +406,6 @@ static void SystemClock_Config(void)
     ret = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5);
     if (ret != HAL_OK) {
         while(1) { ; }
-    }
-}
-
-/**
-  * @brief  Converts a line to an ARGB8888 pixel format.
-  * @param  pSrc: Pointer to source buffer
-  * @param  pDst: Output color
-  * @param  xSize: Buffer width
-  * @param  ColorMode: Input color mode   
-  * @retval None
-  */
-static void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
-    //const uint32_t* pSrc = static_cast<const uint32_t*>(src);
-    //uint32_t* pDst = static_cast<uint32_t*>(dst);
-    uint32_t destination = (uint32_t)pDst + (y * LCDWidth + x) * 4;
-    uint32_t source      = (uint32_t)pSrc;
-
-    /*##-1- Configure the DMA2D Mode, Color Mode and output offset #############*/
-    hdma2d.Init.Mode         = DMA2D_M2M;
-    hdma2d.Init.ColorMode    = DMA2D_ARGB8888;
-    hdma2d.Init.OutputOffset = LCDWidth - xsize;
-
-    /*##-2- DMA2D Callbacks Configuration ######################################*/
-    hdma2d.XferCpltCallback  = NULL;
-
-    /*##-3- Foreground Configuration ###########################################*/
-    hdma2d.LayerCfg[1].AlphaMode = DMA2D_NO_MODIF_ALPHA;
-    hdma2d.LayerCfg[1].InputAlpha = 0xFF;
-    hdma2d.LayerCfg[1].InputColorMode = DMA2D_INPUT_ARGB8888;
-    hdma2d.LayerCfg[1].InputOffset = 0;
-
-    hdma2d.Instance          = DMA2D;
-
-    /* DMA2D Initialization */
-    if (HAL_DMA2D_Init(&hdma2d) == HAL_OK) {
-        if (HAL_DMA2D_ConfigLayer(&hdma2d, 1) == HAL_OK) {
-            if (HAL_DMA2D_Start(&hdma2d, source, destination, xsize, ysize) == HAL_OK) {
-                /* Polling For DMA transfer */
-                HAL_DMA2D_PollForTransfer(&hdma2d, 100);
-            }
-        }
     }
 }
 } // extern "C"

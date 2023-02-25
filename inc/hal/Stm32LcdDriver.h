@@ -4,8 +4,8 @@
 #include "stm32f4xx_hal.h"
 
 extern "C" {
-extern LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
-extern DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
+LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
+DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
 }
 
 /**
@@ -30,6 +30,8 @@ public:
     static Stm32LcdDriver& get();
 
     bool start(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_eval);
+
+    void copy_framebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
 
 private:
     Stm32LcdDriver& operator= (const Stm32LcdDriver&) { return *this; }
