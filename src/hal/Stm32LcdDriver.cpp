@@ -20,19 +20,15 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 #define HFP                 1
 #define HACT                LCDWidth
 
-static __IO Stm32LcdDriver::LCD_Display_Update_State display_state = Stm32LcdDriver::SwitchToDraftIsPending;
-
+void* const Stm32LcdDriver::draft_framebuffer_address = (void *)LCD_FB_START_ADDRESS;
+void* const Stm32LcdDriver::final_framebuffer_address = (void *)((uint8_t*)Stm32LcdDriver::draft_framebuffer_address + LCDWidth*LCDHeight*BytesPerPixel);
+ 
 //static uint32_t ImageIndex = 0;
 /*static const uint32_t * Images[] = 
 {
     image_320x240_argb8888,
     life_augmented_argb8888,
 };*/
-
-extern "C" {
-    static void* const draft_framebuffer_address = (void *)LCD_FB_START_ADDRESS;
-    static void* const final_framebuffer_address = (void *)((uint8_t*)draft_framebuffer_address + LCDWidth*LCDHeight*BytesPerPixel);
-}
 
 void set_active_fb_addr(void* fb) {
     /* Disable DSI Wrapper */
@@ -55,12 +51,12 @@ extern "C" {
   */
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
     if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToDraftIsPending) {
-        set_active_fb_addr(draft_framebuffer_address);
+        set_active_fb_addr(Stm32LcdDriver::get().draft_framebuffer_address);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingDraft;
         BSP_LED_Off(LED4);
     }
     else if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToFinalIsPending) {
-        set_active_fb_addr(final_framebuffer_address);
+        set_active_fb_addr(Stm32LcdDriver::get().final_framebuffer_address);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingFinal;
         BSP_LED_On(LED4);
     }
