@@ -309,12 +309,12 @@ void Stm32LcdDriver::displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting, 
 }
 
 void Stm32LcdDriver::copyDraftToFinal() {
-    this->hdma2dCopyFramebuffer(static_cast<const uint32_t*>(draft_framebuffer_address), static_cast<uint32_t*>(final_framebuffer_address), 0, 0, LCDWidth, LCDHeight);
+    this->hdma2dCopyFramebuffer(draft_framebuffer_address, final_framebuffer_address, 0, 0, LCDWidth, LCDHeight);
 }
 
-void Stm32LcdDriver::hdma2dCopyFramebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
-    //const uint32_t* pSrc = static_cast<const uint32_t*>(src);
-    //uint32_t* pDst = static_cast<uint32_t*>(dst);
+void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
+    const uint32_t* pSrc = static_cast<const uint32_t*>(src);
+    uint32_t* pDst = static_cast<uint32_t*>(dst);
     uint32_t destination = (uint32_t)pDst + (y * LCDWidth + x) * 4;
     uint32_t source      = (uint32_t)pSrc;
 
