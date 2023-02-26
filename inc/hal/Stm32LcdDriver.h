@@ -67,8 +67,7 @@ private:
     ~Stm32LcdDriver();
 
     static Stm32LcdDriver instance;    /*!< Lazy singleton instance */
-public: // For debug only
-    LCD_Display_Update_State display_state;
+    LCD_Display_Update_State displayState;  /*!< Used to keep track of state transitions between buffers on LCD driver */
 public:
     LTDC_HandleTypeDef& hltdc;  /*!< Handle on the LCD/TFT display controller (LTDC), it is unfortunately external to us, defined in stm32469i_discovery_lcd.c */
     DMA2D_HandleTypeDef hdma2d; /*!< Handle on the DMA2D controller */

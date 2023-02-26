@@ -54,14 +54,14 @@ extern "C" {
   * The blue LED is On when we are displaying the displayed fb, and Off when where are temporarily switching to the pending buffer while copying to the displayed
   */
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
-    if (Stm32LcdDriver::get().display_state == Stm32LcdDriver::SwitchToDraftIsPending) {
+    if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToDraftIsPending) {
         set_active_fb_addr(draft_framebuffer_address);
-        Stm32LcdDriver::get().display_state = Stm32LcdDriver::DisplayingDraft;
+        Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingDraft;
         BSP_LED_Off(LED4);
     }
-    else if (Stm32LcdDriver::get().display_state == Stm32LcdDriver::SwitchToFinalIsPending) {
+    else if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToFinalIsPending) {
         set_active_fb_addr(final_framebuffer_address);
-        Stm32LcdDriver::get().display_state = Stm32LcdDriver::DisplayingFinal;
+        Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingFinal;
         BSP_LED_On(LED4);
     }
 }
@@ -234,7 +234,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
 
 
 Stm32LcdDriver::Stm32LcdDriver() :
-display_state(SwitchToDraftIsPending),
+displayState(SwitchToDraftIsPending),
 hltdc(hltdc_eval),
 hdsi(hdsi_eval)
 {
@@ -262,11 +262,11 @@ bool Stm32LcdDriver::start() {
     BSP_LCD_SetTextColor(LCD_COLOR_RED);
     BSP_LCD_FillCircle(30, 30, 30);
 
-    this->display_state = SwitchToDraftIsPending;
+    this->displayState = SwitchToDraftIsPending;
 
     HAL_DSI_Refresh(&(this->hdsi));
 
-    while (this->display_state == SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
+    while (this->displayState == SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
     this->copyDraftToFinal();
 
@@ -276,13 +276,13 @@ bool Stm32LcdDriver::start() {
 }
 
 void Stm32LcdDriver::requestDisplayDraft() {
-    this->display_state = SwitchToDraftIsPending;
+    this->displayState = SwitchToDraftIsPending;
 
     HAL_DSI_Refresh(&(this->hdsi));
 }
 
 void Stm32LcdDriver::waitForDraftDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) const {
-    while (this->display_state==SwitchToDraftIsPending) {
+    while (this->displayState==SwitchToDraftIsPending) {
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }
@@ -290,13 +290,13 @@ void Stm32LcdDriver::waitForDraftDisplayed(FWaitForDisplayRefreshFunc toRunWhile
 }
 
 void Stm32LcdDriver::requestDisplayFinal() {
-    this->display_state = SwitchToFinalIsPending;
+    this->displayState = SwitchToFinalIsPending;
 
     HAL_DSI_Refresh(&(this->hdsi));
 }
 
 void Stm32LcdDriver::waitForFinalDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) const {
-    while (this->display_state==SwitchToFinalIsPending) {
+    while (this->displayState==SwitchToFinalIsPending) {
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }
