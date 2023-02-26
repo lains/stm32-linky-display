@@ -71,35 +71,35 @@ void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
   * @param  None
   * @retval None
   */
-void LTDC_Init(LTDC_HandleTypeDef* hltdc_eval) {
+void LTDC_Init(LTDC_HandleTypeDef* hltdc) {
     /* DeInit */
-    hltdc_eval->Instance = LTDC;
-    HAL_LTDC_DeInit(hltdc_eval);
+    hltdc->Instance = LTDC;
+    HAL_LTDC_DeInit(hltdc);
 
     /* LTDC Config */
     /* Timing and polarity */
-    hltdc_eval->Init.HorizontalSync = HSYNC;
-    hltdc_eval->Init.VerticalSync = VSYNC;
-    hltdc_eval->Init.AccumulatedHBP = HSYNC+HBP;
-    hltdc_eval->Init.AccumulatedVBP = VSYNC+VBP;
-    hltdc_eval->Init.AccumulatedActiveH = VSYNC+VBP+VACT;
-    hltdc_eval->Init.AccumulatedActiveW = HSYNC+HBP+HACT;
-    hltdc_eval->Init.TotalHeigh = VSYNC+VBP+VACT+VFP;
-    hltdc_eval->Init.TotalWidth = HSYNC+HBP+HACT+HFP;
+    hltdc->Init.HorizontalSync = HSYNC;
+    hltdc->Init.VerticalSync = VSYNC;
+    hltdc->Init.AccumulatedHBP = HSYNC+HBP;
+    hltdc->Init.AccumulatedVBP = VSYNC+VBP;
+    hltdc->Init.AccumulatedActiveH = VSYNC+VBP+VACT;
+    hltdc->Init.AccumulatedActiveW = HSYNC+HBP+HACT;
+    hltdc->Init.TotalHeigh = VSYNC+VBP+VACT+VFP;
+    hltdc->Init.TotalWidth = HSYNC+HBP+HACT+HFP;
 
     /* background value */
-    hltdc_eval->Init.Backcolor.Blue = 0;
-    hltdc_eval->Init.Backcolor.Green = 0;
-    hltdc_eval->Init.Backcolor.Red = 0;
+    hltdc->Init.Backcolor.Blue = 0;
+    hltdc->Init.Backcolor.Green = 0;
+    hltdc->Init.Backcolor.Red = 0;
 
     /* Polarity */
-    hltdc_eval->Init.HSPolarity = LTDC_HSPOLARITY_AL;
-    hltdc_eval->Init.VSPolarity = LTDC_VSPOLARITY_AL;
-    hltdc_eval->Init.DEPolarity = LTDC_DEPOLARITY_AL;
-    hltdc_eval->Init.PCPolarity = LTDC_PCPOLARITY_IPC;
-    hltdc_eval->Instance = LTDC;
+    hltdc->Init.HSPolarity = LTDC_HSPOLARITY_AL;
+    hltdc->Init.VSPolarity = LTDC_VSPOLARITY_AL;
+    hltdc->Init.DEPolarity = LTDC_DEPOLARITY_AL;
+    hltdc->Init.PCPolarity = LTDC_PCPOLARITY_IPC;
+    hltdc->Instance = LTDC;
 
-    HAL_LTDC_Init(hltdc_eval);
+    HAL_LTDC_Init(hltdc);
 }
 
 /**
@@ -112,7 +112,7 @@ void LTDC_Init(LTDC_HandleTypeDef* hltdc_eval) {
   * @param  None
   * @retval LCD state
   */
-static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_eval) {
+static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     static DSI_PHY_TimerTypeDef PhyTimings;
     static DSI_CmdCfgTypeDef CmdCfg;
     static DSI_LPCmdTypeDef LPCmd;
@@ -143,9 +143,9 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
 
     /* Base address of DSI Host/Wrapper registers to be set before calling De-Init */
-    hdsi_eval->Instance = DSI;
+    hdsi->Instance = DSI;
 
-    HAL_DSI_DeInit(hdsi_eval);
+    HAL_DSI_DeInit(hdsi);
 
 #if defined(USE_STM32469I_DISCO_REVA)  
     dsiPllInit.PLLNDIV  = 100;
@@ -156,9 +156,9 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
 #endif  /* USE_STM32469I_DISCO_REVA */
     dsiPllInit.PLLODF  = DSI_PLL_OUT_DIV1;
 
-    hdsi_eval->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
-    hdsi_eval->Init.TXEscapeCkdiv = 0x4;
-    HAL_DSI_Init(hdsi_eval, &(dsiPllInit));
+    hdsi->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
+    hdsi->Init.TXEscapeCkdiv = 0x4;
+    HAL_DSI_Init(hdsi, &(dsiPllInit));
 
     /* Configure the DSI for Command mode */
     CmdCfg.VirtualChannelID      = 0;
@@ -172,7 +172,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
     CmdCfg.VSyncPol              = DSI_VSYNC_FALLING;
     CmdCfg.AutomaticRefresh      = DSI_AR_DISABLE;
     CmdCfg.TEAcknowledgeRequest  = DSI_TE_ACKNOWLEDGE_ENABLE;
-    HAL_DSI_ConfigAdaptedCommandMode(hdsi_eval, &CmdCfg);
+    HAL_DSI_ConfigAdaptedCommandMode(hdsi, &CmdCfg);
     
     LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_ENABLE;
     LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_ENABLE;
@@ -185,7 +185,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
     LPCmd.LPDcsShortWriteOneP   = DSI_LP_DSW1P_ENABLE;
     LPCmd.LPDcsShortReadNoP     = DSI_LP_DSR0P_ENABLE;
     LPCmd.LPDcsLongWrite        = DSI_LP_DLW_ENABLE;
-    HAL_DSI_ConfigCommand(hdsi_eval, &LPCmd);
+    HAL_DSI_ConfigCommand(hdsi, &LPCmd);
 
     /* Configure DSI PHY HS2LP and LP2HS timings */
     PhyTimings.ClockLaneHS2LPTime = 35;
@@ -194,13 +194,13 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
     PhyTimings.DataLaneLP2HSTime = 35;
     PhyTimings.DataLaneMaxReadTime = 0;
     PhyTimings.StopWaitTime = 10;
-    HAL_DSI_ConfigPhyTimer(hdsi_eval, &PhyTimings);
+    HAL_DSI_ConfigPhyTimer(hdsi, &PhyTimings);
 
     /* Initialize LTDC */
-    LTDC_Init(hltdc_eval);
+    LTDC_Init(hltdc);
     
     /* Start DSI */
-    HAL_DSI_Start(hdsi_eval);
+    HAL_DSI_Start(hdsi);
 
 #if defined (USE_STM32469I_DISCO_REVC)
     /* Initialize the NT35510 LCD Display IC Driver (3K138 LCD IC Driver) */
@@ -221,11 +221,11 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi_eval, LTDC_HandleTypeDef* hltdc_
     LPCmd.LPDcsShortWriteOneP   = DSI_LP_DSW1P_DISABLE;
     LPCmd.LPDcsShortReadNoP     = DSI_LP_DSR0P_DISABLE;
     LPCmd.LPDcsLongWrite        = DSI_LP_DLW_DISABLE;
-    HAL_DSI_ConfigCommand(hdsi_eval, &LPCmd);
+    HAL_DSI_ConfigCommand(hdsi, &LPCmd);
 
-    HAL_DSI_ConfigFlowControl(hdsi_eval, DSI_FLOW_CONTROL_BTA);
+    HAL_DSI_ConfigFlowControl(hdsi, DSI_FLOW_CONTROL_BTA);
     /* Refresh the display */
-    HAL_DSI_Refresh(hdsi_eval);
+    HAL_DSI_Refresh(hdsi);
 
     return LCD_OK;
 }
