@@ -131,10 +131,10 @@ int main(void) {
     Stm32LcdDriver& lcd = Stm32LcdDriver::get();
 
     //BSP_TS_Init(800,480);
-    /* Initialize the LCD   */
+    /* Initialize the LCD */
     OnError_Handler(!lcd.start());
 
-    ticSerial.print("Buffers created. Starting...\r\n");
+    //ticSerial.print("Buffers created. Starting...\r\n");
 
     TicFrameParser ticParser;
 
@@ -144,8 +144,6 @@ int main(void) {
             frameParser->parseFrame(buf, cnt);
         }
     }, (void *)(&ticParser));
-
-    //set_active_fb_addr(final_fb_address);	/* Draw the copy on the LCD, not the pending one */
 
     struct TicProcessingContext {
         /* Default constructor */
@@ -195,10 +193,8 @@ int main(void) {
 
     unsigned int lcdRefreshCount = 0;
     while (1) {
-        while (lcd.display_state == Stm32LcdDriver::SwitchToDraftIsPending) {
-            streamTicRxBytesToUnframer(&ticContext);
-        }; /* Wait until the LCD displays the final framebuffer */
-        /* We can now work on pending buffer */
+        lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
+        /* We can now work on draft buffer */
         char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@@@XB - @@@@XR";
         statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
@@ -245,11 +241,7 @@ int main(void) {
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
         //BSP_LED_Off(LED1);
 
-        lcd.requestDisplayDraft();
-
-        while (lcd.display_state == Stm32LcdDriver::SwitchToDraftIsPending) {
-            streamTicRxBytesToUnframer(&ticContext);
-        }	/* Wait until the LCD displays the draft framebuffer */
+        lcd.displayDraft(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
 
         lcd.copyDraftToFinal();
 

@@ -281,24 +281,37 @@ void Stm32LcdDriver::requestDisplayDraft() {
     HAL_DSI_Refresh(&(this->hdsi));
 }
 
+void Stm32LcdDriver::waitForDraftDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) const {
+    while (this->display_state==SwitchToDraftIsPending) {
+        if (toRunWhileWaiting != nullptr) {
+            toRunWhileWaiting(context);
+        }
+    }	/* Wait until the LCD displays the draft framebuffer */
+}
+
 void Stm32LcdDriver::requestDisplayFinal() {
     this->display_state = SwitchToFinalIsPending;
 
     HAL_DSI_Refresh(&(this->hdsi));
 }
 
+void Stm32LcdDriver::waitForFinalDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) const {
+    while (this->display_state==SwitchToFinalIsPending) {
+        if (toRunWhileWaiting != nullptr) {
+            toRunWhileWaiting(context);
+        }
+    }	/* Wait until the LCD displays the finale framebuffer */
+}
+
+void Stm32LcdDriver::displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) {
+    this->requestDisplayDraft();
+    this->waitForDraftDisplayed(toRunWhileWaiting);
+}
+
 void Stm32LcdDriver::copyDraftToFinal() {
     this->hdma2dCopyFramebuffer(static_cast<const uint32_t*>(draft_framebuffer_address), static_cast<uint32_t*>(final_framebuffer_address), 0, 0, LCDWidth, LCDHeight);
 }
 
-/**
-  * @brief  Converts a line to an ARGB8888 pixel format.
-  * @param  pSrc: Pointer to source buffer
-  * @param  pDst: Output color
-  * @param  xSize: Buffer width
-  * @param  ColorMode: Input color mode   
-  * @retval None
-  */
 void Stm32LcdDriver::hdma2dCopyFramebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
     //const uint32_t* pSrc = static_cast<const uint32_t*>(src);
     //uint32_t* pDst = static_cast<uint32_t*>(dst);

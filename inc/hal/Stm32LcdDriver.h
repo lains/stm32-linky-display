@@ -6,6 +6,7 @@
 extern "C" {
 LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
 DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
+void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi);
 }
 
 /**
@@ -22,6 +23,8 @@ public:
         DisplayingFinal
     } LCD_Display_Update_State;
 
+    typedef void(*FWaitForDisplayRefreshFunc)(void* context);
+
     /**
      * @brief Singleton instance getter
      * 
@@ -29,13 +32,29 @@ public:
      */
     static Stm32LcdDriver& get();
 
+    /**
+     * @brief Initialize and draw the framebuffer to the LCD
+     * 
+     * @note When returing from this method, the LCD will be requested to display the final framebuffer
+     *       Before drawing anything to the draft framebuffer, one should check that the display has actually finished switching by invoking waitForFinalDisplayed()
+     * 
+     * @return true On success, false otherwise
+     */
     bool start();
 
     void requestDisplayDraft();
 
+    void waitForDraftDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) const;
+
     void requestDisplayFinal();
 
+    void waitForFinalDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) const;
+
+    void displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr); /* Combined requestDisplayDraft()+waitForDraftDisplayed() */
+
     void copyDraftToFinal();
+
+    friend void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi); /* This interrupt hanlder accesses our display state */
 
 private:
     void hdma2dCopyFramebuffer(const uint32_t *pSrc, uint32_t *pDst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
