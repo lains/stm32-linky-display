@@ -282,7 +282,7 @@ void Stm32LcdDriver::requestDisplayDraft() {
 }
 
 void Stm32LcdDriver::waitForDraftDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) const {
-    while (this->displayState==SwitchToDraftIsPending) {
+    while (this->displayState != DisplayingDraft) {
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }
@@ -296,7 +296,7 @@ void Stm32LcdDriver::requestDisplayFinal() {
 }
 
 void Stm32LcdDriver::waitForFinalDisplayed(FWaitForDisplayRefreshFunc toRunWhileWaiting, void* context) const {
-    while (this->displayState==SwitchToFinalIsPending) {
+    while (this->displayState != DisplayingFinal) {
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }
