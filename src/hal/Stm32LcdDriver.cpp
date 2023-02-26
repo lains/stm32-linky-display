@@ -20,8 +20,8 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 #define HFP                 1
 #define HACT                LCDWidth
 
-void* const Stm32LcdDriver::draft_framebuffer_address = (void *)LCD_FB_START_ADDRESS;
-void* const Stm32LcdDriver::final_framebuffer_address = (void *)((uint8_t*)Stm32LcdDriver::draft_framebuffer_address + LCDWidth*LCDHeight*BytesPerPixel);
+void* const Stm32LcdDriver::draftFramebuffer = (void *)LCD_FB_START_ADDRESS;
+void* const Stm32LcdDriver::finalFramebuffer = (void *)((uint8_t*)Stm32LcdDriver::draftFramebuffer + LCDWidth*LCDHeight*BytesPerPixel); // Final framebuffer directly follows draft framebuffer
  
 //static uint32_t ImageIndex = 0;
 /*static const uint32_t * Images[] = 
@@ -30,7 +30,14 @@ void* const Stm32LcdDriver::final_framebuffer_address = (void *)((uint8_t*)Stm32
     life_augmented_argb8888,
 };*/
 
-void set_active_fb_addr(void* fb) {
+/**
+ * @brief Set the currently active (displayed) framebuffer
+ * 
+ * @note When returing from this function, the framebuffer is not yet displayed on the LCD
+ *       When the display is efefctive, callback HAL_DSI_EndOfRefreshCallback() will be invoked
+ * @param fb A pointer to the framebuffer to display
+ */
+void set_active_fb(void* fb) {
     /* Disable DSI Wrapper */
     __HAL_DSI_WRAPPER_DISABLE(get_hdsi());
     /* Update LTDC configuration */
@@ -51,12 +58,12 @@ extern "C" {
   */
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
     if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToDraftIsPending) {
-        set_active_fb_addr(Stm32LcdDriver::get().draft_framebuffer_address);
+        set_active_fb(Stm32LcdDriver::get().draftFramebuffer);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingDraft;
         BSP_LED_Off(LED4);
     }
     else if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToFinalIsPending) {
-        set_active_fb_addr(Stm32LcdDriver::get().final_framebuffer_address);
+        set_active_fb(Stm32LcdDriver::get().finalFramebuffer);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingFinal;
         BSP_LED_On(LED4);
     }
@@ -250,7 +257,7 @@ bool Stm32LcdDriver::start() {
     if (!LCD_Init(&(this->hdsi), &(this->hltdc)) == LCD_OK)
         return false;
     
-    BSP_LCD_LayerDefaultInit(0, (uint32_t)draft_framebuffer_address);
+    BSP_LCD_LayerDefaultInit(0, (uint32_t)(this->draftFramebuffer));
     BSP_LCD_SelectLayer(0); 
 
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
@@ -305,14 +312,12 @@ void Stm32LcdDriver::displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting, 
 }
 
 void Stm32LcdDriver::copyDraftToFinal() {
-    this->hdma2dCopyFramebuffer(draft_framebuffer_address, final_framebuffer_address, 0, 0, LCDWidth, LCDHeight);
+    this->hdma2dCopyFramebuffer(this->draftFramebuffer, this->finalFramebuffer, 0, 0, LCDWidth, LCDHeight);
 }
 
 void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
-    const uint32_t* pSrc = static_cast<const uint32_t*>(src);
-    uint32_t* pDst = static_cast<uint32_t*>(dst);
-    uint32_t destination = (uint32_t)pDst + (y * LCDWidth + x) * 4;
-    uint32_t source      = (uint32_t)pSrc;
+    uint32_t destination_addr = (uint32_t)dst + (y * LCDWidth + x) * 4;
+    uint32_t source_addr      = (uint32_t)src;
 
     /*##-1- Configure the DMA2D Mode, Color Mode and output offset #############*/
     this->hdma2d.Init.Mode         = DMA2D_M2M;
@@ -333,7 +338,7 @@ void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t 
     /* DMA2D Initialization */
     if (HAL_DMA2D_Init(&(this->hdma2d)) == HAL_OK) {
         if (HAL_DMA2D_ConfigLayer(&(this->hdma2d), 1) == HAL_OK) {
-            if (HAL_DMA2D_Start(&(this->hdma2d), source, destination, xsize, ysize) == HAL_OK) {
+            if (HAL_DMA2D_Start(&(this->hdma2d), source_addr, destination_addr, xsize, ysize) == HAL_OK) {
                 /* Polling For DMA transfer */
                 HAL_DMA2D_PollForTransfer(&(this->hdma2d), 100);
 #if 0

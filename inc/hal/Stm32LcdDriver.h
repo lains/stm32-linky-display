@@ -68,8 +68,8 @@ private:
 
     static Stm32LcdDriver instance;    /*!< Lazy singleton instance */
     volatile LCD_Display_Update_State displayState;  /*!< Used to keep track of state transitions between buffers on LCD driver */
-    static void* const draft_framebuffer_address;
-    static void* const final_framebuffer_address;
+    static void* const draftFramebuffer;    /*!< A pointer to the beginning of the draft frambuffer */
+    static void* const finalFramebuffer;    /*!< A pointer to the beginning of the final frambuffer */
 
 public:
     LTDC_HandleTypeDef& hltdc;  /*!< Handle on the LCD/TFT display controller (LTDC), it is unfortunately external to us, defined in stm32469i_discovery_lcd.c */
