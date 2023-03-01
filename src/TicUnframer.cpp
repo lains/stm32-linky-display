@@ -1,6 +1,5 @@
+#include <string.h> // For memset()
 #include "TicUnframer.h"
-
-
 
 TICUnframer::TICUnframer(FFrameParserFunc onFrameComplete, void* onFrameCompleteContext) :
 sync(false),
@@ -40,8 +39,7 @@ std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
         uint8_t* etx = (uint8_t*)(memchr(buffer, TICUnframer::TIC_ETX, len)); /* Search for end of frame */
         if (etx) {  /* We have an ETX in the buffer, we can extract the full frame */
             std::size_t leadingBytesInPreviousFrame = etx - buffer;
-            usedBytes = this->pushBytes(buffer, leadingBytesInPreviousFrame); /* Copy the buffer up to (but exclusing the ETX marker) */
-            this->processCurrentFrame();
+            usedBytes = this->processIncomingFrameBytes(buffer, leadingBytesInPreviousFrame, true); /* Copy the buffer up to (but exclusing the ETX marker), the frame is complete */
             this->nextWriteInCurrentFrame = 0; /* Wipe any data in the current frame, start over */
             leadingBytesInPreviousFrame++; /* Skip the ETX marker */
             usedBytes++;
@@ -51,17 +49,25 @@ std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
             }
         }
         else { /* No ETX, copy the whole chunk */
-            std::size_t maxCopy = this->getFreeBytes();
-            std::size_t szCopy = len;
-            if (szCopy > maxCopy) {  /* currentFrame overflow */
-                szCopy = maxCopy; /* FIXME: Error case */
-            }
-            memcpy(this->currentFrame + nextWriteInCurrentFrame, buffer, szCopy);
-            nextWriteInCurrentFrame += szCopy;
-            usedBytes = szCopy;
+            usedBytes = this->processIncomingFrameBytes(buffer, len); /* Process these bytes as valid */
         }
     }
     return usedBytes;
+}
+
+std::size_t TICUnframer::processIncomingFrameBytes(const uint8_t* buffer, std::size_t len, bool frameComplete) {
+    std::size_t maxCopy = this->getFreeBytes();
+    std::size_t szCopy = len;
+    if (szCopy > maxCopy) {  /* currentFrame overflow */
+        szCopy = maxCopy; /* FIXME: Error case */
+    }
+    memcpy(this->currentFrame + nextWriteInCurrentFrame, buffer, szCopy);
+    nextWriteInCurrentFrame += szCopy;
+
+    if (frameComplete) {
+        this->processCurrentFrame();
+    }
+    return szCopy;
 }
 
 void TICUnframer::processCurrentFrame() {
@@ -69,12 +75,12 @@ void TICUnframer::processCurrentFrame() {
     this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame, this->onFrameCompleteContext);
 }
 
-bool TICUnframer::isInSync() {
+bool TICUnframer::isInSync() const {
     return this->sync;
 }
 
 std::size_t TICUnframer::getFreeBytes() const {
-    return MAX_FRAME_SIZE - nextWriteInCurrentFrame;
+    return MAX_FRAME_SIZE - this->nextWriteInCurrentFrame;
 }
 
 void TICUnframer::recordFrameSize(unsigned int frameSize) {

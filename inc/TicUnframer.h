@@ -1,7 +1,6 @@
 #pragma once
 #include <cstddef> // For std::size_t
 #include <stdint.h>
-#include <string.h> // For memset()
 #include "FixedSizeRingBuffer.h"
 
 /* Use catch2 framework for unit testing? https://github.com/catchorg/Catch2 */
@@ -13,7 +12,7 @@ public:
 /* Constants */
     static constexpr uint8_t TIC_STX = 0x02;
     static constexpr uint8_t TIC_ETX = 0x03;
-    static constexpr std::size_t MAX_FRAME_SIZE = 2048; /* Make acceptable TIC frame payload size (excluding STX and ETX markers) */
+    static constexpr std::size_t MAX_FRAME_SIZE = 2048; /* Max acceptable TIC frame payload size (excluding STX and ETX markers) */
     static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 
 /* Methods */
@@ -38,17 +37,28 @@ public:
      */
     std::size_t pushBytes(const uint8_t* buffer, std::size_t len);
 
-    bool isInSync();
+    bool isInSync() const;
 
     std::size_t getMaxFrameSizeFromRecentHistory() const;
 
 private:
     std::size_t getFreeBytes() const;
+
+    /**
+     * @brief Take new frame bytes into account
+     * 
+     * @param buffer The buffer to the new frame bytes
+     * @param len The number of bytes to read from @p buffer
+     * @param frameComplete Is the frame complete?
+     * @return std::size_t The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
+     */
+    std::size_t processIncomingFrameBytes(const uint8_t* buffer, std::size_t len, bool frameComplete = false);
+    
     void processCurrentFrame(); /*!< Method called when the current frame parsing is complete */
     void recordFrameSize(unsigned int frameSize); /*!< Record a frame size in our history */
 
 /* Attributes */
-    bool sync;
+    bool sync;  /*!< Are we currently in sync? (correct parsing) */
     FFrameParserFunc onFrameComplete; /*!< A function pointer invoked for each full TIC frame received */
     void* onFrameCompleteContext; /*!< A context pointer passed to onFrameComplete() at invokation */
     FixedSizeRingBuffer<unsigned int, STATS_NB_FRAMES> frameSizeHistory;  /* A rotating buffer containing the history of received TIC frames sizes */
