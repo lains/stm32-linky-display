@@ -62,6 +62,6 @@ private:
     FFrameParserFunc onFrameComplete; /*!< A function pointer invoked for each full TIC frame received */
     void* onFrameCompleteContext; /*!< A context pointer passed to onFrameComplete() at invokation */
     FixedSizeRingBuffer<unsigned int, STATS_NB_FRAMES> frameSizeHistory;  /* A rotating buffer containing the history of received TIC frames sizes */
-    uint8_t currentFrame[MAX_FRAME_SIZE]; /*!< Our internal accumulating buffer */
+    uint8_t currentFrame[MAX_FRAME_SIZE]; /*!< Our internal accumulating buffer used to store the current frame */
     unsigned int nextWriteInCurrentFrame; /*!< The index of the next bytes to receive in buffer currentFrame */
 };

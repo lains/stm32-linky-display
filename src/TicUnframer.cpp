@@ -35,7 +35,7 @@ std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
         }
     }
     else {
-        /* We are inside a TIC frame */
+        /* We are inside a TIC frame, search for the end of frame (ETX) marker */
         uint8_t* etx = (uint8_t*)(memchr(buffer, TICUnframer::TIC_ETX, len)); /* Search for end of frame */
         if (etx) {  /* We have an ETX in the buffer, we can extract the full frame */
             std::size_t leadingBytesInPreviousFrame = etx - buffer;
