@@ -11,7 +11,7 @@
 #include <iterator>
 */
 
-#include "../src/FixedSizeRingBuffer.h"
+#include "FixedSizeRingBuffer.h"
 
 TEST_GROUP(FixedSizeRingBuffer_tests) {
 };
