@@ -182,6 +182,7 @@ flash: $(SRC_BUILD_PREFIX)/$(BINARY).hex
 # Clean
 clean:
 	@rm -f $(ALL_OBJS) $(GENERATED_BINARIES)
+	$(MAKE) -C tests/ clean
 
 # Debug
 gdb-server_stlink:
