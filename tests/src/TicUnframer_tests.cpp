@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <iterator>
 
-#include "../src/TicUnframer.h"
+#include "TicUnframer.h"
 
 TEST_GROUP(TicUnframer_tests) {
 };
@@ -70,7 +70,7 @@ inline std::vector<uint8_t> readVectorFromDisk(const std::string& inputFilename)
 }
 
 void onFrameDecode(const uint8_t* buf, size_t cnt) {
-	printf("Hello on buffer size %zu\n", cnt);
+	printf("Received frame (%zu bytes):\n", cnt);
 	for (size_t pos = 0; pos < cnt; pos++) {
 		if ((pos & 0xf) == 0) {
 			printf("\n");
