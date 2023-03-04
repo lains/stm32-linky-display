@@ -98,7 +98,7 @@ $(TEST_BUILD_OBJ_PREFIX)src/TIC/Unframer.o: ../src/TIC/Unframer.cpp
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
-$(TEST_BUILD_OBJ_PREFIX)src/TicDatasetExtractor.o: ../src/TicDatasetExtractor.cpp
+$(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetExtractor.o: ../src/TIC/DatasetExtractor.cpp
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 

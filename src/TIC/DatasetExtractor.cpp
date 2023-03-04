@@ -1,5 +1,5 @@
 #include <string.h> // For memset()
-#include "TicDatasetExtractor.h"
+#include "TIC/DatasetExtractor.h"
 
 TIC::DatasetExtractor::DatasetExtractor(FDatasetParserFunc onDatasetExtracted, void* onDatasetExtractedContext) :
 sync(false),
