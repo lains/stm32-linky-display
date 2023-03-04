@@ -138,7 +138,7 @@ int main(void) {
 
     TicFrameParser ticParser;
 
-    TICUnframer ticUnframer([](const uint8_t* buf, std::size_t cnt, void* context) {
+    TIC::Unframer ticUnframer([](const uint8_t* buf, std::size_t cnt, void* context) {
         if (context) {  /* Failsafe, do not dereference if no context */
             TicFrameParser* frameParser = static_cast<TicFrameParser*>(context);
             frameParser->parseFrame(buf, cnt);
@@ -147,14 +147,14 @@ int main(void) {
 
     struct TicProcessingContext {
         /* Default constructor */
-        TicProcessingContext(Stm32SerialDriver& ticSerial, TICUnframer& ticUnframer) :
+        TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Unframer& ticUnframer) :
             ticSerial(ticSerial),
             ticUnframer(ticUnframer),
             lostTicBytes(0),
             serialRxOverflowCount(0) { }
 
         Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
-        TICUnframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
+        TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
         unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
         unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
     };

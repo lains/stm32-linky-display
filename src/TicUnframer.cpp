@@ -1,7 +1,7 @@
 #include <string.h> // For memset()
 #include "TicUnframer.h"
 
-TICUnframer::TICUnframer(FFrameParserFunc onFrameComplete, void* onFrameCompleteContext) :
+TIC::Unframer::Unframer(FFrameParserFunc onFrameComplete, void* onFrameCompleteContext) :
 sync(false),
 onFrameComplete(onFrameComplete),
 onFrameCompleteContext(onFrameCompleteContext),
@@ -15,10 +15,10 @@ https://github.com/oktal/result
 Or (seems better) https://github.com/bitwizeshift/result */
 
 
-std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
+std::size_t TIC::Unframer::pushBytes(const uint8_t* buffer, std::size_t len) {
     std::size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of frame */
-        uint8_t* firstStx = (uint8_t*)(memchr(buffer, TICUnframer::TIC_STX, len));
+        uint8_t* firstStx = (uint8_t*)(memchr(buffer, TIC::Unframer::TIC_STX, len));
         if (firstStx) {
             this->sync = true;
             std::size_t bytesToSkip =  firstStx - buffer;  /* Bytes processed (but ignored) */
@@ -36,7 +36,7 @@ std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
     }
     else {
         /* We are inside a TIC frame, search for the end of frame (ETX) marker */
-        uint8_t* etx = (uint8_t*)(memchr(buffer, TICUnframer::TIC_ETX, len)); /* Search for end of frame */
+        uint8_t* etx = (uint8_t*)(memchr(buffer, TIC::Unframer::TIC_ETX, len)); /* Search for end of frame */
         if (etx) {  /* We have an ETX in the buffer, we can extract the full frame */
             std::size_t leadingBytesInPreviousFrame = etx - buffer;
             usedBytes = this->processIncomingFrameBytes(buffer, leadingBytesInPreviousFrame, true); /* Copy the buffer up to (but exclusing the ETX marker), the frame is complete */
@@ -55,7 +55,7 @@ std::size_t TICUnframer::pushBytes(const uint8_t* buffer, std::size_t len) {
     return usedBytes;
 }
 
-std::size_t TICUnframer::processIncomingFrameBytes(const uint8_t* buffer, std::size_t len, bool frameComplete) {
+std::size_t TIC::Unframer::processIncomingFrameBytes(const uint8_t* buffer, std::size_t len, bool frameComplete) {
     std::size_t maxCopy = this->getFreeBytes();
     std::size_t szCopy = len;
     if (szCopy > maxCopy) {  /* currentFrame overflow */
@@ -70,19 +70,19 @@ std::size_t TICUnframer::processIncomingFrameBytes(const uint8_t* buffer, std::s
     return szCopy;
 }
 
-void TICUnframer::processCurrentFrame() {
+void TIC::Unframer::processCurrentFrame() {
     this->recordFrameSize(this->nextWriteInCurrentFrame);
     this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame, this->onFrameCompleteContext);
 }
 
-bool TICUnframer::isInSync() const {
+bool TIC::Unframer::isInSync() const {
     return this->sync;
 }
 
-std::size_t TICUnframer::getFreeBytes() const {
+std::size_t TIC::Unframer::getFreeBytes() const {
     return MAX_FRAME_SIZE - this->nextWriteInCurrentFrame;
 }
 
-void TICUnframer::recordFrameSize(unsigned int frameSize) {
+void TIC::Unframer::recordFrameSize(unsigned int frameSize) {
     this->frameSizeHistory.push(frameSize);
 }

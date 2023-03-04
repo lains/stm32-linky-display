@@ -4,7 +4,8 @@
 #include "FixedSizeRingBuffer.h"
 
 /* Use catch2 framework for unit testing? https://github.com/catchorg/Catch2 */
-class TICUnframer {
+namespace TIC {
+class Unframer {
 public:
 /* Types */
     typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onFrameComplete */
@@ -26,7 +27,7 @@ public:
      *       This is because we don't have 100% guarantee that exceptions are allowed (especially on embedded targets) and using std::function requires enabling exceptions.
      *       We can still use non-capturing lambdas as function pointer if needed (see https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer)
      */
-    TICUnframer(FFrameParserFunc onFrameComplete = nullptr, void* onFrameCompleteContext = nullptr);
+    Unframer(FFrameParserFunc onFrameComplete = nullptr, void* onFrameCompleteContext = nullptr);
 
     /**
      * @brief Take new incoming bytes into account
@@ -91,3 +92,4 @@ private:
     uint8_t currentFrame[MAX_FRAME_SIZE]; /*!< Our internal accumulating buffer used to store the current frame */
     unsigned int nextWriteInCurrentFrame; /*!< The index of the next bytes to receive in buffer currentFrame */
 };
+} // namespace TIC

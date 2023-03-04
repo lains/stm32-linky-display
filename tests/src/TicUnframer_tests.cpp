@@ -84,9 +84,9 @@ void onFrameDecode(const uint8_t* buf, size_t cnt) {
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
-	uint8_t buffer[] = { TICUnframer::TIC_STX, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, TICUnframer::TIC_ETX };
+	uint8_t buffer[] = { TIC::Unframer::TIC_STX, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, TIC::Unframer::TIC_ETX };
 	FrameDecoderStub stub;
-	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(buffer, sizeof(buffer));
 	if (stub.decodedFramesList.size() != 1) {
 		FAILF("Wrong frame count: %ld", stub.decodedFramesList.size());
@@ -97,11 +97,11 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_markers_10bytes) {
-	uint8_t stx_marker = TICUnframer::TIC_STX;
-	uint8_t etx_marker = TICUnframer::TIC_ETX;
+	uint8_t stx_marker = TIC::Unframer::TIC_STX;
+	uint8_t etx_marker = TIC::Unframer::TIC_ETX;
 	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(&stx_marker, 1);
 	tu.pushBytes(buffer, sizeof(buffer));
 	tu.pushBytes(&etx_marker, 1);
@@ -114,11 +114,11 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_marke
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes) {
-	uint8_t stx_marker = TICUnframer::TIC_STX;
-	uint8_t etx_marker = TICUnframer::TIC_ETX;
+	uint8_t stx_marker = TIC::Unframer::TIC_STX;
+	uint8_t etx_marker = TIC::Unframer::TIC_ETX;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(&stx_marker, 1);
 	for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
@@ -135,16 +135,16 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_256bytes_halves) {
 	uint8_t buffer[514];
 
-	buffer[0] = TICUnframer::TIC_STX;
+	buffer[0] = TIC::Unframer::TIC_STX;
 	for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
 		buffer[pos] = (uint8_t)(pos & 0xff);
-		if (buffer[pos] == TICUnframer::TIC_ETX || buffer[pos] == TICUnframer::TIC_STX) {
+		if (buffer[pos] == TIC::Unframer::TIC_ETX || buffer[pos] == TIC::Unframer::TIC_STX) {
 			buffer[pos] = 0x00;	/* Remove any STX or ETX */
 		}
 	}
-	buffer[sizeof(buffer) - 1] = TICUnframer::TIC_ETX;
+	buffer[sizeof(buffer) - 1] = TIC::Unframer::TIC_ETX;
 	FrameDecoderStub stub;
-	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(buffer, sizeof(buffer) / 2);
 	tu.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
 	if (stub.decodedFramesList.size() != 1) {
@@ -156,11 +156,11 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_256bytes_hal
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
-	uint8_t stx_marker = TICUnframer::TIC_STX;
-	uint8_t etx_marker = TICUnframer::TIC_ETX;
+	uint8_t stx_marker = TIC::Unframer::TIC_STX;
+	uint8_t etx_marker = TIC::Unframer::TIC_ETX;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(&stx_marker, 1);
 	for (uint8_t pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
@@ -181,7 +181,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
  * @param chunkSize The size of each chunks (except the last one, that may be smaller)
  * @param ticUnframer The TICUnframer object in which we will inject chunks
  */
-void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t chunkSize, TICUnframer& ticUnframer) {
+void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t chunkSize, TIC::Unframer& ticUnframer) {
 
 	for (size_t bytesRead = 0; bytesRead < ticData.size();) {
 		size_t nbBytesToRead = ticData.size() - bytesRead;
@@ -197,11 +197,11 @@ TEST(TicUnframer_tests, TicUnframer_test_sample_frames_chunked) {
 
 	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_3P_historical_TIC_sample.bin");
 
-	for (size_t chunkSize = 1; chunkSize <= TICUnframer::MAX_FRAME_SIZE; chunkSize++) {
+	for (size_t chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
 		FrameDecoderStub stub;
-		TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+		TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 
-		TicUnframer_test_file_sent_by_chunks(ticData, TICUnframer::MAX_FRAME_SIZE, tu);
+		TicUnframer_test_file_sent_by_chunks(ticData, TIC::Unframer::MAX_FRAME_SIZE, tu);
 
 		if (stub.decodedFramesList.size() != 6) {
 			FAILF("When using chunk size %zu: Wrong frame count: %ld\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), stub.toString().c_str());
