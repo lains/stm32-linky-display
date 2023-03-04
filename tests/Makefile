@@ -98,6 +98,10 @@ $(TEST_BUILD_OBJ_PREFIX)src/TIC/Unframer.o: ../src/TIC/Unframer.cpp
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
+$(TEST_BUILD_OBJ_PREFIX)src/TicDatasetExtractor.o: ../src/TicDatasetExtractor.cpp
+	@mkdir -p $(dir $@)
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
+
 $(TEST_BINARY): $(ALL_OBJS) $(TEST_BUILD_OBJ_PREFIX)src/TicUnframer.o
 	@echo "  LD      $@"
 	@mkdir -p $(dir $@)

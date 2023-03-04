@@ -5,7 +5,7 @@
 class TICDatasetExtractor {
 public:
 /* Types */
-    typedef void(*FDatasetParserFunc)(const uint8_t* buf, std::size_t cnt, void* context);
+    typedef void(*FDatasetParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onDatasetExtracted */
     
     typedef enum {
         Historical = 0, /* Default TIC on newly installed meters */
@@ -13,13 +13,13 @@ public:
     } TIC_Type;
 
 /* Constants */
-    static constexpr uint8_t LF = 0x0a; /* Line feed */
-    static constexpr uint8_t CR = 0x0d; /* Carriage return */
-    static constexpr std::size_t MAX_DATASET_SIZE = 128; /* Max size to store a dataset */
+    static constexpr uint8_t LF = 0x0a; /*!< Dataset start marker (line feed) */
+    static constexpr uint8_t CR = 0x0d; /*!< Dataset end marker (carriage return) */
+    static constexpr std::size_t MAX_DATASET_SIZE = 128; /*!< Max size for a dataset storage (in bytes) */
 
 /* Methods */
     /**
-     * @brief Construct a new TICDatasetExtractor object
+     * @brief Construct a new TIC::DatasetExtractor object
      * 
      * @param onDatasetExtracted A FFrameParserFunc function to invoke for each valid TIC dataset extracted
      * @param onDatasetExtractedContext A user-defined pointer that will be passed as last argument when invoking onDatasetExtracted()
@@ -31,11 +31,11 @@ public:
     TICDatasetExtractor(FDatasetParserFunc onDatasetExtracted = nullptr, void* onDatasetExtractedContext = nullptr);
 
     /**
-     * @brief Reset the label parser state, this expecting a new dataset starting with the next input bytes
+     * @brief Reset the label parser state
+     * 
+     * @note After calling this methods, we will expecting the next input bytes to correspond to the start of a new dataset
      */
     void reset();
-
-    bool isInSync() const;
 
     /**
      * @brief Take new incoming bytes into account
@@ -46,7 +46,19 @@ public:
      */
     std::size_t pushBytes(const uint8_t* buffer, std::size_t len);
 
+    /**
+     * @brief Are we synchronized with a TIC dataset
+     * 
+     * @return true When we have received a dataset start marker and we are supposedly parsing the TIC dataset content
+     */
+    bool isInSync() const;
+
 private:
+    /**
+     * @brief Get the remaining free size in our internal buffer currentDataset
+     * 
+     * @return std::size_t The number of bytes that we can still store or 0 if the buffer is full
+     */
     std::size_t getFreeBytes() const;
 
     /**
@@ -59,7 +71,13 @@ private:
      */
     std::size_t processIncomingDatasetBytes(const uint8_t* buffer, std::size_t len, bool datasetComplete = false);
     
-    void processCurrentDataset(); /*!< Method called when the current frame parsing is complete */
+    /**
+     * @brief Process a current dataset that has been completely received (from start to end markers)
+     * 
+     * @note This method is called internally when the current dataset parsing is complete
+     *       This means that we have a full dataset available in buffer currentDataset for a length of nextWriteInCurrentDataset bytes
+     */
+    void processCurrentDataset();
 
 /* Attributes */
     bool sync;  /*!< Are we currently in sync? (correct parsing) */

@@ -18,7 +18,7 @@ public:
 
 /* Methods */
     /**
-     * @brief Construct a new TICUnframer object
+     * @brief Construct a new TIC::Unframer object
      * 
      * @param onFrameComplete A FFrameParserFunc function to invoke for each full TIC frame received
      * @param onFrameCompleteContext A user-defined pointer that will be passed as last argument when invoking onFrameComplete()
@@ -74,6 +74,7 @@ private:
      * @brief Process a current frame that has been completely received (from start to end markers)
      * 
      * @note This method is called internally when the current frame parsing is complete
+     *       This means that we have a full frame available in buffer currentFrame for a length of nextWriteInCurrentFrame bytes
      */
     void processCurrentFrame();
 
