@@ -1,31 +1,16 @@
 #include "TestHarness.h"
 #include <iostream>
-#include <iomanip>
+#include <sstream>
 #include <vector>
 #include <stdint.h>
 #include <string>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
 #include <iterator>
 
+#include "Tools.h"
 #include "TIC/Unframer.h"
 
 TEST_GROUP(TicUnframer_tests) {
 };
-
-std::string vectorToHexString(const std::vector<uint8_t>& vec) {
-	std::ostringstream stream;
-	stream << "(" << vec.size() << " bytes): ";
-	stream << std::setw(2) << std::setfill('0') << std::hex;
-	for(auto it = vec.begin(); it != vec.end() ; it++) {
-    	if (it != vec.begin()) {
-    		stream << " ";
-		}
-		stream << static_cast<unsigned int>(*it);
-    }
-	return stream.str();
-}
 
 class FrameDecoderStub {
 public:
@@ -49,7 +34,7 @@ public:
 };
 
 /**
- * @brief Utility function to unwrap and invoke a FrameDecoderStub instance's onDecodeCallback() from a callback call from TICUnframer
+ * @brief Utility function to unwrap and invoke a FrameDecoderStub instance's onDecodeCallback() from a callback call from TIC::Unframer
  * 
  * @param buf A buffer containing the full TIC frame bytes
  * @param len The number of bytes stored inside @p buf
@@ -60,13 +45,6 @@ void frameDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* con
         return; /* Failsafe, discard if no context */
     FrameDecoderStub* stub = static_cast<FrameDecoderStub*>(context);
     stub->onDecodeCallback(buf, cnt);
-}
-
-inline std::vector<uint8_t> readVectorFromDisk(const std::string& inputFilename)
-{
-	std::ifstream instream(inputFilename, std::ios::in | std::ios::binary);
-	std::vector<uint8_t> data((std::istreambuf_iterator<char>(instream)), std::istreambuf_iterator<char>());
-	return data;
 }
 
 void onFrameDecode(const uint8_t* buf, size_t cnt) {
