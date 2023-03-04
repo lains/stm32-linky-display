@@ -2,7 +2,8 @@
 #include <cstddef> // For std::size_t
 #include <stdint.h>
 
-class TICDatasetExtractor {
+namespace TIC {
+class DatasetExtractor {
 public:
 /* Types */
     typedef void(*FDatasetParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onDatasetExtracted */
@@ -28,7 +29,7 @@ public:
      *       This is because we don't have 100% guarantee that exceptions are allowed (especially on embedded targets) and using std::function requires enabling exceptions.
      *       We can still use non-capturing lambdas as function pointer if needed (see https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer)
      */
-    TICDatasetExtractor(FDatasetParserFunc onDatasetExtracted = nullptr, void* onDatasetExtractedContext = nullptr);
+    DatasetExtractor(FDatasetParserFunc onDatasetExtracted = nullptr, void* onDatasetExtractedContext = nullptr);
 
     /**
      * @brief Reset the label parser state
@@ -86,3 +87,4 @@ private:
     uint8_t currentDataset[MAX_DATASET_SIZE]; /*!< Our internal accumulating buffer used to store the current dataset */
     unsigned int nextWriteInCurrentDataset; /*!< The index of the next bytes to write in buffer currentDataset */
 };
+} // namespace TIC

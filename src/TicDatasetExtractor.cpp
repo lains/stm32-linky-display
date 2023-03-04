@@ -1,7 +1,7 @@
 #include <string.h> // For memset()
 #include "TicDatasetExtractor.h"
 
-TICDatasetExtractor::TICDatasetExtractor(FDatasetParserFunc onDatasetExtracted, void* onDatasetExtractedContext) :
+TIC::DatasetExtractor::DatasetExtractor(FDatasetParserFunc onDatasetExtracted, void* onDatasetExtractedContext) :
 sync(false),
 onDatasetExtracted(onDatasetExtracted),
 onDatasetExtractedContext(onDatasetExtractedContext),
@@ -9,7 +9,7 @@ nextWriteInCurrentDataset(0) {
     memset(this->currentDataset, 0, MAX_DATASET_SIZE);
 }
 
-std::size_t TICDatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t len) {
+std::size_t TIC::DatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t len) {
     /* In a TIC frame, TIC labels follow the format:
     [LF]<dataset>[CR]
     Where:
@@ -21,7 +21,7 @@ std::size_t TICDatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t le
     */
     std::size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of dataset */
-        uint8_t* firstStartOfDataset = (uint8_t*)(memchr(buffer, TICDatasetExtractor::LF, len));
+        uint8_t* firstStartOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::LF, len));
         if (firstStartOfDataset) {
             this->sync = true;
             std::size_t bytesToSkip =  firstStartOfDataset - buffer;  /* Bytes processed (but ignored) */
@@ -39,7 +39,7 @@ std::size_t TICDatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t le
     }
     else {
         /* We are inside a TIC dataset, search for the end of dataset marker */
-        uint8_t* endOfDataset = (uint8_t*)(memchr(buffer, TICDatasetExtractor::CR, len)); /* Search for end of dataset */
+        uint8_t* endOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::CR, len)); /* Search for end of dataset */
         if (endOfDataset) {  /* We have an end of dataset marker in the buffer, we can extract the full dataset */
             std::size_t leadingBytesInPreviousDataset = endOfDataset - buffer;
             usedBytes = this->processIncomingDatasetBytes(buffer, leadingBytesInPreviousDataset, true);  /* Copy the buffer up to (but exclusing the end of dataset marker), the dataset is complete */
@@ -58,7 +58,7 @@ std::size_t TICDatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t le
     return usedBytes;
 }
 
-std::size_t TICDatasetExtractor::processIncomingDatasetBytes(const uint8_t* buffer, std::size_t len, bool datasetComplete) {
+std::size_t TIC::DatasetExtractor::processIncomingDatasetBytes(const uint8_t* buffer, std::size_t len, bool datasetComplete) {
     std::size_t maxCopy = this->getFreeBytes();
     std::size_t szCopy = len;
     if (szCopy > maxCopy) {  /* currentFrame overflow */
@@ -73,19 +73,19 @@ std::size_t TICDatasetExtractor::processIncomingDatasetBytes(const uint8_t* buff
     return szCopy;
 }
 
-void TICDatasetExtractor::processCurrentDataset() {
+void TIC::DatasetExtractor::processCurrentDataset() {
     this->onDatasetExtracted(this->currentDataset, this->nextWriteInCurrentDataset, this->onDatasetExtractedContext);
 }
 
-bool TICDatasetExtractor::isInSync() const {
+bool TIC::DatasetExtractor::isInSync() const {
     return this->sync;
 }
 
-std::size_t TICDatasetExtractor::getFreeBytes() const {
+std::size_t TIC::DatasetExtractor::getFreeBytes() const {
     return MAX_DATASET_SIZE - this->nextWriteInCurrentDataset;
 }
 
-void TICDatasetExtractor::reset() {
+void TIC::DatasetExtractor::reset() {
     this->sync = false;
     memset(this->currentDataset, 0, MAX_DATASET_SIZE);
     this->nextWriteInCurrentDataset = 0;
