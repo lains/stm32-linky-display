@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <iterator>
 
-#include "TicUnframer.h"
+#include "TIC/Unframer.h"
 
 TEST_GROUP(TicUnframer_tests) {
 };
