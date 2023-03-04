@@ -7,11 +7,11 @@
 class TICUnframer {
 public:
 /* Types */
-    typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context);
+    typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onFrameComplete */
 
 /* Constants */
-    static constexpr uint8_t TIC_STX = 0x02;
-    static constexpr uint8_t TIC_ETX = 0x03;
+    static constexpr uint8_t TIC_STX = 0x02; /*!< The STX (start of frame) marker */
+    static constexpr uint8_t TIC_ETX = 0x03; /*!< The ETX (end of TIC frame) marker */
     static constexpr std::size_t MAX_FRAME_SIZE = 2048; /* Max acceptable TIC frame payload size (excluding STX and ETX markers) */
     static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 
@@ -37,11 +37,26 @@ public:
      */
     std::size_t pushBytes(const uint8_t* buffer, std::size_t len);
 
+    /**
+     * @brief Are we synchronized with a TIC frame stream
+     * 
+     * @return true When we have received a STX byte and we are supposedly parsing the TIC frame content
+     */
     bool isInSync() const;
 
+    /**
+     * @brief Get the max TIC frame size from the recent history buffer
+     * 
+     * @return std::size_t The max frame size in bytes
+     */
     std::size_t getMaxFrameSizeFromRecentHistory() const;
 
 private:
+    /**
+     * @brief Get the remaining free size in our internal buffer currentFrame
+     * 
+     * @return std::size_t The number of bytes that we can still store or 0 if the buffer is full
+     */
     std::size_t getFreeBytes() const;
 
     /**
@@ -54,7 +69,18 @@ private:
      */
     std::size_t processIncomingFrameBytes(const uint8_t* buffer, std::size_t len, bool frameComplete = false);
     
-    void processCurrentFrame(); /*!< Method called when the current frame parsing is complete */
+    /**
+     * @brief Process a current frame that has been completely received (from start to end markers)
+     * 
+     * @note This method is called internally when the current frame parsing is complete
+     */
+    void processCurrentFrame();
+
+    /**
+     * @brief Record a new full frame size in our recent frame size history (for statistics)
+     * 
+     * @param frameSize The new frame size (in bytes) to record
+     */
     void recordFrameSize(unsigned int frameSize); /*!< Record a frame size in our history */
 
 /* Attributes */
