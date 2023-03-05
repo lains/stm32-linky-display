@@ -110,7 +110,7 @@ $(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetExtractor.o: ../src/TIC/DatasetExtractor.
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
-$(TEST_BINARY): $(ALL_OBJS) $(TEST_BUILD_OBJ_PREFIX)src/Tools.o $(TEST_BUILD_OBJ_PREFIX)src/TicUnframer.o
+$(TEST_BINARY): $(ALL_OBJS) $(TEST_BUILD_OBJ_PREFIX)src/Tools.o $(TEST_BUILD_OBJ_PREFIX)src/TIC/Unframer.o  $(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetExtractor.o
 	@echo "  LD      $@"
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
