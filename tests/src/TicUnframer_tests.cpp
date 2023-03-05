@@ -153,11 +153,11 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
 }
 
 /**
- * @brief Send the content of a file to a ticUnframer, cutting it into chunks
+ * @brief Send the content of a file to a TIC::Unframer, cutting it into chunks
  * 
  * @param ticData A buffer containing the byte sequence to inject
  * @param chunkSize The size of each chunks (except the last one, that may be smaller)
- * @param ticUnframer The TICUnframer object in which we will inject chunks
+ * @param ticUnframer The TIC::Unframer object in which we will inject chunks
  */
 void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t chunkSize, TIC::Unframer& ticUnframer) {
 
