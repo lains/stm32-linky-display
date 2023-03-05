@@ -75,14 +75,14 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_markers_10bytes) {
-	uint8_t stx_marker = TIC::Unframer::TIC_STX;
-	uint8_t etx_marker = TIC::Unframer::TIC_ETX;
+	uint8_t start_marker = TIC::Unframer::TIC_STX;
+	uint8_t end_marker = TIC::Unframer::TIC_ETX;
 	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
-	tu.pushBytes(&stx_marker, 1);
+	tu.pushBytes(&start_marker, 1);
 	tu.pushBytes(buffer, sizeof(buffer));
-	tu.pushBytes(&etx_marker, 1);
+	tu.pushBytes(&end_marker, 1);
 	if (stub.decodedFramesList.size() != 1) {
 		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
@@ -92,16 +92,16 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_marke
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes) {
-	uint8_t stx_marker = TIC::Unframer::TIC_STX;
-	uint8_t etx_marker = TIC::Unframer::TIC_ETX;
+	uint8_t start_marker = TIC::Unframer::TIC_STX;
+	uint8_t end_marker = TIC::Unframer::TIC_ETX;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
-	tu.pushBytes(&stx_marker, 1);
+	tu.pushBytes(&start_marker, 1);
 	for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
 	}
-	tu.pushBytes(&etx_marker, 1);
+	tu.pushBytes(&end_marker, 1);
 	if (stub.decodedFramesList.size() != 1) {
 		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
@@ -134,16 +134,16 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_256bytes_hal
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
-	uint8_t stx_marker = TIC::Unframer::TIC_STX;
-	uint8_t etx_marker = TIC::Unframer::TIC_ETX;
+	uint8_t start_marker = TIC::Unframer::TIC_STX;
+	uint8_t end_marker = TIC::Unframer::TIC_ETX;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
-	tu.pushBytes(&stx_marker, 1);
+	tu.pushBytes(&start_marker, 1);
 	for (uint8_t pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
 	}
-	tu.pushBytes(&etx_marker, 1);
+	tu.pushBytes(&end_marker, 1);
 	if (stub.decodedFramesList.size() != 1) {
 		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
