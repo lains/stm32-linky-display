@@ -110,7 +110,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes
 	}
 }
 
-TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_256bytes_halves) {
+TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_buffer) {
 	uint8_t buffer[514];
 
 	buffer[0] = TIC::Unframer::TIC_STX;
@@ -196,7 +196,7 @@ void runTicUnframerAllUnitTests() {
 	TicUnframer_test_one_pure_stx_etx_frame_10bytes();
 	TicUnframer_test_one_pure_stx_etx_frame_standalone_markers_10bytes();
 	TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes();
-	TicUnframer_test_one_pure_stx_etx_frame_two_256bytes_halves();
+	TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_buffer();
 	TicUnframer_test_sample_frames_chunked();
 }
 #endif	// USE_CPPUTEST

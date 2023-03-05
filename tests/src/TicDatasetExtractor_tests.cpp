@@ -8,6 +8,7 @@
 
 #include "Tools.h"
 #include "TIC/DatasetExtractor.h"
+#include "TIC/Unframer.h"
 
 TEST_GROUP(TicDatasetExtractor_tests) {
 };
@@ -62,7 +63,7 @@ void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
 }
 
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_dataset_10bytes) {
-	uint8_t buffer[] = { 0x0d, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x0a };
+	uint8_t buffer[] = { 0x0a, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x0d };
 	DatasetDecoderStub stub;
 	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
 	de.pushBytes(buffer, sizeof(buffer));
@@ -92,45 +93,45 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_
 }
 
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_standalone_bytes) {
-	// uint8_t start_marker = TICUnframer::TIC_STX;
-	// uint8_t end_marker = TICUnframer::TIC_ETX;
-	// uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
-	// FrameDecoderStub stub;
-	// TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
-	// tu.pushBytes(&start_marker, 1);
-	// for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
-	// 	tu.pushBytes(buffer + pos, 1);
-	// }
-	// tu.pushBytes(&end_marker, 1);
-	// if (stub.decodedFramesList.size() != 1) {
-	// 	FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
-	// }
-	// if (stub.decodedFramesList[0] != std::vector<uint8_t>({0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
-	// 	FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
-	// }
+	uint8_t start_marker = TIC::DatasetExtractor::LF;
+	uint8_t end_marker = TIC::DatasetExtractor::CR;
+	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
+	DatasetDecoderStub stub;
+	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
+	de.pushBytes(&start_marker, 1);
+	for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
+		de.pushBytes(buffer + pos, 1);
+	}
+	de.pushBytes(&end_marker, 1);
+	if (stub.decodedDatasetList.size() != 1) {
+		FAILF("Wrong dataset count: %ld\nDatasets received:\n%s", stub.decodedDatasetList.size(), stub.toString().c_str());
+	}
+	if (stub.decodedDatasetList[0] != std::vector<uint8_t>({0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
+		FAILF("Wrong dataset decoded: %s", vectorToHexString(stub.decodedDatasetList[0]).c_str());
+	}
 }
 
-TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_two_256bytes_halves) {
-	// uint8_t buffer[514];
+TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves_max_buffer) {
+	uint8_t buffer[128];
 
-	// buffer[0] = TICUnframer::TIC_STX;
-	// for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
-	// 	buffer[pos] = (uint8_t)(pos & 0xff);
-	// 	if (buffer[pos] == TICUnframer::TIC_ETX || buffer[pos] == TICUnframer::TIC_STX) {
-	// 		buffer[pos] = 0x00;	/* Remove any STX or ETX */
-	// 	}
-	// }
-	// buffer[sizeof(buffer) - 1] = TICUnframer::TIC_ETX;
-	// FrameDecoderStub stub;
-	// TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
-	// tu.pushBytes(buffer, sizeof(buffer) / 2);
-	// tu.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
-	// if (stub.decodedFramesList.size() != 1) {
-	// 	FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
-	// }
-	// if (stub.decodedFramesList[0] != std::vector<uint8_t>(buffer+1, buffer+sizeof(buffer)-1)) {	/* Compare with buffer, but leave out first (STX) and last (ETX) bytes */
-	// 	FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
-	// }
+	buffer[0] = TIC::DatasetExtractor::LF;
+	for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
+		buffer[pos] = (uint8_t)(pos & 0xff);
+		if (buffer[pos] == TIC::DatasetExtractor::LF || buffer[pos] == TIC::DatasetExtractor::CR || buffer[pos] == TIC::Unframer::TIC_ETX || buffer[pos] == TIC::Unframer::TIC_STX) {
+			buffer[pos] = 0x00;	/* Remove any frame of dataset delimiters */
+		}
+	}
+	buffer[sizeof(buffer) - 1] = TIC::DatasetExtractor::CR;
+	DatasetDecoderStub stub;
+	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
+	de.pushBytes(buffer, sizeof(buffer) / 2);
+	de.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
+	if (stub.decodedDatasetList.size() != 1) {
+		FAILF("Wrong dataset count: %ld\nDatasets received:\n%s", stub.decodedDatasetList.size(), stub.toString().c_str());
+	}
+	if (stub.decodedDatasetList[0] != std::vector<uint8_t>(buffer+1, buffer+sizeof(buffer)-1)) {	/* Compare with buffer, but leave out first and last bytes (markers) */
+		FAILF("Wrong dataset decoded: %s", vectorToHexString(stub.decodedDatasetList[0]).c_str());
+	}
 }
 
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves) {
@@ -195,5 +196,7 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_sample_frames_chunked) 
 void runTicDatasetExtractorAllUnitTests() {
 	TicDatasetExtractor_test_one_pure_dataset_10bytes();
 	TicDatasetExtractor_test_one_pure_stx_etx_frame_standalone_markers_10bytes();
+	TicDatasetExtractor_test_one_pure_stx_etx_frame_standalone_bytes();
+	TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves_max_buffer();
 }
 #endif	// USE_CPPUTEST
