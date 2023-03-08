@@ -17,6 +17,26 @@ namespace TIC {
  * * The second argument is the number of valid payload bytes in the above buffer
  * * The third argument is a generic context pointer, identical to the onDatasetExtractedContext provided as argument to the constructor. It can be used to provide context to onDatasetExtracted() that, in turn, for example, can read data structures from this context pointer.
  * 
+ * Sample code to count al TIC datasets from a TIC byte stream:
+
+void onDatasetExtracted(const uint8_t* buf, std::size_t cnt, void* context) {
+  unsigned int* datasetCount = static_cast<unsigned int*>(context);
+  (*datasetCount)++;
+}
+void onFrameComplete(const uint8_t* buf, std::size_t cnt, void* context) {
+  TIC::DatasetExtractor* datasetExtractor = static_cast<TIC::DatasetExtractor*>(context);
+  datasetExtractor->reset();
+  datasetExtractor->pushBytes(buf, cnt);
+}
+
+unsigned int datasetCount = 0;
+TIC::DatasetExtractor datasetExtractor(onDatasetExtracted, &datasetCount);
+TIC::Unframer unframer(onFrameComplete, &datasetExtractor);
+uint8_t inputBytes[]={TIC::Unframer::STX, TIC::DatasetExtractor::START_MARKER, 0x31, 0x32, TIC::DatasetExtractor::END_MARKER, TIC::DatasetExtractor::START_MARKER, 0x33, 0x34, TIC::DatasetExtractor::END_MARKER, TIC::Unframer::ETX};
+unframer.pushBytes(inputBytes, sizeof(inputBytes));
+	
+printf("%u\n", datasetCount); // Two TIC datasets have been parsed inside one signal frame, this line will thus print datasetCount that equals 2
+ * 
  * @note This class is able to parse historical and standard TIC datasets
  * 
  * @warning At the beginning of each TIC frame that contains the byte stream fed into this class, the reset() method should be invoked to discard any previously stored incoming bytes and start from scratch
