@@ -62,7 +62,7 @@ void onFrameDecode(const uint8_t* buf, size_t cnt) {
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
-	uint8_t buffer[] = { TIC::Unframer::TIC_STX, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, TIC::Unframer::TIC_ETX };
+	uint8_t buffer[] = { TIC::Unframer::START_MARKER, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, TIC::Unframer::END_MARKER };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(buffer, sizeof(buffer));
@@ -75,8 +75,8 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_markers_10bytes) {
-	uint8_t start_marker = TIC::Unframer::TIC_STX;
-	uint8_t end_marker = TIC::Unframer::TIC_ETX;
+	uint8_t start_marker = TIC::Unframer::START_MARKER;
+	uint8_t end_marker = TIC::Unframer::END_MARKER;
 	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
@@ -92,8 +92,8 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_marke
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes) {
-	uint8_t start_marker = TIC::Unframer::TIC_STX;
-	uint8_t end_marker = TIC::Unframer::TIC_ETX;
+	uint8_t start_marker = TIC::Unframer::START_MARKER;
+	uint8_t end_marker = TIC::Unframer::END_MARKER;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
@@ -113,14 +113,14 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_buffer) {
 	uint8_t buffer[514];
 
-	buffer[0] = TIC::Unframer::TIC_STX;
+	buffer[0] = TIC::Unframer::START_MARKER;
 	for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
 		buffer[pos] = (uint8_t)(pos & 0xff);
-		if (buffer[pos] == TIC::Unframer::TIC_ETX || buffer[pos] == TIC::Unframer::TIC_STX) {
+		if (buffer[pos] == TIC::Unframer::END_MARKER || buffer[pos] == TIC::Unframer::START_MARKER) {
 			buffer[pos] = 0x00;	/* Remove any STX or ETX */
 		}
 	}
-	buffer[sizeof(buffer) - 1] = TIC::Unframer::TIC_ETX;
+	buffer[sizeof(buffer) - 1] = TIC::Unframer::END_MARKER;
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 	tu.pushBytes(buffer, sizeof(buffer) / 2);
@@ -134,8 +134,8 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_b
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
-	uint8_t start_marker = TIC::Unframer::TIC_STX;
-	uint8_t end_marker = TIC::Unframer::TIC_ETX;
+	uint8_t start_marker = TIC::Unframer::START_MARKER;
+	uint8_t end_marker = TIC::Unframer::END_MARKER;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
 	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);

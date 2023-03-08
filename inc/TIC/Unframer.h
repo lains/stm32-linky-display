@@ -11,8 +11,10 @@ public:
     typedef void(*FFrameParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onFrameComplete */
 
 /* Constants */
-    static constexpr uint8_t TIC_STX = 0x02; /*!< The STX (start of frame) marker */
-    static constexpr uint8_t TIC_ETX = 0x03; /*!< The ETX (end of TIC frame) marker */
+    static constexpr uint8_t STX = 0x02; /*!< The STX marker */
+    static constexpr uint8_t ETX = 0x03; /*!< The ETX marker */
+    static constexpr uint8_t START_MARKER = STX; /*!< Frame start marker (STX) */
+    static constexpr uint8_t END_MARKER = ETX; /*!< Frame end marker (ETX) */
     static constexpr std::size_t MAX_FRAME_SIZE = 2048; /* Max acceptable TIC frame payload size (excluding STX and ETX markers) */
     static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 

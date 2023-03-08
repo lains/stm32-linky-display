@@ -117,7 +117,7 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_
 	buffer[0] = TIC::DatasetExtractor::LF;
 	for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
 		buffer[pos] = (uint8_t)(pos & 0xff);
-		if (buffer[pos] == TIC::DatasetExtractor::LF || buffer[pos] == TIC::DatasetExtractor::CR || buffer[pos] == TIC::Unframer::TIC_ETX || buffer[pos] == TIC::Unframer::TIC_STX) {
+		if (buffer[pos] == TIC::DatasetExtractor::LF || buffer[pos] == TIC::DatasetExtractor::CR || buffer[pos] == TIC::Unframer::START_MARKER || buffer[pos] == TIC::Unframer::END_MARKER) {
 			buffer[pos] = 0x00;	/* Remove any frame of dataset delimiters */
 		}
 	}

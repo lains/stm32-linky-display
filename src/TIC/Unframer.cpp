@@ -18,7 +18,7 @@ Or (seems better) https://github.com/bitwizeshift/result */
 std::size_t TIC::Unframer::pushBytes(const uint8_t* buffer, std::size_t len) {
     std::size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of frame */
-        uint8_t* firstStx = (uint8_t*)(memchr(buffer, TIC::Unframer::TIC_STX, len));
+        uint8_t* firstStx = (uint8_t*)(memchr(buffer, TIC::Unframer::START_MARKER, len));
         if (firstStx) {
             this->sync = true;
             std::size_t bytesToSkip =  firstStx - buffer;  /* Bytes processed (but ignored) */
@@ -36,7 +36,7 @@ std::size_t TIC::Unframer::pushBytes(const uint8_t* buffer, std::size_t len) {
     }
     else {
         /* We are inside a TIC frame, search for the end of frame (ETX) marker */
-        uint8_t* etx = (uint8_t*)(memchr(buffer, TIC::Unframer::TIC_ETX, len)); /* Search for end of frame */
+        uint8_t* etx = (uint8_t*)(memchr(buffer, TIC::Unframer::END_MARKER, len)); /* Search for end of frame */
         if (etx) {  /* We have an ETX in the buffer, we can extract the full frame */
             std::size_t leadingBytesInPreviousFrame = etx - buffer;
             usedBytes = this->processIncomingFrameBytes(buffer, leadingBytesInPreviousFrame, true); /* Copy the buffer up to (but exclusing the ETX marker), the frame is complete */
