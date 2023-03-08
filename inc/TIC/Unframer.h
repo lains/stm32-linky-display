@@ -1,3 +1,7 @@
+/**
+ * @file Unframer.h
+ * @brief TIC frame payload extractor
+ */
 #pragma once
 #include <cstddef> // For std::size_t
 #include <stdint.h>
@@ -5,6 +9,18 @@
 
 /* Use catch2 framework for unit testing? https://github.com/catchorg/Catch2 */
 namespace TIC {
+/**
+ * @brief Class to process a continuous stream of bytes and extract TIC frames payload out of this stream
+ * 
+ * Incoming TiC bytes should be input via the pushBytes() method
+ * When a TIC frame payload is correctly parsed, it will be sent to the onFrameComplete() function provided as argument to the constructor.
+ * That function will be invoked with 3 arguments matching with the prototype FFrameParserFunc
+ * * The first argument is a buffer containing the frame payload (start and end markers are excluded)
+ * * The second argumet is the number of valid payload bytes in the above buffer
+ * * The third argument is a generic context pointer, identical to the onFrameCompleteContext provided as argument to the constructor. It can be used to provide context to onFrameComplete() that, in turn, for example, can read data structures from this context pointer.
+ * 
+ * @note This class is able to parse historical and standard TIC frames
+ */
 class Unframer {
 public:
 /* Types */
