@@ -19,6 +19,8 @@ std::size_t TIC::DatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t 
 
     See https://lucidar.me/fr/home-automation/linky-customer-tele-information/
     */
+    if (len == 0)
+        return 0;
     std::size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of dataset */
         uint8_t* firstStartOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::START_MARKER, len));
@@ -44,7 +46,7 @@ std::size_t TIC::DatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t 
             std::size_t leadingBytesInPreviousDataset = endOfDataset - buffer;
             usedBytes = this->processIncomingDatasetBytes(buffer, leadingBytesInPreviousDataset, true);  /* Copy the buffer up to (but exclusing the end of dataset marker), the dataset is complete */
             this->nextWriteInCurrentDataset = 0; /* Wipe any data in the current dataset, start over */
-            leadingBytesInPreviousDataset++; /* Skip the ETX marker */
+            leadingBytesInPreviousDataset++; /* Skip the end of dataset marker */
             usedBytes++;
             this->sync = false; /* Consider we are outside of a dataset now */
             if (leadingBytesInPreviousDataset < len) { /* We have at least one byte after the end of dataset marker */

@@ -16,6 +16,8 @@ Or (seems better) https://github.com/bitwizeshift/result */
 
 
 std::size_t TIC::Unframer::pushBytes(const uint8_t* buffer, std::size_t len) {
+    if (len == 0)
+        return 0;
     std::size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of frame */
         uint8_t* firstStx = (uint8_t*)(memchr(buffer, TIC::Unframer::START_MARKER, len));

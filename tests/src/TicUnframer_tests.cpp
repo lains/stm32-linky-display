@@ -156,22 +156,22 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
  * @brief Send the content of a file to a TIC::Unframer, cutting it into chunks
  * 
  * @param ticData A buffer containing the byte sequence to inject
- * @param chunkSize The size of each chunks (except the last one, that may be smaller)
+ * @param maxChunkSize The size of each chunks (except the last one, that may be smaller)
  * @param ticUnframer The TIC::Unframer object in which we will inject chunks
  */
-void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t chunkSize, TIC::Unframer& ticUnframer) {
+static void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t maxChunkSize, TIC::Unframer& ticUnframer) {
 
 	for (size_t bytesRead = 0; bytesRead < ticData.size();) {
 		size_t nbBytesToRead = ticData.size() - bytesRead;
-		if (nbBytesToRead > chunkSize) {
-			nbBytesToRead = chunkSize;
+		if (nbBytesToRead > maxChunkSize) {
+			nbBytesToRead = maxChunkSize; // Limit the number of bytes pushed to the provided max chunkSize
 		}
 		ticUnframer.pushBytes(&(ticData[bytesRead]), nbBytesToRead);
 		bytesRead += nbBytesToRead;
 	}
 }
 
-TEST(TicUnframer_tests, TicUnframer_test_sample_frames_chunked) {
+TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_historical_TIC) {
 
 	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_3P_historical_TIC_sample.bin");
 
@@ -179,13 +179,35 @@ TEST(TicUnframer_tests, TicUnframer_test_sample_frames_chunked) {
 		FrameDecoderStub stub;
 		TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
 
-		TicUnframer_test_file_sent_by_chunks(ticData, TIC::Unframer::MAX_FRAME_SIZE, tu);
+		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
 
-		if (stub.decodedFramesList.size() != 6) {
-			FAILF("When using chunk size %zu: Wrong frame count: %ld\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), stub.toString().c_str());
+		std::size_t expectedTotalFramesCount = 6;
+		if (stub.decodedFramesList.size() != expectedTotalFramesCount) {
+			FAILF("When using chunk size %zu: Wrong frame count: %zu, exepcted %zu\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), expectedTotalFramesCount, stub.toString().c_str());
 		}
 		for (auto it : stub.decodedFramesList) {
 			if (it.size() != 233)
+				FAILF("When using chunk size %zu: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
+		}
+	}
+}
+
+TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_standard_TIC) {
+
+	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_1P_standard_TIC_sample.bin");
+
+	for (size_t chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
+		FrameDecoderStub stub;
+		TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+
+		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
+
+		std::size_t expectedTotalFramesCount = 12;
+		if (stub.decodedFramesList.size() != expectedTotalFramesCount) {
+			FAILF("When using chunk size %zu: Wrong frame count: %zu, exepcted %zu\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), expectedTotalFramesCount, stub.toString().c_str());
+		}
+		for (auto it : stub.decodedFramesList) {
+			if (it.size() != 863)
 				FAILF("When using chunk size %zu: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
 		}
 	}
@@ -197,6 +219,8 @@ void runTicUnframerAllUnitTests() {
 	TicUnframer_test_one_pure_stx_etx_frame_standalone_markers_10bytes();
 	TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes();
 	TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_buffer();
-	TicUnframer_test_sample_frames_chunked();
+	TicUnframer_test_one_pure_stx_etx_frame_two_halves();
+	TicUnframer_chunked_sample_unframe_historical_TIC();
+	TicUnframer_chunked_sample_unframe_standard_TIC();
 }
 #endif	// USE_CPPUTEST

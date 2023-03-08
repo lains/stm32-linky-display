@@ -37,6 +37,10 @@ public:
      * @brief Reset the label parser state
      * 
      * @note After calling this methods, we will expecting the next input bytes to correspond to the start of a new dataset
+     *       Calling this method is required between two frames to avoid concatenation of a previous frame's unterminated dataset with the next frame's dataset
+     *       Historical TIC frames pose a problem here because at the very beginning of a frame, we get an leading end of dataset marker, and at the very end, a trailing start of dataset marker
+     *       so concatenating these two extra dataset markers across a frame boundary will led to a concatenated empty dataset (containing only 2 bytes: start, then end markers).
+     *       By resetting, we get rid of the trailing byte (frame being over, it is wiped away)
      */
     void reset();
 

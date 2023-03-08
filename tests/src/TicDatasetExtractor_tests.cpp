@@ -23,7 +23,7 @@ public:
 
 	std::string toString() const {
 		std::stringstream result;
-		result << this->decodedDatasetList.size() << " frame(s):\n";
+		result << this->decodedDatasetList.size() << " dataset(s):\n";
 		for (auto &it : this->decodedDatasetList) {
 			result << "[" << vectorToHexString(it) << "]\n";
 		}
@@ -46,6 +46,22 @@ void datasetDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* c
         return; /* Failsafe, discard if no context */
     DatasetDecoderStub* stub = static_cast<DatasetDecoderStub*>(context);
     stub->onDatasetExtractedCallback(buf, cnt);
+}
+
+/**
+ * @brief Utility function to unwrap and invoke a TIC::DatasetExtractor instance's pushBytes() from a callback call from TIC::Unframer
+ * 
+ * @param buf A buffer containing the full TIC frame bytes
+ * @param len The number of bytes stored inside @p buf
+ * @param context A context as provided by TIC::Unframer, used to retrieve the wrapped TIC::DatasetExtractor instance
+ */
+static void datasetExtractorUnwrapForwardFullFrameBytes(const uint8_t* buf, std::size_t cnt, void* context) {
+	if (context == NULL)
+		return; /* Failsafe, discard if no context */
+	TIC::DatasetExtractor* de = static_cast<TIC::DatasetExtractor*>(context);
+	de->pushBytes(buf, cnt);
+	/* We have a full frame byte in our buf, so once bytes have been pushed, if there is an open dataset, we should discard it and start over at the following frame */
+	de->reset();
 }
 
 void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
@@ -154,42 +170,115 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_
 }
 
 /**
- * @brief Send the content of a file to a TIC::DatasetExtractor, cutting it into chunks
+ * @brief Send the content of a file to a TIC::Unframer, cutting it into chunks
  * 
  * @param ticData A buffer containing the byte sequence to inject
- * @param chunkSize The size of each chunks (except the last one, that may be smaller)
- * @param ticDatasetExtractor The TIC::DatasetExtractor object in which we will inject chunks
+ * @param maxChunkSize The size of each chunks (except the last one, that may be smaller)
+ * @param ticUnframer The TIC::Unframer object in which we will inject chunks
  */
-void TicDatasetExtractor_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t chunkSize, TIC::DatasetExtractor& ticDatasetExtractor) {
+static void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t maxChunkSize, TIC::Unframer& ticUnframer) {
 
 	for (size_t bytesRead = 0; bytesRead < ticData.size();) {
 		size_t nbBytesToRead = ticData.size() - bytesRead;
-		if (nbBytesToRead > chunkSize) {
-			nbBytesToRead = chunkSize;
+		if (nbBytesToRead > maxChunkSize) {
+			nbBytesToRead = maxChunkSize; // Limit the number of bytes pushed to the provided max chunkSize
 		}
-		ticDatasetExtractor.pushBytes(&(ticData[bytesRead]), nbBytesToRead);
+		ticUnframer.pushBytes(&(ticData[bytesRead]), nbBytesToRead);
 		bytesRead += nbBytesToRead;
 	}
 }
 
-TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_sample_frames_chunked) {
+TEST(TicDatasetExtractor_tests, Chunked_sample_unframe_dsextract_historical_TIC) {
+	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_3P_historical_TIC_sample.bin");
 
-	// std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_3P_historical_TIC_sample.bin");
+	for (size_t chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
+		DatasetDecoderStub stub;
+		TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
+		TIC::Unframer tu(datasetExtractorUnwrapForwardFullFrameBytes, &de);
 
-	// for (size_t chunkSize = 1; chunkSize <= TICUnframer::MAX_FRAME_SIZE; chunkSize++) {
-	// 	FrameDecoderStub stub;
-	// 	TICUnframer tu(frameDecoderStubUnwrapInvoke, &stub);
+		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
 
-	// 	TicDatasetExtractor_test_file_sent_by_chunks(ticData, TICUnframer::MAX_FRAME_SIZE, tu);
+		/**
+		 * @brief Sizes (in bytes) of the successive dataset in each repeated TIC frame
+		 */
+		std::size_t datasetExpectedSizes[] = { 19, /* ADCO label */
+		                                       14, 11, 16, 11,
+											   12, 12, 12, /* Three times IINST? labels (on each phase) */
+											   11, 11, 11, /* Three times IMAX? labels (on each phase) */
+											   12, 12, 9, 17, 9 };
+		unsigned int nbExpectedDatasetPerFrame = sizeof(datasetExpectedSizes)/sizeof(datasetExpectedSizes[0]);
 
-	// 	if (stub.decodedFramesList.size() != 6) {
-	// 		FAILF("When using chunk size %zu: Wrong frame count: %ld\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), stub.toString().c_str());
-	// 	}
-	// 	for (auto it : stub.decodedFramesList) {
-	// 		if (it.size() != 233)
-	// 			FAILF("When using chunk size %zu: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
-	// 	}
-	// }
+		std::size_t expectedTotalDatasetCount = 6 * nbExpectedDatasetPerFrame; /* 6 frames, each containing the above datasets */
+		if (stub.decodedDatasetList.size() != expectedTotalDatasetCount) { 
+			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.decodedDatasetList.size(), expectedTotalDatasetCount, stub.toString().c_str());
+		}
+		char firstDatasetAsCString[] = "ADCO 056234673197 O";
+		std::vector<uint8_t> expectedFirstDatasetInFrame(firstDatasetAsCString, firstDatasetAsCString+strlen(firstDatasetAsCString));
+		if (stub.decodedDatasetList[0] != expectedFirstDatasetInFrame) {
+			FAILF("Unexpected first dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[0]).c_str(), vectorToHexString(expectedFirstDatasetInFrame).c_str());
+		}
+		char lastDatasetAsCString[] = "PPOT 00 #";
+		std::vector<uint8_t> expectedLastDatasetInFrame(lastDatasetAsCString, lastDatasetAsCString+strlen(lastDatasetAsCString));
+		if (stub.decodedDatasetList[nbExpectedDatasetPerFrame-1] != expectedLastDatasetInFrame) {
+			FAILF("Unexpected last dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[nbExpectedDatasetPerFrame-1]).c_str(), vectorToHexString(expectedLastDatasetInFrame).c_str());
+		}
+		for (std::size_t datasetIndex = 0; datasetIndex < stub.decodedDatasetList.size(); datasetIndex++) {
+			std::size_t receivedDatasetSize = stub.decodedDatasetList[datasetIndex].size();
+			std::size_t expectedDatasetSize = datasetExpectedSizes[datasetIndex % nbExpectedDatasetPerFrame];
+			if (receivedDatasetSize != expectedDatasetSize) {
+				FAILF("When using chunk size %zu: Wrong dataset decoded at index %zu in frame. Expected %zu bytes, got %zu bytes. Dataset content: %s", chunkSize, datasetIndex, expectedDatasetSize, receivedDatasetSize, vectorToHexString(stub.decodedDatasetList[datasetIndex]).c_str());
+			}
+		}
+	}
+}
+
+TEST(TicDatasetExtractor_tests, Chunked_sample_unframe_dsextract_standard_TIC) {
+
+	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_1P_standard_TIC_sample.bin");
+
+	for (size_t chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
+		DatasetDecoderStub stub;
+		TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
+		TIC::Unframer tu(datasetExtractorUnwrapForwardFullFrameBytes, &de);
+
+		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
+
+		/**
+		 * @brief Sizes (in bytes) of the successive dataset in each repeated TIC frame
+		 */
+		std::size_t datasetExpectedSizes[] = { 19, /* ADSC label */
+		                                       9, 21, 23, 24, 16,
+		                                       18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, /* 14 labels with EASF+EASD data */
+											   11, 11, 9, 10, 14, 28, 30, 27, 29, 25, 15, 39,
+											   20, /* PRM label */
+											   12, 10,
+											   11, /* NJOURF label */
+											   13, /* NJOURF+1 label */
+											   109 /* Long PJOURF+1 label */ };
+		unsigned int nbExpectedDatasetPerFrame = sizeof(datasetExpectedSizes)/sizeof(datasetExpectedSizes[0]);
+
+		std::size_t expectedTotalDatasetCount = 12 * nbExpectedDatasetPerFrame; /* 12 frames, each containing the above datasets */
+		if (stub.decodedDatasetList.size() != expectedTotalDatasetCount) { 
+			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.decodedDatasetList.size(), expectedTotalDatasetCount, stub.toString().c_str());
+		}
+		char firstDatasetAsCString[] = "ADSC\t064468368739\tJ";
+		std::vector<uint8_t> expectedFirstDatasetInFrame(firstDatasetAsCString, firstDatasetAsCString+strlen(firstDatasetAsCString));
+		if (stub.decodedDatasetList[0] != expectedFirstDatasetInFrame) {
+			FAILF("Unexpected first dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[0]).c_str(), vectorToHexString(expectedFirstDatasetInFrame).c_str());
+		}
+		char lastDatasetAsCString[] = "PJOURF+1\t00008001 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE\t9";
+		std::vector<uint8_t> expectedLastDatasetInFrame(lastDatasetAsCString, lastDatasetAsCString+strlen(lastDatasetAsCString));
+		if (stub.decodedDatasetList[nbExpectedDatasetPerFrame-1] != expectedLastDatasetInFrame) {
+			FAILF("Unexpected last dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[nbExpectedDatasetPerFrame-1]).c_str(), vectorToHexString(expectedLastDatasetInFrame).c_str());
+		}
+		for (std::size_t datasetIndex = 0; datasetIndex < stub.decodedDatasetList.size(); datasetIndex++) {
+			std::size_t receivedDatasetSize = stub.decodedDatasetList[datasetIndex].size();
+			std::size_t expectedDatasetSize = datasetExpectedSizes[datasetIndex % nbExpectedDatasetPerFrame];
+			if (receivedDatasetSize != expectedDatasetSize) {
+				FAILF("When using chunk size %zu: Wrong dataset decoded at index %zu in frame. Expected %zu bytes, got %zu bytes. Dataset content: %s", chunkSize, datasetIndex, expectedDatasetSize, receivedDatasetSize, vectorToHexString(stub.decodedDatasetList[datasetIndex]).c_str());
+			}
+		}
+	}
 }
 
 #ifndef USE_CPPUTEST
@@ -199,5 +288,7 @@ void runTicDatasetExtractorAllUnitTests() {
 	TicDatasetExtractor_test_one_pure_stx_etx_frame_standalone_bytes();
 	TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves_max_buffer();
 	TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves();
+	Chunked_sample_unframe_dsextract_historical_TIC();
+	Chunked_sample_unframe_dsextract_standard_TIC();
 }
 #endif	// USE_CPPUTEST
