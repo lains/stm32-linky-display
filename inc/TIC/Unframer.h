@@ -16,7 +16,7 @@ namespace TIC {
  * When a TIC frame payload is correctly parsed, it will be sent to the onFrameComplete() function provided as argument to the constructor.
  * That function will be invoked with 3 arguments matching with the prototype FFrameParserFunc
  * * The first argument is a buffer containing the frame payload (start and end markers are excluded)
- * * The second argumet is the number of valid payload bytes in the above buffer
+ * * The second argument is the number of valid payload bytes in the above buffer
  * * The third argument is a generic context pointer, identical to the onFrameCompleteContext provided as argument to the constructor. It can be used to provide context to onFrameComplete() that, in turn, for example, can read data structures from this context pointer.
  * 
  * @note This class is able to parse historical and standard TIC frames

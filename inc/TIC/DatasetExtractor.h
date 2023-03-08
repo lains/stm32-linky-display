@@ -1,8 +1,27 @@
+/**
+ * @file DatasetExtractor.h
+ * @brief TIC dataset sequence extractor
+ */
 #pragma once
 #include <cstddef> // For std::size_t
 #include <stdint.h>
 
 namespace TIC {
+/**
+ * @brief Class to process a continuous stream of bytes and extract TIC datasets out of this stream
+ * 
+ * Incoming TiC bytes should be input via the pushBytes() method
+ * When a TIC dataset payload is correctly parsed, it will be sent to the onDatasetExtracted() function provided as argument to the constructor.
+ * That function will be invoked with 3 arguments matching with the prototype FDatasetParserFunc
+ * * The first argument is a buffer containing the dataset payload (start and end markers are excluded)
+ * * The second argument is the number of valid payload bytes in the above buffer
+ * * The third argument is a generic context pointer, identical to the onDatasetExtractedContext provided as argument to the constructor. It can be used to provide context to onDatasetExtracted() that, in turn, for example, can read data structures from this context pointer.
+ * 
+ * @note This class is able to parse historical and standard TIC datasets
+ * 
+ * @warning At the beginning of each TIC frame that contains the byte stream fed into this class, the reset() method should be invoked to discard any previously stored incoming bytes and start from scratch
+ */
+
 class DatasetExtractor {
 public:
 /* Types */
