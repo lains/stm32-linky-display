@@ -19,6 +19,18 @@ namespace TIC {
  * * The second argument is the number of valid payload bytes in the above buffer
  * * The third argument is a generic context pointer, identical to the onFrameCompleteContext provided as argument to the constructor. It can be used to provide context to onFrameComplete() that, in turn, for example, can read data structures from this context pointer.
  * 
+ * Sample code to count TIC frames from a byte stream:
+ * unsigned int frameCount = 0;
+ * void onFrameComplete(const uint8_t* buf, std::size_t cnt, void* context) {
+ *   unsigned int& frameCount = static_cast<unsigned int*>(context);
+ *   frameCount++;
+ * }
+ * TIC::Unframer unframer(onFrameComplete, &frameCount);
+ * 
+ * unframer.pushBytes({TIC::Unframer::STX, 0x01, 0x02, TIC::Unframer::ETX, TIC::Unframer::STX, 0x03, 0x04; TIC::Unframer::ETX});
+ * 
+ * // This results in two TiC frames being parsed, and frameCount now equals 2
+ * 
  * @note This class is able to parse historical and standard TIC frames
  */
 class Unframer {
