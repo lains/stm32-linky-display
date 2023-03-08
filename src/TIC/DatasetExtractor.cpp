@@ -21,7 +21,7 @@ std::size_t TIC::DatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t 
     */
     std::size_t usedBytes = 0;
     if (!this->sync) {  /* We don't record bytes, we'll just look for a start of dataset */
-        uint8_t* firstStartOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::LF, len));
+        uint8_t* firstStartOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::START_MARKER, len));
         if (firstStartOfDataset) {
             this->sync = true;
             std::size_t bytesToSkip =  firstStartOfDataset - buffer;  /* Bytes processed (but ignored) */
@@ -39,7 +39,7 @@ std::size_t TIC::DatasetExtractor::pushBytes(const uint8_t* buffer, std::size_t 
     }
     else {
         /* We are inside a TIC dataset, search for the end of dataset marker */
-        uint8_t* endOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::CR, len)); /* Search for end of dataset */
+        uint8_t* endOfDataset = (uint8_t*)(memchr(buffer, TIC::DatasetExtractor::END_MARKER, len)); /* Search for end of dataset */
         if (endOfDataset) {  /* We have an end of dataset marker in the buffer, we can extract the full dataset */
             std::size_t leadingBytesInPreviousDataset = endOfDataset - buffer;
             usedBytes = this->processIncomingDatasetBytes(buffer, leadingBytesInPreviousDataset, true);  /* Copy the buffer up to (but exclusing the end of dataset marker), the dataset is complete */

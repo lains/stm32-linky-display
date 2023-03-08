@@ -76,8 +76,8 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_dataset_10byte
 }
 
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_standalone_markers_10bytes) {
-	uint8_t start_marker = TIC::DatasetExtractor::LF;
-	uint8_t end_marker = TIC::DatasetExtractor::CR;
+	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
+	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
 	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	DatasetDecoderStub stub;
 	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
@@ -93,8 +93,8 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_
 }
 
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_standalone_bytes) {
-	uint8_t start_marker = TIC::DatasetExtractor::LF;
-	uint8_t end_marker = TIC::DatasetExtractor::CR;
+	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
+	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	DatasetDecoderStub stub;
 	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
@@ -114,14 +114,14 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves_max_buffer) {
 	uint8_t buffer[128];
 
-	buffer[0] = TIC::DatasetExtractor::LF;
+	buffer[0] = TIC::DatasetExtractor::START_MARKER;
 	for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
 		buffer[pos] = (uint8_t)(pos & 0xff);
-		if (buffer[pos] == TIC::DatasetExtractor::LF || buffer[pos] == TIC::DatasetExtractor::CR || buffer[pos] == TIC::Unframer::START_MARKER || buffer[pos] == TIC::Unframer::END_MARKER) {
+		if (buffer[pos] == TIC::DatasetExtractor::START_MARKER || buffer[pos] == TIC::DatasetExtractor::END_MARKER || buffer[pos] == TIC::Unframer::START_MARKER || buffer[pos] == TIC::Unframer::END_MARKER) {
 			buffer[pos] = 0x00;	/* Remove any frame of dataset delimiters */
 		}
 	}
-	buffer[sizeof(buffer) - 1] = TIC::DatasetExtractor::CR;
+	buffer[sizeof(buffer) - 1] = TIC::DatasetExtractor::END_MARKER;
 	DatasetDecoderStub stub;
 	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
 	de.pushBytes(buffer, sizeof(buffer) / 2);
@@ -135,8 +135,8 @@ TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_
 }
 
 TEST(TicDatasetExtractor_tests, TicDatasetExtractor_test_one_pure_stx_etx_frame_two_halves) {
-	uint8_t start_marker = TIC::DatasetExtractor::LF;
-	uint8_t end_marker = TIC::DatasetExtractor::CR;
+	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
+	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	DatasetDecoderStub stub;
 	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
