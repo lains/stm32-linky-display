@@ -47,11 +47,6 @@ public:
 /* Types */
     typedef void(*FDatasetParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onDatasetExtracted */
     
-    typedef enum {
-        Historical = 0, /* Default TIC on newly installed meters */
-        Standard,
-    } TIC_Type;
-
 /* Constants */
     static constexpr uint8_t LF = 0x0a;
     static constexpr uint8_t CR = 0x0d;
