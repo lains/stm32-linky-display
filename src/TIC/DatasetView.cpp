@@ -22,7 +22,7 @@ horodate() {
     See https://lucidar.me/fr/home-automation/linky-customer-tele-information/
     */
     
-    bool isTicStandard = true;
+    bool isTicStandard = false;
 
     if (datasetBufSz < 5) { /* The minimum size for a valid dataset is 5 bytes (1 byte label + 1 delimiter + 1 byte value + 1 delimiter + 1 byte CRC) */
         return; /* isValid is false, invalid dataset */
@@ -123,6 +123,10 @@ horodate() {
     this->decodedType = isTicStandard ? TIC::DatasetView::DatasetType::ValidStandard : TIC::DatasetView::DatasetType::ValidHistorical;
 }
 
+bool TIC::DatasetView::isValid() const {
+    return (this->decodedType == TIC::DatasetView::DatasetType::ValidHistorical || this->decodedType == TIC::DatasetView::DatasetType::ValidStandard);
+}
+
 uint8_t TIC::DatasetView::computeCRC(const uint8_t* bytes, unsigned int count) {
     uint8_t S1 = 0;
     while (count--) {
@@ -132,6 +136,3 @@ uint8_t TIC::DatasetView::computeCRC(const uint8_t* bytes, unsigned int count) {
     return (S1 & 0x3f) + 0x20;
 }
 
-bool TIC::DatasetView::isValid() const {
-    return (this->decodedType == TIC::DatasetView::DatasetType::ValidHistorical || this->decodedType == TIC::DatasetView::DatasetType::ValidStandard);
-}

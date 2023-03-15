@@ -36,19 +36,24 @@ public:
 
 /* Methods */
     /**
-     * @brief Construct a new TIC::LabelDecoderView object from a dataset buffer
+     * @brief Construct a new TIC::DatasetView object from a dataset buffer
      * 
      * @param datasetBuf A pointer to a byte buffer containing a full dataset
      * @param datasetBufSz The number of valid bytes in @p datasetBuf
      */
     DatasetView(const uint8_t* datasetBuf, std::size_t datasetBufSz);
 
-
+    /**
+     * @brief Does the dataset buffer used at constructor contain a properly formatted dataset?
+     * 
+     * @return false if the buffer is malformed
+     */
     bool isValid() const;
 
 private:
-    static uint8_t computeCRC(const uint8_t* bytes, std::size_t count);
+    static uint8_t computeCRC(const uint8_t* bytes, unsigned int count);
 
+public:
 /* Attributes */
     DatasetType decodedType;  /*!< What is the resulting type of the parsed dataset? */
     const uint8_t* labelBuffer; /*!< A pointer to the label buffer */
