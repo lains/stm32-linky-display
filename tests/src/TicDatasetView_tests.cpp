@@ -246,6 +246,19 @@ TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 	}
 }
 
+TEST(TicDatasetView_tests, TicDatasetView_too_short) {
+	const char dataset[] = "L V 9";
+	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
+
+	for (std::size_t datasetTestLength = 0; datasetTestLength <= (std::size_t)(strlen(dataset)); datasetTestLength++) {
+		TIC::DatasetView dv((const uint8_t*)datasetBuf, datasetTestLength);
+		
+		if (dv.isValid() && dv.decodedType != TIC::DatasetView::DatasetType::WrongCRC) {
+			FAILF("Expecting invalid dataset (but not on CRC errors, rather because it's too short to be parsed)");
+		}
+	}
+}
+
 TEST(TicDatasetView_tests, TicDatasetView_test_one_pure_stx_etx_frame_standalone_bytes) {
 	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
 	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
@@ -427,6 +440,7 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_extra_trailing_end_marker();
 	TicDatasetView_wrong_crc();
 	TicDatasetView_very_long();
+	TicDatasetView_too_short();
 	// TicDatasetView_test_one_pure_stx_etx_frame_standalone_markers_10bytes();
 	// TicDatasetView_test_one_pure_stx_etx_frame_standalone_bytes();
 	// TicDatasetView_test_one_pure_stx_etx_frame_two_halves_max_buffer();
