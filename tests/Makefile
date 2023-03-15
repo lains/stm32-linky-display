@@ -94,6 +94,10 @@ $(TEST_BUILD_OBJ_PREFIX)src/TicDatasetExtractor_tests.o: src/TicDatasetExtractor
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
+$(TEST_BUILD_OBJ_PREFIX)src/TicDatasetView_tests.o: src/TicDatasetView_tests.cpp
+	@mkdir -p $(dir $@)
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
+
 $(TEST_BUILD_OBJ_PREFIX)src/FixedSizeRingBuffer_tests.o: src/FixedSizeRingBuffer_tests.cpp
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
@@ -110,7 +114,11 @@ $(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetExtractor.o: ../src/TIC/DatasetExtractor.
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
 
-$(TEST_BINARY): $(ALL_OBJS) $(TEST_BUILD_OBJ_PREFIX)src/Tools.o $(TEST_BUILD_OBJ_PREFIX)src/TIC/Unframer.o  $(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetExtractor.o
+$(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetView.o: ../src/TIC/DatasetView.cpp
+	@mkdir -p $(dir $@)
+	$(Q)$(CXX) $(INCLUDES) $(CXXFLAGS) $(CPPFLAGS) -o $(call path_simplify,$(@)) -c $<
+
+$(TEST_BINARY): $(ALL_OBJS) $(TEST_BUILD_OBJ_PREFIX)src/Tools.o $(TEST_BUILD_OBJ_PREFIX)src/TIC/Unframer.o $(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetExtractor.o $(TEST_BUILD_OBJ_PREFIX)src/TIC/DatasetView.o
 	@echo "  LD      $@"
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
@@ -121,3 +129,4 @@ check: $(TEST_BINARY)
 # Clean
 clean:
 	@rm -f $(ALL_OBJS) $(TEST_BINARY)
+	@rm -rf $(TEST_BUILD_OBJ_PREFIX)src/
