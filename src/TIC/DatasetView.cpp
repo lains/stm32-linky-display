@@ -52,10 +52,12 @@ horodate() {
     else {
         return; /* isValid is false, invalid dataset */
     }
+
+    /* In [datasetBuf;datasetBuf+datasetBufSz[, we now have the byte sequence on which CRC applies (note that the delimiter just before the CRC byte is included)*/
+    uint8_t computedCrc = this->computeCRC(datasetBuf, datasetBufSz);
+
     datasetBufSz--; /* Reduce the dataset buffer to exclude the last delimiter */
 
-    /* In [datasetBuf;datasetBuf+datasetBufSz[, we now have the byte sequence on which CRC applies */
-    uint8_t computedCrc = this->computeCRC(datasetBuf, datasetBufSz);
     this->labelBuffer = datasetBuf; /* Initially conside that the remaining bytes are one full label */
     this->labelSz = datasetBufSz;
     this->dataBuffer = datasetBuf;
