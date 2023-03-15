@@ -80,7 +80,7 @@ static void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_dataset) {
-	const char dataset[] = "ADCO 012345678901 E";
+	const char dataset[] = "ADCO 012345678901 %";
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -111,7 +111,7 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_data
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_standard_dataset) {
-	const char dataset[] = "ADSC\t012345678901\t2";
+	const char dataset[] = "ADSC\t012345678901\t;";
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -143,7 +143,7 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_standard_datase
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
-	char dataset[] = 	{ "*ADCO 012345678901 E"};
+	char dataset[] = 	{ "*ADCO 012345678901 %"};
 	dataset[0] = TIC::DatasetExtractor::START_MARKER; /* Replace the * with our start marker */
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
@@ -172,7 +172,7 @@ TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_extra_trailing_end_marker) {
-	char dataset[] = 	{ "ADCO 012345678901 E*"};
+	char dataset[] = 	{ "ADCO 012345678901 %*"};
 	dataset[sizeof(dataset)-1-1] = TIC::DatasetExtractor::END_MARKER; /* Replace the * with our end marker (-1 to get inside the buffer, -1 again to move before the terminating '\0') */
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
@@ -441,10 +441,6 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_wrong_crc();
 	TicDatasetView_very_long();
 	TicDatasetView_too_short();
-	// TicDatasetView_test_one_pure_stx_etx_frame_standalone_markers_10bytes();
-	// TicDatasetView_test_one_pure_stx_etx_frame_standalone_bytes();
-	// TicDatasetView_test_one_pure_stx_etx_frame_two_halves_max_buffer();
-	// TicDatasetView_test_one_pure_stx_etx_frame_two_halves();
 	// Chunked_sample_unframe_dsextract_historical_TIC();
 	// Chunked_sample_unframe_dsextract_standard_TIC();
 }
