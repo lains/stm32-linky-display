@@ -217,6 +217,35 @@ TEST(TicDatasetView_tests, TicDatasetView_wrong_crc) {
 	}
 }
 
+TEST(TicDatasetView_tests, TicDatasetView_very_short) {
+	const char dataset[] = "VTIC\t02\tJ";
+	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
+
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	
+	if (!dv.isValid()) {
+		FAILF("Incorrect parsing of dataset");
+	}
+
+	if (dv.labelBuffer == nullptr) {
+		FAILF("NULL labelBuffer");
+	}
+	std::vector<uint8_t> labelBufferVec(dv.labelBuffer, dv.labelBuffer + dv.labelSz);
+	if (labelBufferVec != std::vector<uint8_t>({'V', 'T', 'I', 'C'})) {
+		FAILF("Wrong dataset label: %s", vectorToHexString(labelBufferVec).c_str());
+	}
+
+	if (dv.dataBuffer == nullptr) {
+		FAILF("NULL dataBuffer");
+	}
+	if (dv.dataBuffer != &(datasetBuf[5])) {
+		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
+	}
+	if (dv.dataSz != 2) {
+		FAILF("Wrong dataset data size: %zu, expected it contain our short value (2 chars)", dv.dataSz);
+	}
+}
+
 TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 	const char dataset[] = "PJOURF+1\t00008001 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE\t9";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
@@ -238,7 +267,7 @@ TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 	if (dv.dataBuffer == nullptr) {
 		FAILF("NULL dataBuffer");
 	}
-	if (dv.dataBuffer != &(datasetBuf[8])) {
+	if (dv.dataBuffer != &(datasetBuf[9])) {
 		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
 	}
 	if (dv.dataSz != 98) {
@@ -247,76 +276,15 @@ TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_too_short) {
-	const char dataset[] = "L V 9";
+	const char dataset[] = "L V ";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
 	for (std::size_t datasetTestLength = 0; datasetTestLength <= (std::size_t)(strlen(dataset)); datasetTestLength++) {
 		TIC::DatasetView dv((const uint8_t*)datasetBuf, datasetTestLength);
 		
-		if (dv.isValid() && dv.decodedType != TIC::DatasetView::DatasetType::WrongCRC) {
-			FAILF("Expecting invalid dataset (but not on CRC errors, rather because it's too short to be parsed)");
+		if (dv.isValid() || dv.decodedType != TIC::DatasetView::DatasetType::Malformed) {
+			FAILF("Expecting invalid dataset (with type Malformed, because it's too short to be parsed)");
 		}
-	}
-}
-
-TEST(TicDatasetView_tests, TicDatasetView_test_one_pure_stx_etx_frame_standalone_bytes) {
-	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
-	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
-	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
-	DatasetDecoderStub stub;
-	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
-	de.pushBytes(&start_marker, 1);
-	for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
-		de.pushBytes(buffer + pos, 1);
-	}
-	de.pushBytes(&end_marker, 1);
-	if (stub.decodedDatasetList.size() != 1) {
-		FAILF("Wrong dataset count: %ld\nDatasets received:\n%s", stub.decodedDatasetList.size(), stub.toString().c_str());
-	}
-	if (stub.decodedDatasetList[0] != std::vector<uint8_t>({0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
-		FAILF("Wrong dataset decoded: %s", vectorToHexString(stub.decodedDatasetList[0]).c_str());
-	}
-}
-
-TEST(TicDatasetView_tests, TicDatasetView_test_one_pure_stx_etx_frame_two_halves_max_buffer) {
-	uint8_t buffer[128];
-
-	buffer[0] = TIC::DatasetExtractor::START_MARKER;
-	for (unsigned int pos = 1; pos < sizeof(buffer) - 1 ; pos++) {
-		buffer[pos] = (uint8_t)(pos & 0xff);
-		if (buffer[pos] == TIC::DatasetExtractor::START_MARKER || buffer[pos] == TIC::DatasetExtractor::END_MARKER || buffer[pos] == TIC::Unframer::START_MARKER || buffer[pos] == TIC::Unframer::END_MARKER) {
-			buffer[pos] = 0x00;	/* Remove any frame of dataset delimiters */
-		}
-	}
-	buffer[sizeof(buffer) - 1] = TIC::DatasetExtractor::END_MARKER;
-	DatasetDecoderStub stub;
-	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
-	de.pushBytes(buffer, sizeof(buffer) / 2);
-	de.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
-	if (stub.decodedDatasetList.size() != 1) {
-		FAILF("Wrong dataset count: %ld\nDatasets received:\n%s", stub.decodedDatasetList.size(), stub.toString().c_str());
-	}
-	if (stub.decodedDatasetList[0] != std::vector<uint8_t>(buffer+1, buffer+sizeof(buffer)-1)) {	/* Compare with buffer, but leave out first and last bytes (markers) */
-		FAILF("Wrong dataset decoded: %s", vectorToHexString(stub.decodedDatasetList[0]).c_str());
-	}
-}
-
-TEST(TicDatasetView_tests, TicDatasetView_test_one_pure_stx_etx_frame_two_halves) {
-	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
-	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
-	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
-	DatasetDecoderStub stub;
-	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
-	de.pushBytes(&start_marker, 1);
-	for (uint8_t pos = 0; pos < sizeof(buffer); pos++) {
-		de.pushBytes(buffer + pos, 1);
-	}
-	de.pushBytes(&end_marker, 1);
-	if (stub.decodedDatasetList.size() != 1) {
-		FAILF("Wrong dataset count: %ld\nDatasets received:\n%s", stub.decodedDatasetList.size(), stub.toString().c_str());
-	}
-	if (stub.decodedDatasetList[0] != std::vector<uint8_t>({0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
-		FAILF("Wrong dataset decoded: %s", vectorToHexString(stub.decodedDatasetList[0]).c_str());
 	}
 }
 
@@ -439,6 +407,7 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_extra_leading_start_marker();
 	TicDatasetView_extra_trailing_end_marker();
 	TicDatasetView_wrong_crc();
+	TicDatasetView_very_short();
 	TicDatasetView_very_long();
 	TicDatasetView_too_short();
 	// Chunked_sample_unframe_dsextract_historical_TIC();
