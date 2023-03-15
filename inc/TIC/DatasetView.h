@@ -26,7 +26,7 @@ public:
     typedef enum {
         Malformed = 0, /* Malformed dataset */
         WrongCRC,
-        ValidHistorical = 0, /* Default TIC on newly installed meters */
+        ValidHistorical, /* Default TIC on newly installed meters */
         ValidStandard,
     } DatasetType;
 
