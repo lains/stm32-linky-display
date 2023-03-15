@@ -40,14 +40,14 @@ public:
  * @param len The number of bytes stored inside @p buf
  * @param context A context as provided by TICUnframer, used to retrieve the wrapped FrameDecoderStub instance
  */
-void frameDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
+static void frameDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
     if (context == NULL)
         return; /* Failsafe, discard if no context */
     FrameDecoderStub* stub = static_cast<FrameDecoderStub*>(context);
     stub->onDecodeCallback(buf, cnt);
 }
 
-void onFrameDecode(const uint8_t* buf, size_t cnt) {
+static void onFrameDecode(const uint8_t* buf, size_t cnt) {
 	printf("Received frame (%zu bytes):\n", cnt);
 	for (size_t pos = 0; pos < cnt; pos++) {
 		if ((pos & 0xf) == 0) {

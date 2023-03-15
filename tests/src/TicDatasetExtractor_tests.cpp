@@ -41,7 +41,7 @@ public:
  * @param len The number of bytes stored inside @p buf
  * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped DatasetDecoderStub instance
  */
-void datasetDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
+static void datasetDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
     if (context == NULL)
         return; /* Failsafe, discard if no context */
     DatasetDecoderStub* stub = static_cast<DatasetDecoderStub*>(context);
@@ -64,7 +64,7 @@ static void datasetExtractorUnwrapForwardFullFrameBytes(const uint8_t* buf, std:
 	de->reset();
 }
 
-void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
+static void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
 	printf("Received dataset (%zu bytes):\n", cnt);
 	for (size_t pos = 0; pos < cnt; pos++) {
 		if ((pos & 0xf) == 0) {
