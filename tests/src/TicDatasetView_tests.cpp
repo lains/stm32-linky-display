@@ -81,7 +81,6 @@ static void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
 
 TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_dataset) {
 	const char dataset[] = "ADCO 012345678901 E";
-	DatasetDecoderStub stub;
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -113,7 +112,6 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_data
 
 TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_standard_dataset) {
 	const char dataset[] = "ADSC\t012345678901\t2";
-	DatasetDecoderStub stub;
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -147,7 +145,6 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_standard_datase
 TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
 	char dataset[] = 	{ "*ADCO 012345678901 E"};
 	dataset[0] = TIC::DatasetExtractor::START_MARKER; /* Replace the * with our start marker */
-	DatasetDecoderStub stub;
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -177,7 +174,6 @@ TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
 TEST(TicDatasetView_tests, TicDatasetView_extra_trailing_end_marker) {
 	char dataset[] = 	{ "ADCO 012345678901 E*"};
 	dataset[sizeof(dataset)-1-1] = TIC::DatasetExtractor::END_MARKER; /* Replace the * with our end marker (-1 to get inside the buffer, -1 again to move before the terminating '\0') */
-	DatasetDecoderStub stub;
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -212,7 +208,6 @@ TEST(TicDatasetView_tests, TicDatasetView_wrong_crc) {
 
 	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
 	
-	bool datasetValid = dv.isValid();
 	if (dv.isValid()) {
 		FAILF("Expecting invalid dataset");
 	}
@@ -223,19 +218,31 @@ TEST(TicDatasetView_tests, TicDatasetView_wrong_crc) {
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_very_long) {
-	uint8_t start_marker = TIC::DatasetExtractor::START_MARKER;
-	uint8_t end_marker = TIC::DatasetExtractor::END_MARKER;
-	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
-	DatasetDecoderStub stub;
-	TIC::DatasetExtractor de(datasetDecoderStubUnwrapInvoke, &stub);
-	de.pushBytes(&start_marker, 1);
-	de.pushBytes(buffer, sizeof(buffer));
-	de.pushBytes(&end_marker, 1);
-	if (stub.decodedDatasetList.size() != 1) {
-		FAILF("Wrong dataset count: %ld\nDatasets received:\n%s", stub.decodedDatasetList.size(), stub.toString().c_str());
+	const char dataset[] = "PJOURF+1\t00008001 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE\t9";
+	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
+
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	
+	if (!dv.isValid()) {
+		FAILF("Incorrect parsing of dataset");
 	}
-	if (stub.decodedDatasetList[0] != std::vector<uint8_t>({0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
-		FAILF("Wrong dataset decoded: %s", vectorToHexString(stub.decodedDatasetList[0]).c_str());
+
+	if (dv.labelBuffer == nullptr) {
+		FAILF("NULL labelBuffer");
+	}
+	std::vector<uint8_t> labelBufferVec(dv.labelBuffer, dv.labelBuffer + dv.labelSz);
+	if (labelBufferVec != std::vector<uint8_t>({'P', 'J', 'O', 'U', 'R', 'F', '+', '1'})) {
+		FAILF("Wrong dataset label: %s", vectorToHexString(labelBufferVec).c_str());
+	}
+
+	if (dv.dataBuffer == nullptr) {
+		FAILF("NULL dataBuffer");
+	}
+	if (dv.dataBuffer != &(datasetBuf[8])) {
+		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
+	}
+	if (dv.dataSz != 98) {
+		FAILF("Wrong dataset data size: %zu, expected it contain our long value (98 chars)", dv.dataSz);
 	}
 }
 
@@ -419,6 +426,7 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_extra_leading_start_marker();
 	TicDatasetView_extra_trailing_end_marker();
 	TicDatasetView_wrong_crc();
+	TicDatasetView_very_long();
 	// TicDatasetView_test_one_pure_stx_etx_frame_standalone_markers_10bytes();
 	// TicDatasetView_test_one_pure_stx_etx_frame_standalone_bytes();
 	// TicDatasetView_test_one_pure_stx_etx_frame_two_halves_max_buffer();
