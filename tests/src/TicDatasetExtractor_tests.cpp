@@ -212,7 +212,7 @@ TEST(TicDatasetExtractor_tests, Chunked_sample_unframe_dsextract_historical_TIC)
 		if (stub.decodedDatasetList.size() != expectedTotalDatasetCount) { 
 			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.decodedDatasetList.size(), expectedTotalDatasetCount, stub.toString().c_str());
 		}
-		char firstDatasetAsCString[] = "ADCO 056234673197 O";
+		char firstDatasetAsCString[] = "ADCO 056234673197 ,";
 		std::vector<uint8_t> expectedFirstDatasetInFrame(firstDatasetAsCString, firstDatasetAsCString+strlen(firstDatasetAsCString));
 		if (stub.decodedDatasetList[0] != expectedFirstDatasetInFrame) {
 			FAILF("Unexpected first dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[0]).c_str(), vectorToHexString(expectedFirstDatasetInFrame).c_str());
