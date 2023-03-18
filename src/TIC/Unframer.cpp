@@ -63,8 +63,8 @@ std::size_t TIC::Unframer::processIncomingFrameBytes(const uint8_t* buffer, std:
     if (szCopy > maxCopy) {  /* currentFrame overflow */
         szCopy = maxCopy; /* FIXME: Error case */
     }
-    memcpy(this->currentFrame + nextWriteInCurrentFrame, buffer, szCopy);
-    nextWriteInCurrentFrame += szCopy;
+    memcpy(this->currentFrame + this->nextWriteInCurrentFrame, buffer, szCopy);
+    this->nextWriteInCurrentFrame += szCopy;
 
     if (frameComplete) {
         this->processCurrentFrame();

@@ -66,8 +66,8 @@ std::size_t TIC::DatasetExtractor::processIncomingDatasetBytes(const uint8_t* bu
     if (szCopy > maxCopy) {  /* currentFrame overflow */
         szCopy = maxCopy; /* FIXME: Error case */
     }
-    memcpy(this->currentDataset + nextWriteInCurrentDataset, buffer, szCopy);
-    nextWriteInCurrentDataset += szCopy;
+    memcpy(this->currentDataset + this->nextWriteInCurrentDataset, buffer, szCopy);
+    this->nextWriteInCurrentDataset += szCopy;
 
     if (datasetComplete) {
         this->processCurrentDataset();

@@ -9,6 +9,7 @@
 namespace TIC {
 class Horodate {
 public:
+/* Methods */
     Horodate(): isValid(false) { }
     static Horodate fromLabelBytes(const uint8_t* bytes, unsigned int count) {
         Horodate result;
@@ -16,7 +17,9 @@ public:
         //FIXME: we should parse the remaining horodate bytes and fill-in the appropriate structure here
         return result;
     }
-private:
+
+public:
+/* Attributes */
     bool isValid; /*!< Does this instance contain a valid horodate? */
 };
 
