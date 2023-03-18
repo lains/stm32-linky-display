@@ -53,10 +53,15 @@ horodate() {
         return; /* isValid is false, invalid dataset */
     }
 
-    /* In [datasetBuf;datasetBuf+datasetBufSz[, we now have the byte sequence on which CRC applies (note that the delimiter just before the CRC byte is included)*/
+    if (!isTicStandard) { /* In historical TIC, the delimiter just before CRC byte is not included */
+        datasetBufSz--; /* Reduce the dataset buffer to exclude the last delimiter */
+    }
+    /* In [datasetBuf;datasetBuf+datasetBufSz[, we now have the byte sequence on which CRC applies */
     uint8_t computedCrc = this->computeCRC(datasetBuf, datasetBufSz);
 
-    datasetBufSz--; /* Reduce the dataset buffer to exclude the last delimiter */
+    if (isTicStandard) { /* In standard TIC, the delimiter just before CRC byte has been included in the CRC computation above, now remove it */
+        datasetBufSz--; /* Reduce the dataset buffer to exclude the last delimiter */
+    }
 
     this->labelBuffer = datasetBuf; /* Initially conside that the remaining bytes are one full label */
     this->labelSz = datasetBufSz;
