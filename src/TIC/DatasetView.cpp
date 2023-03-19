@@ -105,28 +105,27 @@ horodate() {
     /* Now, in the frame, we have either a horodate+delim+data or just data */
     datasetDelimFound = (uint8_t*)(memchr(datasetBuf, delimiter, datasetBufSz));
 
-    if (datasetDelimFound == nullptr) { /* No more delimiter, so no horodate */
-        this->dataBuffer = datasetBuf;
-        this->dataSz = datasetBufSz;
-        /* this->horodate has been constructed by default, and is thus invalid (there is no horodate) */
-        /* We have a valid dataset without horodate, continue through */
-    }
-    else {
-        uint8_t* trailingBytes = datasetDelimFound + 1; /* Skip the delimiter, point right after*/
+    if (datasetDelimFound != nullptr) { /* There is another delimiter further away, so horodate is included */
         std::size_t horodateSz = datasetDelimFound - datasetBuf;
 
         this->horodate = Horodate::fromLabelBytes(datasetBuf, horodateSz);
 
-        if (trailingBytes >= datasetBuf + datasetBufSz) {    /* The first trailing byte is not within the buffer boundary */
-            this->decodedType = TIC::DatasetView::DatasetType::Malformed;
-            this->labelSz = 0;
-            this->dataSz = 0;
-            return; /* Invalid dataset */
-        }
-        this->dataSz -= trailingBytes - datasetBuf; /* Skip the horodate found + delim */
-        this->dataBuffer = trailingBytes;
-        /* We have a valid dataset with horodate, continue through */
+        datasetBuf = datasetDelimFound; /* Point to the delimiter just after horodate */
+        datasetBuf++;
+
+        /* TODO: Debug mode-only assert: datasetBuf should not point outside of the buffer */
+        /* TODO: Debug mode-only assert: datasetBufSz should be >= horodateSz+1 */
+        datasetBufSz -= horodateSz; /* The horodate is not in the buffer anymore */
+        datasetBufSz--; /* Nor the delimiter found*/
     }
+    else {
+        /* this->horodate has been constructed by default, and is thus invalid (there is no horodate) */
+        /* We have a valid dataset without horodate, continue through */
+    }
+
+    this->dataSz = datasetBufSz; /* Skip the horodate found + delim */
+    this->dataBuffer = datasetBuf;
+
     this->decodedType = isTicStandard ? TIC::DatasetView::DatasetType::ValidStandard : TIC::DatasetView::DatasetType::ValidHistorical;
 }
 
