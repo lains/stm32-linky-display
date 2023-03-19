@@ -456,7 +456,7 @@ TEST(TicHorodate_tests, TicHorodate_sample_date1) {
 		FAILF("Unexpected degraded time");
 	}
 	if (horodate.season != TIC::Horodate::Winter) {
-		FAILF("Expected summer season");
+		FAILF("Expected winter season");
 	}
 }
 
@@ -483,6 +483,106 @@ TEST(TicHorodate_tests, TicHorodate_sample_date2) {
 	}
 }
 
+TEST(TicHorodate_tests, TicHorodate_sample_season_NA) {
+	char sampleHorodateAsCString[] = " 090714074553";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (!horodate.isValid) {
+		FAILF("Expected valid horodate");
+	}
+	if (horodate.day != 14 ||
+	    horodate.month != 7 ||
+		horodate.year != 2009 ||
+		horodate.hour != 7 ||
+		horodate.minute != 45 ||
+		horodate.second != 53) {
+		FAILF("Wrong date extracted from horodate");
+	}
+	if (horodate.degradedTime) {
+		FAILF("Unexpected degraded time");
+	}
+	if (horodate.season != TIC::Horodate::Unknown) {
+		FAILF("Expected no season");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_degraded_realtime_clock) {
+	char sampleHorodateAsCString[] = "h000102030405";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (!horodate.isValid) {
+		FAILF("Expected valid horodate");
+	}
+	if (horodate.day != 25 ||
+	    horodate.month != 12 ||
+		horodate.year != 2008 ||
+		horodate.hour != 22 ||
+		horodate.minute != 35 ||
+		horodate.second != 18) {
+		FAILF("Wrong date extracted from horodate");
+	}
+	if (!horodate.degradedTime) {
+		FAILF("Expected degraded time");
+	}
+	if (horodate.season != TIC::Horodate::Winter) {
+		FAILF("Expected winter season");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_wrong_characters) {
+	char sampleHorodateAsCString[] = "HA00102030405";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (horodate.isValid) {
+		FAILF("Expected invalid horodate");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_impossible_month) {
+	char sampleHorodateAsCString[] = "H010001130405";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (horodate.isValid) {
+		FAILF("Expected invalid horodate");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_impossible_day) {
+	char sampleHorodateAsCString[] = "H010100130405";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (horodate.isValid) {
+		FAILF("Expected invalid horodate");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_impossible_hour) {
+	char sampleHorodateAsCString[] = "H010101250101";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (horodate.isValid) {
+		FAILF("Expected invalid horodate");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_impossible_minute) {
+	char sampleHorodateAsCString[] = "H010101016001";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (horodate.isValid) {
+		FAILF("Expected invalid horodate");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_impossible_second) {
+	char sampleHorodateAsCString[] = "H010101010160";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (horodate.isValid) {
+		FAILF("Expected invalid horodate");
+	}
+}
+
 #ifndef USE_CPPUTEST
 void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_correct_sample_typical_historical_dataset();
@@ -497,6 +597,14 @@ void runTicDatasetViewAllUnitTests() {
 	Chunked_sample_unframe_dsextract_decode_standard_TIC();
 	TicHorodate_sample_date1();
 	TicHorodate_sample_date2();
+	TicHorodate_sample_season_NA();
+	TicHorodate_degraded_realtime_clock();
+	TicHorodate_wrong_characters();
+	TicHorodate_impossible_month();
+	TicHorodate_impossible_day();
+	TicHorodate_impossible_hour();
+	TicHorodate_impossible_minute();
+	TicHorodate_impossible_second();
 }
 
 #endif	// USE_CPPUTEST
