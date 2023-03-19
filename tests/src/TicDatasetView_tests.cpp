@@ -437,6 +437,52 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_standard_TIC)
 	}
 }
 
+TEST(TicHorodate_tests, TicHorodate_sample_date1) {
+	char sampleHorodateAsCString[] = "H081225223518";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (!horodate.isValid) {
+		FAILF("Expected valid horodate");
+	}
+	if (horodate.day != 25 ||
+	    horodate.month != 12 ||
+		horodate.year != 2008 ||
+		horodate.hour != 22 ||
+		horodate.minute != 35 ||
+		horodate.second != 18) {
+		FAILF("Wrong date extracted from horodate");
+	}
+	if (horodate.degradedTime) {
+		FAILF("Unexpected degraded time");
+	}
+	if (horodate.season != TIC::Horodate::Winter) {
+		FAILF("Expected summer season");
+	}
+}
+
+TEST(TicHorodate_tests, TicHorodate_sample_date2) {
+	char sampleHorodateAsCString[] = "E090714074553";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+	if (!horodate.isValid) {
+		FAILF("Expected valid horodate");
+	}
+	if (horodate.day != 14 ||
+	    horodate.month != 7 ||
+		horodate.year != 2009 ||
+		horodate.hour != 7 ||
+		horodate.minute != 45 ||
+		horodate.second != 53) {
+		FAILF("Wrong date extracted from horodate");
+	}
+	if (horodate.degradedTime) {
+		FAILF("Unexpected degraded time");
+	}
+	if (horodate.season != TIC::Horodate::Summer) {
+		FAILF("Expected summer season");
+	}
+}
+
 #ifndef USE_CPPUTEST
 void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_correct_sample_typical_historical_dataset();
@@ -449,5 +495,8 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_too_short();
 	Chunked_sample_unframe_dsextract_decode_historical_TIC();
 	Chunked_sample_unframe_dsextract_decode_standard_TIC();
+	TicHorodate_sample_date1();
+	TicHorodate_sample_date2();
 }
+
 #endif	// USE_CPPUTEST
