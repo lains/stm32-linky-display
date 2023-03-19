@@ -26,7 +26,9 @@ public :
 	std::string toString() const {
 		std::stringstream result;
 		result << this->decodedResultToString() << " dataset with label=\"" << this->label << "\", data=\"" << this->data << "\"";
-		result << ", Horodate is " << ((this->horodate.isValid)?"valid":"invalid");
+		if (this->horodate.isValid) {
+			result << ", horodate=" << this->horodate.toString();
+		}
 		return result.str();
 	}
 

@@ -1,6 +1,102 @@
 #include <string.h> // For memset()
 #include "TIC/DatasetView.h"
 
+TIC::Horodate TIC::Horodate::fromLabelBytes(const uint8_t* bytes, unsigned int count) {
+    TIC::Horodate result;
+    if (count != TIC::Horodate::HORODATE_SIZE) {
+        return result;
+    }
+    result.isValid = true;
+    switch(bytes[0]) {  /* First character is the season character */
+    case 'H':
+        result.degradedTime = false;
+    case 'h':
+        result.season = TIC::Horodate::Season::Winter;
+        break;
+    case 'E':
+        result.degradedTime = false;
+    case 'e':
+        result.season = TIC::Horodate::Season::Summer;
+        break;
+    case ' ':
+        result.season = TIC::Horodate::Season::Unknown;
+        break;
+    default:
+        result.season = TIC::Horodate::Season::Malformed;
+        result.isValid = false;
+    }
+
+    for (unsigned int idx = 1; idx < count; idx++) {
+        if (bytes[idx] < '0' || bytes[idx] > '9') { /* Only digits allowed in horodate value */
+            result.isValid = false;
+            return result;
+        }
+    }
+
+    result.year = 2000 + (bytes[1] - '0') * 10 + (bytes[2] - '0');
+
+    result.month = (bytes[3] - '0') * 10 + (bytes[4] - '0');
+    if (result.month > 12) { /* Invalid */
+        result.isValid = false;
+    }
+
+    result.day = (bytes[5] - '0') * 10 + (bytes[6] - '0');
+    if (result.day > 31) { /* Invalid */
+        result.isValid = false;
+    }
+
+    result.hour = (bytes[7] - '0') * 10 + (bytes[8] - '0');
+    if (result.hour > 24) { /* Invalid */
+        result.isValid = false;
+    }
+
+    result.minute = (bytes[9] - '0') * 10 + (bytes[10] - '0');
+    if (result.minute > 60) { /* Invalid */
+        result.isValid = false;
+    }
+
+    result.second = (bytes[11] - '0') * 10 + (bytes[12] - '0');
+    if (result.second > 60) { /* Invalid */
+        result.isValid = false;
+    }
+
+    return result;
+}
+
+std::string TIC::Horodate::toString() const {
+    if (!this->isValid) {
+        return "Invalid horodate";
+    }
+    std::string result;
+    result += '0' + ((this->year / 1000) % 10);
+    result += '0' + ((this->year / 100)  % 10);
+    result += '0' + ((this->year / 10)   % 10);
+    result += '0' + ((this->year)        % 10);
+    result += '/';
+    result += '0' + ((this->month / 10)  % 10);
+    result += '0' + ((this->month)       % 10);
+    result += '/';
+    result += '0' + ((this->day / 10)    % 10);
+    result += '0' + ((this->day)         % 10);
+    result += ' ';
+    result += '0' + ((this->hour / 10)   % 10);
+    result += '0' + ((this->hour)        % 10);
+    result += ':';
+    result += '0' + ((this->minute / 10) % 10);
+    result += '0' + ((this->minute)      % 10);
+    result += ':';
+    result += '0' + ((this->second / 10) % 10);
+    result += '0' + ((this->second)      % 10);
+
+    if (this->season == Season::Winter) {
+        result += " (winter)";
+    }
+    else if (this->season == Season::Winter) {
+        result += " (summer)";
+    }
+    return result;
+}
+
 TIC::DatasetView::DatasetView(const uint8_t* datasetBuf, std::size_t datasetBufSz) :
 decodedType(TIC::DatasetView::DatasetType::Malformed),
 labelBuffer(datasetBuf),
