@@ -122,7 +122,7 @@ static void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_dataset) {
-	const char dataset[] = "ADCO 012345678901 %";
+	const char dataset[] = "ADCO 012345678901 E";
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
@@ -185,7 +185,7 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_standard_datase
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
-	char dataset[] = 	{ "*ADCO 012345678901 %"};
+	char dataset[] = 	{ "*ADCO 012345678901 E"};
 	dataset[0] = TIC::DatasetExtractor::START_MARKER; /* Replace the * with our start marker */
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
@@ -214,7 +214,7 @@ TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
 }
 
 TEST(TicDatasetView_tests, TicDatasetView_extra_trailing_end_marker) {
-	char dataset[] = 	{ "ADCO 012345678901 %*"};
+	char dataset[] = 	{ "ADCO 012345678901 E*"};
 	dataset[sizeof(dataset)-1-1] = TIC::DatasetExtractor::END_MARKER; /* Replace the * with our end marker (-1 to get inside the buffer, -1 again to move before the terminating '\0') */
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
