@@ -10,15 +10,22 @@ TIC::Horodate TIC::Horodate::fromLabelBytes(const uint8_t* bytes, unsigned int c
     switch(bytes[0]) {  /* First character is the season character */
     case 'H':
         result.degradedTime = false;
+        result.season = TIC::Horodate::Season::Winter;
+        break;
     case 'h':
+        result.degradedTime = true;
         result.season = TIC::Horodate::Season::Winter;
         break;
     case 'E':
         result.degradedTime = false;
+        result.season = TIC::Horodate::Season::Summer;
+        break;
     case 'e':
+        result.degradedTime = true;
         result.season = TIC::Horodate::Season::Summer;
         break;
     case ' ':
+        result.degradedTime = false;
         result.season = TIC::Horodate::Season::Unknown;
         break;
     default:
@@ -36,12 +43,12 @@ TIC::Horodate TIC::Horodate::fromLabelBytes(const uint8_t* bytes, unsigned int c
     result.year = 2000 + (bytes[1] - '0') * 10 + (bytes[2] - '0');
 
     result.month = (bytes[3] - '0') * 10 + (bytes[4] - '0');
-    if (result.month > 12) { /* Invalid */
+    if (result.month > 12 || result.month == 0) { /* Invalid */
         result.isValid = false;
     }
 
     result.day = (bytes[5] - '0') * 10 + (bytes[6] - '0');
-    if (result.day > 31) { /* Invalid */
+    if (result.day > 31 || result.day == 0) { /* Invalid */
         result.isValid = false;
     }
 
@@ -51,12 +58,12 @@ TIC::Horodate TIC::Horodate::fromLabelBytes(const uint8_t* bytes, unsigned int c
     }
 
     result.minute = (bytes[9] - '0') * 10 + (bytes[10] - '0');
-    if (result.minute > 60) { /* Invalid */
+    if (result.minute >= 60) { /* Invalid */
         result.isValid = false;
     }
 
     result.second = (bytes[11] - '0') * 10 + (bytes[12] - '0');
-    if (result.second > 60) { /* Invalid */
+    if (result.second >= 60) { /* Invalid */
         result.isValid = false;
     }
 

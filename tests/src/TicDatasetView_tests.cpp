@@ -109,20 +109,6 @@ static void datasetExtractorUnwrapForwardFullFrameBytes(const uint8_t* buf, std:
 	de->reset();
 }
 
-static void onDatasetExtracted(const uint8_t* buf, size_t cnt) {
-	printf("Received dataset (%zu bytes):\n", cnt);
-	for (size_t pos = 0; pos < cnt; pos++) {
-		if ((pos & 0xf) == 0) {
-			printf("\n");
-		}
-		else {
-			printf(" ");
-		}
-		printf("%02hhx", buf[pos]);
-	}
-	printf("\n");
-}
-
 TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_dataset) {
 	const char dataset[] = "ADCO 012345678901 E";
 
@@ -285,7 +271,7 @@ TEST(TicDatasetView_tests, TicDatasetView_very_short) {
 		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
 	}
 	if (dv.dataSz != 2) {
-		FAILF("Wrong dataset data size: %zu, expected it contain our short value (2 chars)", dv.dataSz);
+		FAILF("Wrong dataset data size: %zu, expecting it to contain our short value (2 chars)", dv.dataSz);
 	}
 }
 
@@ -314,7 +300,7 @@ TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
 	}
 	if (dv.dataSz != 98) {
-		FAILF("Wrong dataset data size: %zu, expected it contain our long value (98 chars)", dv.dataSz);
+		FAILF("Wrong dataset data size: %zu, expecting it to contain our long value (98 chars)", dv.dataSz);
 	}
 }
 
@@ -327,6 +313,90 @@ TEST(TicDatasetView_tests, TicDatasetView_too_short) {
 		
 		if (dv.isValid() || dv.decodedType != TIC::DatasetView::DatasetType::Malformed) {
 			FAILF("Expecting invalid dataset (with type Malformed, because it's too short to be parsed)");
+		}
+	}
+}
+
+TEST(TicDatasetView_tests, TicDatasetView_valid_with_horodate_without_value) {
+	const char dataset[] = "DATE\tH101112010203\t\t-";
+	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
+
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	
+	if (!dv.isValid()) {
+		FAILF("Dataset shoud be valid");
+	}
+
+	if (dv.labelBuffer == nullptr) {
+		FAILF("NULL labelBuffer");
+	}
+	std::vector<uint8_t> labelBufferVec(dv.labelBuffer, dv.labelBuffer + dv.labelSz);
+	if (labelBufferVec != std::vector<uint8_t>({'D', 'A', 'T', 'E'})) {
+		FAILF("Wrong dataset label: %s", vectorToHexString(labelBufferVec).c_str());
+	}
+
+	if (dv.dataSz != 0) {
+		FAILF("Wrong dataset data size: %zu, expecting it to contain an empty string", dv.dataSz);
+	}
+
+	if (!dv.horodate.isValid) {
+		FAILF("Expected valid horodate");
+	}
+	{
+		if (dv.horodate.season != TIC::Horodate::Season::Winter) {
+			FAILF("Wrong horodate season");
+		}
+		if (dv.horodate.day != 12 ||
+			dv.horodate.month != 11 ||
+			dv.horodate.year != 2010 ||
+			dv.horodate.hour != 1 ||
+			dv.horodate.minute != 2 ||
+			dv.horodate.second != 3) {
+			FAILF("Wrong horodate date");
+		}
+	}
+}
+
+TEST(TicDatasetView_tests, TicDatasetView_standard_with_horodate_and_value) {
+	const char dataset[] = "UMOY1\tH101112010203\t229\t'";
+	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
+
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	
+	if (!dv.isValid()) {
+		FAILF("Dataset shoud be valid");
+	}
+
+	if (dv.labelBuffer == nullptr) {
+		FAILF("NULL labelBuffer");
+	}
+	std::vector<uint8_t> labelBufferVec(dv.labelBuffer, dv.labelBuffer + dv.labelSz);
+	if (labelBufferVec != std::vector<uint8_t>({'U', 'M', 'O', 'Y', '1'})) {
+		FAILF("Wrong dataset label: %s", vectorToHexString(labelBufferVec).c_str());
+	}
+
+	if (dv.dataBuffer == nullptr) {
+		FAILF("NULL dataBuffer");
+	}
+	std::vector<uint8_t> dataBufferVec(dv.dataBuffer, dv.dataBuffer + dv.dataSz);
+	if (dataBufferVec != std::vector<uint8_t>({'2', '2', '9'})) {
+		FAILF("Wrong dataset data: %s", vectorToHexString(dataBufferVec).c_str());
+	}
+
+	if (!dv.horodate.isValid) {
+		FAILF("Expected valid horodate");
+	}
+	{
+		if (dv.horodate.season != TIC::Horodate::Season::Winter) {
+			FAILF("Wrong horodate season");
+		}
+		if (dv.horodate.day != 12 ||
+			dv.horodate.month != 11 ||
+			dv.horodate.year != 2010 ||
+			dv.horodate.hour != 1 ||
+			dv.horodate.minute != 2 ||
+			dv.horodate.second != 3) {
+			FAILF("Wrong horodate date");
 		}
 	}
 }
@@ -370,23 +440,22 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_historical_TI
 											   12, 12, 9, 17, 9 };
 		unsigned int nbExpectedDatasetPerFrame = sizeof(datasetExpectedSizes)/sizeof(datasetExpectedSizes[0]);
 
+		// printf("%zu datasets decoded in total:\n", stub.datasetContentList.size());
+		// for (std::size_t datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
+		// 	printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
+		// }
 		std::size_t expectedTotalDatasetCount = 6 * nbExpectedDatasetPerFrame; /* 6 frames, each containing the above datasets */
 		if (stub.datasetContentList.size() != expectedTotalDatasetCount) {
 			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
 		}
-		// char firstDatasetAsCString[] = "ADCO 056234673197 O";
-		// std::vector<uint8_t> expectedFirstDatasetInFrame(firstDatasetAsCString, firstDatasetAsCString+strlen(firstDatasetAsCString));
-		// if (stub.datasetContentList[0] != expectedFirstDatasetInFrame) {
-		// 	FAILF("Unexpected first dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[0]).c_str(), vectorToHexString(expectedFirstDatasetInFrame).c_str());
-		// }
-		// char lastDatasetAsCString[] = "PPOT 00 #";
-		// std::vector<uint8_t> expectedLastDatasetInFrame(lastDatasetAsCString, lastDatasetAsCString+strlen(lastDatasetAsCString));
-		// if (stub.decodedDatasetList[nbExpectedDatasetPerFrame-1] != expectedLastDatasetInFrame) {
-		// 	FAILF("Unexpected last dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[nbExpectedDatasetPerFrame-1]).c_str(), vectorToHexString(expectedLastDatasetInFrame).c_str());
-		// }
-		printf("%zu datasets decoded in total:\n", stub.datasetContentList.size());
-		for (std::size_t datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
-			printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
+		if (stub.datasetContentList[3].label != "BASE") {
+			FAILF("Unexpected 4th dataset label");
+		}
+		if (stub.datasetContentList[3].data != "010151175") {
+			FAILF("Unexpected 4th dataset data");
+		}
+		if (stub.datasetContentList[3].horodate.isValid) {
+			FAILF("Unexpected 4th dataset horodate (should be invalid)");
 		}
 	}
 }
@@ -416,23 +485,72 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_standard_TIC)
 											   109 /* Long PJOURF+1 label */ };
 		unsigned int nbExpectedDatasetPerFrame = sizeof(datasetExpectedSizes)/sizeof(datasetExpectedSizes[0]);
 
+		// printf("%zu datasets decoded in total:\n", stub.datasetContentList.size());
+		// for (std::size_t datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
+		// 	printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
+		// }
 		std::size_t expectedTotalDatasetCount = 12 * nbExpectedDatasetPerFrame; /* 12 frames, each containing the above datasets */
 		if (stub.datasetContentList.size() != expectedTotalDatasetCount) {
 			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
 		}
-		// char firstDatasetAsCString[] = "ADSC\t064468368739\tJ";
-		// std::vector<uint8_t> expectedFirstDatasetInFrame(firstDatasetAsCString, firstDatasetAsCString+strlen(firstDatasetAsCString));
-		// if (stub.decodedDatasetList[0] != expectedFirstDatasetInFrame) {
-		// 	FAILF("Unexpected first dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[0]).c_str(), vectorToHexString(expectedFirstDatasetInFrame).c_str());
-		// }
-		// char lastDatasetAsCString[] = "PJOURF+1\t00008001 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE\t9";
-		// std::vector<uint8_t> expectedLastDatasetInFrame(lastDatasetAsCString, lastDatasetAsCString+strlen(lastDatasetAsCString));
-		// if (stub.decodedDatasetList[nbExpectedDatasetPerFrame-1] != expectedLastDatasetInFrame) {
-		// 	FAILF("Unexpected last dataset in first frame:\nGot:      %s\nExpected: %s\n", vectorToHexString(stub.decodedDatasetList[nbExpectedDatasetPerFrame-1]).c_str(), vectorToHexString(expectedLastDatasetInFrame).c_str());
-		// }
-		printf("%zu datasets decoded in total:\n", stub.datasetContentList.size());
-		for (std::size_t datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
-			printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
+		if (stub.datasetContentList[0].label != "ADSC") {
+			FAILF("Unexpected 1st dataset label");
+		}
+		if (stub.datasetContentList[0].data != "064468368739") {
+			FAILF("Unexpected 1st dataset data");
+		}
+		if (stub.datasetContentList[0].horodate.isValid) {
+			FAILF("Unexpected 1st dataset horodate (should be invalid)");
+		}
+
+		// At index 2: standard dataset with label="DATE", data="", horodate=2023/03/01 09:18:34 (winter)
+		if (stub.datasetContentList[2].label != "DATE") {
+			FAILF("Unexpected 3rd dataset label");
+		}
+		if (stub.datasetContentList[2].data != "") {
+			FAILF("Unexpected 3rd dataset data");
+		}
+		if (!stub.datasetContentList[2].horodate.isValid) {
+			FAILF("Unexpected 3rd dataset horodate (should be valid)");
+		}
+		{
+			TIC::Horodate& horodate = stub.datasetContentList[2].horodate;
+			if (horodate.season != TIC::Horodate::Season::Winter) {
+				FAILF("Wrong horodate season associated with 3rd dataset");
+			}
+			if (horodate.day != 1 ||
+				horodate.month != 3 ||
+				horodate.year != 2023 ||
+				horodate.hour != 9 ||
+				horodate.minute != 18 ||
+				horodate.second != 34) {
+				FAILF("Wrong horodate associated with 3rd dataset");
+			}
+		}
+
+		// At index 25: standard dataset with label="SMAXSN", data="01024", horodate=2023/03/01 06:52:53 (winter)
+		if (stub.datasetContentList[25].label != "SMAXSN") {
+			FAILF("Unexpected 26th dataset label");
+		}
+		if (stub.datasetContentList[25].data != "01024") {
+			FAILF("Unexpected 26th dataset data");
+		}
+		if (!stub.datasetContentList[25].horodate.isValid) {
+			FAILF("Unexpected 26th dataset horodate (should be valid)");
+		}
+		{
+			TIC::Horodate& horodate = stub.datasetContentList[25].horodate;
+			if (horodate.season != TIC::Horodate::Season::Winter) {
+				FAILF("Wrong horodate season associated with 26th dataset");
+			}
+			if (horodate.day != 1 ||
+				horodate.month != 3 ||
+				horodate.year != 2023 ||
+				horodate.hour != 6 ||
+				horodate.minute != 52 ||
+				horodate.second != 53) {
+				FAILF("Wrong horodate associated with 26th dataset");
+			}
 		}
 	}
 }
@@ -513,12 +631,12 @@ TEST(TicHorodate_tests, TicHorodate_degraded_realtime_clock) {
 	if (!horodate.isValid) {
 		FAILF("Expected valid horodate");
 	}
-	if (horodate.day != 25 ||
-	    horodate.month != 12 ||
-		horodate.year != 2008 ||
-		horodate.hour != 22 ||
-		horodate.minute != 35 ||
-		horodate.second != 18) {
+	if (horodate.day != 2 ||
+	    horodate.month != 1 ||
+		horodate.year != 2000 ||
+		horodate.hour != 3 ||
+		horodate.minute != 4 ||
+		horodate.second != 5) {
 		FAILF("Wrong date extracted from horodate");
 	}
 	if (!horodate.degradedTime) {
@@ -539,20 +657,34 @@ TEST(TicHorodate_tests, TicHorodate_wrong_characters) {
 }
 
 TEST(TicHorodate_tests, TicHorodate_impossible_month) {
-	char sampleHorodateAsCString[] = "H010001130405";
-	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+	char sampleHorodateAsCString1[] = "H010001130405";
+	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString1), strlen(sampleHorodateAsCString1));
 
-	if (horodate.isValid) {
-		FAILF("Expected invalid horodate");
+	if (horodate1.isValid) {
+		FAILF("Expected invalid horodate (month 0)");
+	}
+
+	char sampleHorodateAsCString2[] = "H011301130405";
+	TIC::Horodate horodate2 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString2), strlen(sampleHorodateAsCString2));
+
+	if (horodate2.isValid) {
+		FAILF("Expected invalid horodate (month 13)");
 	}
 }
 
 TEST(TicHorodate_tests, TicHorodate_impossible_day) {
-	char sampleHorodateAsCString[] = "H010100130405";
-	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+	char sampleHorodateAsCString1[] = "H010100130405";
+	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString1), strlen(sampleHorodateAsCString1));
 
-	if (horodate.isValid) {
-		FAILF("Expected invalid horodate");
+	if (horodate1.isValid) {
+		FAILF("Expected invalid horodate (day 0)");
+	}
+
+	char sampleHorodateAsCString2[] = "H010132130405";
+	TIC::Horodate horodate2 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString2), strlen(sampleHorodateAsCString2));
+
+	if (horodate2.isValid) {
+		FAILF("Expected invalid horodate (day 32)");
 	}
 }
 
@@ -561,7 +693,7 @@ TEST(TicHorodate_tests, TicHorodate_impossible_hour) {
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
 
 	if (horodate.isValid) {
-		FAILF("Expected invalid horodate");
+		FAILF("Expected invalid horodate (hour 25)");
 	}
 }
 
@@ -570,7 +702,7 @@ TEST(TicHorodate_tests, TicHorodate_impossible_minute) {
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
 
 	if (horodate.isValid) {
-		FAILF("Expected invalid horodate");
+		FAILF("Expected invalid horodate (minute 60)");
 	}
 }
 
@@ -579,7 +711,7 @@ TEST(TicHorodate_tests, TicHorodate_impossible_second) {
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
 
 	if (horodate.isValid) {
-		FAILF("Expected invalid horodate");
+		FAILF("Expected invalid horodate (second 60)");
 	}
 }
 
@@ -593,6 +725,8 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_very_short();
 	TicDatasetView_very_long();
 	TicDatasetView_too_short();
+	TicDatasetView_valid_with_horodate_without_value();
+	TicDatasetView_standard_with_horodate_and_value();
 	Chunked_sample_unframe_dsextract_decode_historical_TIC();
 	Chunked_sample_unframe_dsextract_decode_standard_TIC();
 	TicHorodate_sample_date1();
