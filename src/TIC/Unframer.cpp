@@ -1,13 +1,20 @@
 #include <string.h> // For memset()
 #include "TIC/Unframer.h"
 
-TIC::Unframer::Unframer(FFrameParserFunc onFrameComplete, void* onFrameCompleteContext) :
+TIC::Unframer::Unframer(FOnNewFrameBytesFunc onNewFrameBytes, FOnFrameCompleteFunc onFrameComplete, void* parserFuncContext) :
 sync(false),
+onNewFrameBytes(onNewFrameBytes),
 onFrameComplete(onFrameComplete),
-onFrameCompleteContext(onFrameCompleteContext),
-frameSizeHistory(),
-nextWriteInCurrentFrame(0) {
+parserFuncContext(parserFuncContext),
+frameSizeHistory()
+#ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
+,
+nextWriteInCurrentFrame(0)
+#endif
+{
+#ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
     memset(this->currentFrame, 0, MAX_FRAME_SIZE);
+#endif
 }
 
 /* TODO: check result implementation using either:
@@ -41,8 +48,8 @@ std::size_t TIC::Unframer::pushBytes(const uint8_t* buffer, std::size_t len) {
         uint8_t* etx = (uint8_t*)(memchr(buffer, TIC::Unframer::END_MARKER, len)); /* Search for end of frame */
         if (etx) {  /* We have an ETX in the buffer, we can extract the full frame */
             std::size_t leadingBytesInPreviousFrame = etx - buffer;
-            usedBytes = this->processIncomingFrameBytes(buffer, leadingBytesInPreviousFrame, true); /* Copy the buffer up to (but exclusing the ETX marker), the frame is complete */
-            this->nextWriteInCurrentFrame = 0; /* Wipe any data in the current frame, start over */
+            usedBytes = this->processIncomingFrameBytes(buffer, leadingBytesInPreviousFrame); /* Copy the buffer up to (but exclusing the ETX marker) */
+            this->processCurrentFrame(); /* The frame is complete */
             leadingBytesInPreviousFrame++; /* Skip the ETX marker */
             usedBytes++;
             this->sync = false; /* Consider we are outside of a frame now */
@@ -57,7 +64,12 @@ std::size_t TIC::Unframer::pushBytes(const uint8_t* buffer, std::size_t len) {
     return usedBytes;
 }
 
-std::size_t TIC::Unframer::processIncomingFrameBytes(const uint8_t* buffer, std::size_t len, bool frameComplete) {
+std::size_t TIC::Unframer::processIncomingFrameBytes(const uint8_t* buffer, std::size_t len) {
+#ifdef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
+    if (this->onNewFrameBytes != nullptr && len > 0)
+        this->onNewFrameBytes(buffer, len, this->parserFuncContext);
+    return len;
+#else
     std::size_t maxCopy = this->getFreeBytes();
     std::size_t szCopy = len;
     if (szCopy > maxCopy) {  /* currentFrame overflow */
@@ -65,25 +77,30 @@ std::size_t TIC::Unframer::processIncomingFrameBytes(const uint8_t* buffer, std:
     }
     memcpy(this->currentFrame + this->nextWriteInCurrentFrame, buffer, szCopy);
     this->nextWriteInCurrentFrame += szCopy;
-
-    if (frameComplete) {
-        this->processCurrentFrame();
-    }
     return szCopy;
+#endif
 }
 
 void TIC::Unframer::processCurrentFrame() {
+#ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
     this->recordFrameSize(this->nextWriteInCurrentFrame);
-    this->onFrameComplete(this->currentFrame, this->nextWriteInCurrentFrame, this->onFrameCompleteContext);
+    if (this->onNewFrameBytes != nullptr)
+        this->onNewFrameBytes(this->currentFrame, this->nextWriteInCurrentFrame, this->parserFuncContext);
+    this->nextWriteInCurrentFrame = 0; /* Wipe any data in the current frame, start over */
+#endif
+    if (this->onFrameComplete != nullptr)
+        this->onFrameComplete(this->parserFuncContext);
 }
 
 bool TIC::Unframer::isInSync() const {
     return this->sync;
 }
 
+#ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
 std::size_t TIC::Unframer::getFreeBytes() const {
     return MAX_FRAME_SIZE - this->nextWriteInCurrentFrame;
 }
+#endif
 
 void TIC::Unframer::recordFrameSize(unsigned int frameSize) {
     this->frameSizeHistory.push(frameSize);

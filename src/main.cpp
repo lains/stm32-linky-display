@@ -82,7 +82,10 @@ class TicFrameParser {
 public:
     TicFrameParser() : nbFramesParsed(0) { }
 
-    void parseFrame(const uint8_t* buf, std::size_t cnt) {
+    void onNewFrameBytes(const uint8_t* buf, std::size_t cnt) {
+    }
+
+    void onFrameComplete() {
         BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
         this->nbFramesParsed++;
     }
@@ -138,12 +141,23 @@ int main(void) {
 
     TicFrameParser ticParser;
 
-    TIC::Unframer ticUnframer([](const uint8_t* buf, std::size_t cnt, void* context) {
+    auto onNewFrameBytesParserUnwrapInvoke = [](const uint8_t* buf, std::size_t cnt, void* context) {
         if (context) {  /* Failsafe, do not dereference if no context */
             TicFrameParser* frameParser = static_cast<TicFrameParser*>(context);
-            frameParser->parseFrame(buf, cnt);
+            frameParser->onNewFrameBytes(buf, cnt);
         }
-    }, (void *)(&ticParser));
+    };
+
+    auto onFrameCompleteParserUnwrapInvoke = [](void* context) {
+        if (context) {  /* Failsafe, do not dereference if no context */
+            TicFrameParser* frameParser = static_cast<TicFrameParser*>(context);
+            frameParser->onFrameComplete();
+        }
+    };
+
+    TIC::Unframer ticUnframer(onNewFrameBytesParserUnwrapInvoke,
+                              onFrameCompleteParserUnwrapInvoke,
+                              (void *)(&ticParser));
 
     struct TicProcessingContext {
         /* Default constructor */

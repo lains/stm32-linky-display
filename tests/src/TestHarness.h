@@ -58,7 +58,7 @@ inline std::string vformat(const char* fmt, ...) {
 #define TEST_GROUP(x) struct testgroup_ ## x
 #define TEST(group, func) void func()
 #define FAILF(...) \
-        do { fprintf(stderr, "%s:%d:%s(): ",__FILE__, __LINE__, __func__);\
+        do { fprintf(stderr, "%s:%d: %s(): ",__FILE__, __LINE__, __func__);\
              fprintf(stderr, __VA_ARGS__);\
              fputc('\n', stderr); exit(1);\
         } while (0)

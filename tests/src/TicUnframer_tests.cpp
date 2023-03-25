@@ -14,10 +14,19 @@ TEST_GROUP(TicUnframer_tests) {
 
 class FrameDecoderStub {
 public:
-	FrameDecoderStub() : decodedFramesList() { }
+	FrameDecoderStub() :
+		currentFrame(),
+		decodedFramesList() { }
 
-	void onDecodeCallback(const uint8_t* buf, size_t cnt) {
-		this->decodedFramesList.push_back(std::vector<uint8_t>(buf, buf+cnt));
+	void onNewBytesCallback(const uint8_t* buf, size_t cnt) {
+		std::vector<uint8_t> newBytes(buf, buf+cnt);
+		/* Append the new bytes at the end of the previously existing ones */
+		this->currentFrame.insert(this->currentFrame.end(), newBytes.begin(), newBytes.end());
+	}
+
+	void onFrameCompleteCallback() {
+		this->decodedFramesList.push_back(this->currentFrame);
+		this->currentFrame.clear();
 	}
 
 	std::string toString() const {
@@ -30,41 +39,40 @@ public:
 	}
 
 public:
+	std::vector<uint8_t> currentFrame;
 	std::vector<std::vector<uint8_t> > decodedFramesList;
 };
 
 /**
- * @brief Utility function to unwrap and invoke a FrameDecoderStub instance's onDecodeCallback() from a callback call from TIC::Unframer
+ * @brief Utility function to unwrap and invoke a FrameDecoderStub instance's onNewBytesCallback() from a callback call from TIC::Unframer when new bytes are parsed
  * 
  * @param buf A buffer containing the full TIC frame bytes
  * @param len The number of bytes stored inside @p buf
  * @param context A context as provided by TICUnframer, used to retrieve the wrapped FrameDecoderStub instance
  */
-static void frameDecoderStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, void* context) {
+static void frameDecoderStubUnwrapForwardFrameBytes(const uint8_t* buf, std::size_t cnt, void* context) {
     if (context == NULL)
         return; /* Failsafe, discard if no context */
     FrameDecoderStub* stub = static_cast<FrameDecoderStub*>(context);
-    stub->onDecodeCallback(buf, cnt);
+    stub->onNewBytesCallback(buf, cnt);
 }
 
-static void onFrameDecode(const uint8_t* buf, size_t cnt) {
-	printf("Received frame (%zu bytes):\n", cnt);
-	for (size_t pos = 0; pos < cnt; pos++) {
-		if ((pos & 0xf) == 0) {
-			printf("\n");
-		}
-		else {
-			printf(" ");
-		}
-		printf("%02hhx", buf[pos]);
-	}
-	printf("\n");
+/**
+ * @brief Utility function to unwrap and invoke a FrameDecoderStub instance's onFrameCompleteCallback() from a callback call from TIC::Unframer when the current frame is finished
+ * 
+ * @param context A context as provided by TICUnframer, used to retrieve the wrapped FrameDecoderStub instance
+ */
+static void frameDecoderStubUnwrapFrameFinished(void* context) {
+    if (context == NULL)
+        return; /* Failsafe, discard if no context */
+    FrameDecoderStub* stub = static_cast<FrameDecoderStub*>(context);
+    stub->onFrameCompleteCallback();
 }
 
 TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
 	uint8_t buffer[] = { TIC::Unframer::START_MARKER, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, TIC::Unframer::END_MARKER };
 	FrameDecoderStub stub;
-	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 	tu.pushBytes(buffer, sizeof(buffer));
 	if (stub.decodedFramesList.size() != 1) {
 		FAILF("Wrong frame count: %ld", stub.decodedFramesList.size());
@@ -79,7 +87,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_marke
 	uint8_t end_marker = TIC::Unframer::END_MARKER;
 	uint8_t buffer[] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 	tu.pushBytes(&start_marker, 1);
 	tu.pushBytes(buffer, sizeof(buffer));
 	tu.pushBytes(&end_marker, 1);
@@ -96,7 +104,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes
 	uint8_t end_marker = TIC::Unframer::END_MARKER;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 	tu.pushBytes(&start_marker, 1);
 	for (unsigned int pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
@@ -122,7 +130,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_b
 	}
 	buffer[sizeof(buffer) - 1] = TIC::Unframer::END_MARKER;
 	FrameDecoderStub stub;
-	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 	tu.pushBytes(buffer, sizeof(buffer) / 2);
 	tu.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
 	if (stub.decodedFramesList.size() != 1) {
@@ -138,7 +146,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
 	uint8_t end_marker = TIC::Unframer::END_MARKER;
 	uint8_t buffer[] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
 	FrameDecoderStub stub;
-	TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 	tu.pushBytes(&start_marker, 1);
 	for (uint8_t pos = 0; pos < sizeof(buffer); pos++) {
 		tu.pushBytes(buffer + pos, 1);
@@ -177,7 +185,7 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_historical_TIC) {
 
 	for (size_t chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
 		FrameDecoderStub stub;
-		TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+		TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 
 		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
 
@@ -198,7 +206,7 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_standard_TIC) {
 
 	for (size_t chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
 		FrameDecoderStub stub;
-		TIC::Unframer tu(frameDecoderStubUnwrapInvoke, &stub);
+		TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 
 		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
 

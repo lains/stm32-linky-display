@@ -96,16 +96,27 @@ static void datasetViewStubUnwrapInvoke(const uint8_t* buf, std::size_t cnt, voi
 /**
  * @brief Utility function to unwrap and invoke a TIC::DatasetExtractor instance's pushBytes() from a callback call from TIC::Unframer
  * 
- * @param buf A buffer containing the full TIC frame bytes
+ * @param buf A buffer containing new TIC frame bytes
  * @param len The number of bytes stored inside @p buf
  * @param context A context as provided by TIC::Unframer, used to retrieve the wrapped TIC::DatasetExtractor instance
  */
-static void datasetExtractorUnwrapForwardFullFrameBytes(const uint8_t* buf, std::size_t cnt, void* context) {
+static void datasetExtractorUnwrapForwardFrameBytes(const uint8_t* buf, std::size_t cnt, void* context) {
 	if (context == NULL)
 		return; /* Failsafe, discard if no context */
 	TIC::DatasetExtractor* de = static_cast<TIC::DatasetExtractor*>(context);
 	de->pushBytes(buf, cnt);
-	/* We have a full frame byte in our buf, so once bytes have been pushed, if there is an open dataset, we should discard it and start over at the following frame */
+}
+
+/**
+ * @brief Utility function to unwrap a TIC::DatasetExtractor instance and invoke reset() on it, from a callback call from TIC::Unframer
+ * 
+ * @param context A context as provided by TIC::Unframer, used to retrieve the wrapped TIC::DatasetExtractor instance
+ */
+static void datasetExtractorUnWrapFrameFinished(void *context) {
+	if (context == NULL)
+		return; /* Failsafe, discard if no context */
+	TIC::DatasetExtractor* de = static_cast<TIC::DatasetExtractor*>(context);
+	/* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
 	de->reset();
 }
 
@@ -426,7 +437,7 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_historical_TI
 	for (size_t chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
 		DatasetViewStub stub;
 		TIC::DatasetExtractor de(datasetViewStubUnwrapInvoke, &stub);
-		TIC::Unframer tu(datasetExtractorUnwrapForwardFullFrameBytes, &de);
+		TIC::Unframer tu(datasetExtractorUnwrapForwardFrameBytes, datasetExtractorUnWrapFrameFinished, &de);
 
 		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
 
@@ -445,6 +456,9 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_historical_TI
 		// 	printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
 		// }
 		std::size_t expectedTotalDatasetCount = 6 * nbExpectedDatasetPerFrame; /* 6 frames, each containing the above datasets */
+#ifdef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
+		expectedTotalDatasetCount += 6;	/* 6 more trailing dataset within an unterminated frame */
+#endif
 		if (stub.datasetContentList.size() != expectedTotalDatasetCount) {
 			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
 		}
@@ -467,7 +481,7 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_standard_TIC)
 	for (size_t chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
 		DatasetViewStub stub;
 		TIC::DatasetExtractor de(datasetViewStubUnwrapInvoke, &stub);
-		TIC::Unframer tu(datasetExtractorUnwrapForwardFullFrameBytes, &de);
+		TIC::Unframer tu(datasetExtractorUnwrapForwardFrameBytes, datasetExtractorUnWrapFrameFinished, &de);
 
 		TicUnframer_test_file_sent_by_chunks(ticData, chunkSize, tu);
 
