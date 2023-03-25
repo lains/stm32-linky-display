@@ -17,19 +17,21 @@ public:
 	FrameDecoderStub() :
 		currentFrame(),
 		decodedFramesList() { }
+	
+	virtual ~FrameDecoderStub() { }
 
-	void onNewBytesCallback(const uint8_t* buf, size_t cnt) {
+	virtual void onNewBytesCallback(const uint8_t* buf, size_t cnt) {
 		std::vector<uint8_t> newBytes(buf, buf+cnt);
 		/* Append the new bytes at the end of the previously existing ones */
 		this->currentFrame.insert(this->currentFrame.end(), newBytes.begin(), newBytes.end());
 	}
 
-	void onFrameCompleteCallback() {
+	virtual void onFrameCompleteCallback() {
 		this->decodedFramesList.push_back(this->currentFrame);
 		this->currentFrame.clear();
 	}
 
-	std::string toString() const {
+	virtual std::string toString() const {
 		std::stringstream result;
 		result << this->decodedFramesList.size() << " frame(s):\n";
 		for (auto &it : this->decodedFramesList) {
@@ -221,6 +223,150 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_standard_TIC) {
 	}
 }
 
+TEST(TicUnframer_tests, TicUnframer_unframe_callbacks_in_cached_mode) {
+	// This tests verifies callback sequence only in cached mode
+	uint8_t buffer[] = { TIC::Unframer::START_MARKER, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', TIC::Unframer::END_MARKER,
+	                     TIC::Unframer::START_MARKER, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', TIC::Unframer::END_MARKER };
+	
+	class CallbackSequenceCheckerStub : public FrameDecoderStub {
+	public:
+		CallbackSequenceCheckerStub() : sequence(0) { }
+
+		virtual ~CallbackSequenceCheckerStub() { }
+
+		virtual void onNewBytesCallback(const uint8_t* buf, size_t cnt) override {
+			std::vector<uint8_t> newBytes(buf, buf+cnt);
+			if (this->sequence == 0) {
+				if (newBytes.size() != 9 || newBytes != std::vector<uint8_t>({'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'})) {
+					FAILF("Unpexected new bytes at sequence 0: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else if (this->sequence == 2) {
+				if (newBytes.size() != 9 || newBytes != std::vector<uint8_t>({'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'})) {
+					FAILF("Unpexected new bytes at sequence 2: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else {
+				FAILF("Unexpected sequence %u", this->sequence);
+			}
+			this->sequence++;
+		}
+
+		virtual void onFrameCompleteCallback() override {
+			if (this->sequence != 1 && this->sequence != 3) {
+				FAILF("Unexpected sequence %u", this->sequence);
+			}
+			this->sequence++;
+		}
+
+		unsigned int sequence;
+	};
+
+	CallbackSequenceCheckerStub stub;
+
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
+	const uint8_t* bufPtr = buffer;
+	tu.pushBytes(bufPtr, 5); /* Start of first frame + 4 bytes */
+	bufPtr += 5;
+	tu.pushBytes(bufPtr, 4);
+	bufPtr += 4;
+	tu.pushBytes(bufPtr, 2); /* Last byte + end of first frame */
+	bufPtr += 2;
+	tu.pushBytes(bufPtr, 5); /* Start of second frame + 4 bytes */
+	bufPtr += 5;
+	tu.pushBytes(bufPtr, 4);
+	bufPtr += 4;
+	tu.pushBytes(bufPtr, 2); /* Last byte + end of second frame */
+	bufPtr += 2;
+
+	/* stub will exactly check its successive callback invokation, there should be in total */
+	if (stub.sequence != 4) {
+		FAILF("Unexpected sequence count %u", stub.sequence);
+	}
+}
+
+TEST(TicUnframer_tests, TicUnframer_unframe_callbacks_in_on_the_fly_mode) {
+	// This tests verifies callback sequence only in on-the-fly mode
+	uint8_t buffer[] = { TIC::Unframer::START_MARKER, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', TIC::Unframer::END_MARKER,
+	                     TIC::Unframer::START_MARKER, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', TIC::Unframer::END_MARKER };
+	
+	class CallbackSequenceCheckerStub : public FrameDecoderStub {
+	public:
+		CallbackSequenceCheckerStub() : sequence(0) { }
+
+		virtual ~CallbackSequenceCheckerStub() { }
+
+		virtual void onNewBytesCallback(const uint8_t* buf, size_t cnt) override {
+			std::vector<uint8_t> newBytes(buf, buf+cnt);
+			if (this->sequence == 0) {
+				if (newBytes.size() != 4 || newBytes != std::vector<uint8_t>({'a', 'b', 'c', 'd'})) {
+					FAILF("Unpexected new bytes at sequence 0: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else if (this->sequence == 1) {
+				if (newBytes.size() != 4 || newBytes != std::vector<uint8_t>({'e', 'f', 'g', 'h'})) {
+					FAILF("Unpexected new bytes at sequence 0: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else if (this->sequence == 2) {
+				if (newBytes.size() != 1 || newBytes != std::vector<uint8_t>({'i'})) {
+					FAILF("Unpexected new bytes at sequence 2: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else if (this->sequence == 4) {
+				if (newBytes.size() != 4 || newBytes != std::vector<uint8_t>({'A', 'B', 'C', 'D'})) {
+					FAILF("Unpexected new bytes at sequence 0: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else if (this->sequence == 5) {
+				if (newBytes.size() != 4 || newBytes != std::vector<uint8_t>({'E', 'F', 'G', 'H'})) {
+					FAILF("Unpexected new bytes at sequence 0: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else if (this->sequence == 6) {
+				if (newBytes.size() != 1 || newBytes != std::vector<uint8_t>({'I'})) {
+					FAILF("Unpexected new bytes at sequence 2: %s", vectorToHexString(newBytes).c_str());
+				}
+			}
+			else {
+				FAILF("Unexpected sequence %u", this->sequence);
+			}
+			this->sequence++;
+		}
+
+		virtual void onFrameCompleteCallback() override {
+			if (this->sequence != 3 && this->sequence != 7) {
+				FAILF("Unexpected sequence %u", this->sequence);
+			}
+			this->sequence++;
+		}
+
+		unsigned int sequence;
+	};
+
+	CallbackSequenceCheckerStub stub;
+
+	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
+	const uint8_t* bufPtr = buffer;
+	tu.pushBytes(bufPtr, 5); /* Start of first frame + 4 bytes */
+	bufPtr += 5;
+	tu.pushBytes(bufPtr, 4);
+	bufPtr += 4;
+	tu.pushBytes(bufPtr, 2); /* Last byte + end of first frame */
+	bufPtr += 2;
+	tu.pushBytes(bufPtr, 5); /* Start of second frame + 4 bytes */
+	bufPtr += 5;
+	tu.pushBytes(bufPtr, 4);
+	bufPtr += 4;
+	tu.pushBytes(bufPtr, 2); /* Last byte + end of second frame */
+	bufPtr += 2;
+
+	/* stub will exactly check its successive callback invokation, there should be in total */
+	if (stub.sequence != 8) {
+		FAILF("Unexpected sequence count %u", stub.sequence);
+	}
+}
+
 #ifndef USE_CPPUTEST
 void runTicUnframerAllUnitTests() {
 	TicUnframer_test_one_pure_stx_etx_frame_10bytes();
@@ -230,5 +376,10 @@ void runTicUnframerAllUnitTests() {
 	TicUnframer_test_one_pure_stx_etx_frame_two_halves();
 	TicUnframer_chunked_sample_unframe_historical_TIC();
 	TicUnframer_chunked_sample_unframe_standard_TIC();
+#ifdef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
+	TicUnframer_unframe_callbacks_in_on_the_fly_mode();
+#else
+	TicUnframer_unframe_callbacks_in_cached_mode();
+#endif
 }
 #endif	// USE_CPPUTEST
