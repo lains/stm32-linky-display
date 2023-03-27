@@ -15,6 +15,8 @@ void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi);
  */
 class Stm32LcdDriver {
 public:
+    typedef const uint8_t* (*FCharacterToGlyphPtr)(const char c); /*!< The prototype of functions transforming a character into a pointer to the character glyph */
+
     typedef enum {
         SwitchToDraftIsPending = 0,
         DisplayingDraft,
@@ -61,6 +63,10 @@ public:
 
     void copyDraftToFinal();
 
+    uint16_t getWidth() const;
+
+    uint16_t getHeight() const;
+
     /**
      * @brief Draw a character (glyph) on the LCD
      * 
@@ -72,7 +78,30 @@ public:
      * @param fgColor An optional 32-bit text color to use when drawing text
      * @param bgColor An optional 32-bit background color to use when drawing text
      */
-    void drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, const unsigned int fontHeight, const unsigned int fontWidth, LCD_Color fgColor = LCD_Color::Black, LCD_Color bgColor = LCD_Color::Transparent) const;
+    void drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, unsigned int fontWidth, unsigned int fontHeight, LCD_Color fgColor = LCD_Color::Black, LCD_Color bgColor = LCD_Color::Transparent);
+
+    /**
+     * @brief Draw a character string on the LCD
+     * 
+     * @param x The origin (left boundary) of the string on the LCD
+     * @param y The origin (top boundary) of the string on the LCD
+     * @param text A pointer to a '\0'-terminated buffer containing the character string
+     * @param fontHeight The height of the character in buffer @p c in pixels
+     * @param fontWidth The width of the character in buffer @p c in pixels
+     * @param fgColor An optional 32-bit text color to use when drawing text
+     * @param bgColor An optional 32-bit background color to use when drawing text
+     */
+    void drawText(uint16_t x, uint16_t y, const char *text, unsigned int fontWidth, unsigned int fontHeight, FCharacterToGlyphPtr charToGlyphFunc, LCD_Color fgColor, LCD_Color bgColor);
+
+    /**
+     * @brief Draw a full rectangle
+     * @param x The origin (left boundary) of the rectangle on the LCD
+     * @param y The origin (top boundary) of the rectangle on the LCD
+     * @param width The height of the rectangle in pixels
+     * @param height The width of the rectangle in pixels
+     * @param color The 32-bit color to use when drawing the rectangle
+     */
+    void fillRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, LCD_Color color);
 
     friend void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi); /* This interrupt hanlder accesses our display state */
 

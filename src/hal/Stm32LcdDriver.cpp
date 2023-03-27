@@ -260,8 +260,7 @@ bool Stm32LcdDriver::start() {
     BSP_LCD_LayerDefaultInit(0, (uint32_t)(this->draftFramebuffer));
     BSP_LCD_SelectLayer(0); 
 
-    BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-    BSP_LCD_FillRect(0, 0, LCDWidth, LCDHeight);
+    this->fillRect(0, 0, this->getWidth(), this->getHeight(), LCD_Color::White);
     BSP_LCD_SetTextColor(LCD_COLOR_RED);
     BSP_LCD_FillCircle(30, 30, 30);
 
@@ -315,7 +314,15 @@ void Stm32LcdDriver::copyDraftToFinal() {
     this->hdma2dCopyFramebuffer(this->draftFramebuffer, this->finalFramebuffer, 0, 0, LCDWidth, LCDHeight);
 }
 
-void Stm32LcdDriver::drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, const unsigned int fontHeight, const unsigned int fontWidth, LCD_Color fgColor, LCD_Color bgColor) const {
+uint16_t Stm32LcdDriver::getWidth() const {
+    return LCDWidth;
+}
+
+uint16_t Stm32LcdDriver::getHeight() const {
+    return LCDHeight;
+}
+
+void Stm32LcdDriver::drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, unsigned int fontWidth, unsigned int fontHeight, LCD_Color fgColor, LCD_Color bgColor) {
     const uint8_t* glyphDefByte;
 
     for (unsigned int i = 0; i < fontHeight; i++) {
@@ -328,6 +335,22 @@ void Stm32LcdDriver::drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, const u
                 BSP_LCD_DrawPixel((x + j), (y + i), bgColor);
             }
         }
+    }
+}
+
+void Stm32LcdDriver::drawText(uint16_t x, uint16_t y, const char *text, unsigned int fontWidth, unsigned int fontHeight, FCharacterToGlyphPtr charToGlyphFunc, LCD_Color fgColor, LCD_Color bgColor) {
+    unsigned int xOriginGlyph = x;
+    while ((*text != '\0') && (xOriginGlyph + fontWidth < this->getWidth())) {
+        this->drawGlyph(xOriginGlyph, y, charToGlyphFunc(*text), fontWidth, fontHeight, fgColor, bgColor);
+        xOriginGlyph += fontWidth;
+        text++;
+    }
+}
+
+void Stm32LcdDriver::fillRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, LCD_Color color) {
+    BSP_LCD_SetTextColor(color);
+    for (unsigned int i = 0; i < height; i++) {
+        BSP_LCD_DrawHLine(x, y + i, width);
     }
 }
 
