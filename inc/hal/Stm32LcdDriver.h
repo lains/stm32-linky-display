@@ -2,6 +2,7 @@
 #define _STM32LCDDRIVER_H_
 
 #include "stm32f4xx_hal.h"
+#include "stm32469i_discovery_lcd.h"
 
 extern "C" {
 LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
@@ -22,6 +23,12 @@ public:
         SwitchToFinalIsPending,
         DisplayingFinal
     } LCD_Display_Update_State;
+
+    typedef enum {
+        Black = LCD_COLOR_BLACK,
+        White = LCD_COLOR_WHITE,
+        Transparent = (uint32_t)(0x00000000)
+    } LCD_Color;
 
     typedef void(*FWaitForDisplayRefreshFunc)(void* context);
 
@@ -53,6 +60,19 @@ public:
     void displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr); /* Combined requestDisplayDraft()+waitForDraftDisplayed() */
 
     void copyDraftToFinal();
+
+    /**
+     * @brief Draw a character (glyph) on the LCD
+     * 
+     * @param x The origin (left boundary) of the character on the LCD
+     * @param y The origin (top boundary) of the character on the LCD
+     * @param c A pointer to a buffer containing the character pixel (one bit per dot)
+     * @param fontHeight The height of the character in buffer @p c in pixels
+     * @param fontWidth The width of the character in buffer @p c in pixels
+     * @param fgColor An optional 32-bit text color to use when drawing text
+     * @param bgColor An optional 32-bit background color to use when drawing text
+     */
+    void drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, const unsigned int fontHeight, const unsigned int fontWidth, LCD_Color fgColor = LCD_Color::Black, LCD_Color bgColor = LCD_Color::Transparent) const;
 
     friend void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi); /* This interrupt hanlder accesses our display state */
 

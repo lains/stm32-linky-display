@@ -315,6 +315,22 @@ void Stm32LcdDriver::copyDraftToFinal() {
     this->hdma2dCopyFramebuffer(this->draftFramebuffer, this->finalFramebuffer, 0, 0, LCDWidth, LCDHeight);
 }
 
+void Stm32LcdDriver::drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, const unsigned int fontHeight, const unsigned int fontWidth, LCD_Color fgColor, LCD_Color bgColor) const {
+    const uint8_t* glyphDefByte;
+
+    for (unsigned int i = 0; i < fontHeight; i++) {
+        for (unsigned int j = 0; j < fontWidth; j++) {
+            glyphDefByte = (c + (fontWidth + 7)/8 * i); /* Get first byte at the i for glyph */
+            glyphDefByte += j / 8; /* Move forward if the x pos is not in the first byte */
+            if (*glyphDefByte & (1 << (7 - (j % 8)))) {
+                BSP_LCD_DrawPixel((x + j), (y + i), fgColor);
+            } else if (bgColor != LCD_Color::Transparent) {
+                BSP_LCD_DrawPixel((x + j), (y + i), bgColor);
+            }
+        }
+    }
+}
+
 void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
     uint32_t destination_addr = (uint32_t)dst + (y * LCDWidth + x) * 4;
     uint32_t source_addr      = (uint32_t)src;
