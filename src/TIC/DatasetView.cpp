@@ -70,6 +70,7 @@ TIC::Horodate TIC::Horodate::fromLabelBytes(const uint8_t* bytes, unsigned int c
     return result;
 }
 
+#ifdef __TIC_LIB_USE_STD_STRING__
 std::string TIC::Horodate::toString() const {
     if (!this->isValid) {
         return "Invalid horodate";
@@ -103,6 +104,7 @@ std::string TIC::Horodate::toString() const {
     }
     return result;
 }
+#endif // __TIC_LIB_USE_STD_STRING__
 
 TIC::DatasetView::DatasetView(const uint8_t* datasetBuf, std::size_t datasetBufSz) :
 decodedType(TIC::DatasetView::DatasetType::Malformed),

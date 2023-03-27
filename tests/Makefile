@@ -39,6 +39,7 @@ INCLUDES += $(INCLUDES_FILES_SIMPLIFIED:%=-I%)
 # Compiler Flags
 CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter -Weffc++
 CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
+CXXFLAGS += -D__TIC_LIB_USE_STD_STRING__
 CXXFLAGS += $(INCLUDES)
 
 # Linker Flags

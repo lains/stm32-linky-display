@@ -37,7 +37,9 @@ public:
 
     static Horodate fromLabelBytes(const uint8_t* bytes, unsigned int count);
 
+#ifdef __TIC_LIB_USE_STD_STRING__
     std::string toString() const;
+#endif
 
 public:
 /* Attributes */

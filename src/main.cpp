@@ -2,6 +2,8 @@
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "TIC/Unframer.h"
+#include "TIC/DatasetExtractor.h"
+#include "TIC/DatasetView.h"
 
 extern "C" {
 #include "main.h"
@@ -78,19 +80,75 @@ void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr,
     }
 }
 
+class TicFrameParser; /* Forward declaration */
+
 class TicFrameParser {
 public:
-    TicFrameParser() : nbFramesParsed(0) { }
+    TicFrameParser() : nbFramesParsed(0), de(ticFrameParserUnWrapDatasetExtracter, this) { }
 
+    /* The 3 methods below are invoked as callbacks by TIC::Unframer and TIC::DatasetExtractor durig the TIC decoding process */
     void onNewFrameBytes(const uint8_t* buf, std::size_t cnt) {
+        this->de.pushBytes(buf, cnt);   /* Forward the bytes to the dataset extractor */
     }
 
     void onFrameComplete() {
         BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
+        this->de.reset();   /* We reset the dataset extractor state so that it starts from scratch on the next frame. This is mandatory to avoid mixing datasets content accross frames */
         this->nbFramesParsed++;
     }
 
+    void onDatasetExtracted(const uint8_t* buf, std::size_t cnt) {
+        /* This is our actual parsing of a newly received dataset */
+    }
+
+    /* The 3 commodity functions below are used as callbacks to retrieve a TicFrameParser casted as a context */
+    /* They are retrieving our instance on TicFrameParser, and invoking the 3 above corresponding methods of TicFrameParser, forwarding their arguments */
+    /**
+     * @brief Utility function to unwrap a TicFrameParser instance and invoke onNewFrameBytes() on it
+     * It is used as a callback provided to TIC::Unframer
+     * 
+     * @param buf A buffer containing new TIC frame bytes
+     * @param len The number of bytes stored inside @p buf
+     * @param context A context as provided by TIC::Unframer, used to retrieve the wrapped TicFrameParser instance
+     */
+    static void unwrapInvokeOnFrameNewBytes(const uint8_t* buf, std::size_t cnt, void* context) {
+        if (context == NULL)
+            return; /* Failsafe, discard if no context */
+        TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
+        ticFrameParserInstance->onNewFrameBytes(buf, cnt);
+    }
+
+    /**
+     * @brief Utility function to unwrap a TicFrameParser instance and invoke onFrameComplete() on it
+     * It is used as a callback provided to TIC::Unframer
+     * 
+     * @param context A context as provided by TIC::Unframer, used to retrieve the wrapped TicFrameParser instance
+     */
+    static void unwrapInvokeOnFrameComplete(void *context) {
+        if (context == NULL)
+            return; /* Failsafe, discard if no context */
+        TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
+        /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
+        ticFrameParserInstance->onFrameComplete();
+    }
+
+    /**
+     * @brief Utility function to unwrap a TicFrameParser instance and invoke onDatasetExtracted() on it
+     * It is used as a callback provided to TIC::DatasetExtractor
+     * 
+     * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
+     */
+    static void ticFrameParserUnWrapDatasetExtracter(const uint8_t* buf, std::size_t cnt, void* context) {
+        if (context == NULL)
+            return; /* Failsafe, discard if no context */
+        TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
+        /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
+        ticFrameParserInstance->onDatasetExtracted(buf, cnt);
+    }
+
+/* Attributes */
     unsigned int nbFramesParsed;
+    TIC::DatasetExtractor de;
 };
 
 /**
@@ -141,22 +199,8 @@ int main(void) {
 
     TicFrameParser ticParser;
 
-    auto onNewFrameBytesParserUnwrapInvoke = [](const uint8_t* buf, std::size_t cnt, void* context) {
-        if (context) {  /* Failsafe, do not dereference if no context */
-            TicFrameParser* frameParser = static_cast<TicFrameParser*>(context);
-            frameParser->onNewFrameBytes(buf, cnt);
-        }
-    };
-
-    auto onFrameCompleteParserUnwrapInvoke = [](void* context) {
-        if (context) {  /* Failsafe, do not dereference if no context */
-            TicFrameParser* frameParser = static_cast<TicFrameParser*>(context);
-            frameParser->onFrameComplete();
-        }
-    };
-
-    TIC::Unframer ticUnframer(onNewFrameBytesParserUnwrapInvoke,
-                              onFrameCompleteParserUnwrapInvoke,
+    TIC::Unframer ticUnframer(TicFrameParser::unwrapInvokeOnFrameNewBytes,
+                              TicFrameParser::unwrapInvokeOnFrameComplete,
                               (void *)(&ticParser));
 
     struct TicProcessingContext {
