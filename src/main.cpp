@@ -84,21 +84,90 @@ class TicFrameParser; /* Forward declaration */
 
 class TicFrameParser {
 public:
-    TicFrameParser() : nbFramesParsed(0), de(ticFrameParserUnWrapDatasetExtracter, this) { }
+    TicFrameParser(uint32_t* instPowerStorePtr = nullptr) :
+        nbFramesParsed(0),
+        de(ticFrameParserUnWrapDatasetExtracter, this),
+        instPowerStorePtr(instPowerStorePtr) { }
+
+    void setInstPowerMeasurementStorage(uint32_t* ptr) {
+        this->instPowerStorePtr = ptr;
+    }
+
+    /**
+     * @brief Take into account a refreshed instantenous power measurement
+     * 
+     * @param power The instantaneous power (in Watts)
+     */
+    void onNewInstPowerMesurement(uint32_t power) {
+        if (this->instPowerStorePtr != nullptr) {
+            *(this->instPowerStorePtr) = power;
+        }
+    }
 
     /* The 3 methods below are invoked as callbacks by TIC::Unframer and TIC::DatasetExtractor durig the TIC decoding process */
+    /**
+     * @brief Method invoked on new bytes received inside a TIC frame
+     * 
+     * When receiving new bytes, we will directly forward them to the encapsulated dataset extractor
+     * 
+     * @param buf A buffer containing new TIC frame bytes
+     * @param len The number of bytes stored inside @p buf
+     */
     void onNewFrameBytes(const uint8_t* buf, std::size_t cnt) {
         this->de.pushBytes(buf, cnt);   /* Forward the bytes to the dataset extractor */
     }
 
+    /**
+     * @brief Method invoked when we reach the end of a TIC frame
+     * 
+     * @warning When reaching the end of a frame, it is mandatory to reset the encapsulated dataset extractor state, so that it starts from scratch on the next frame.
+     *          Not doing so would mix datasets content accross two successive frames if we have unterminated datasets, which may happen in historical TIC streams
+     */
     void onFrameComplete() {
+        this->de.reset();
         BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
-        this->de.reset();   /* We reset the dataset extractor state so that it starts from scratch on the next frame. This is mandatory to avoid mixing datasets content accross frames */
         this->nbFramesParsed++;
     }
 
+    static uint32_t uint32FromValueBuffer(const uint8_t* buf, std::size_t cnt) {
+        uint32_t result = 0;
+        for (std::size_t idx = 0; idx < cnt; idx++) {
+            uint8_t digit = buf[idx];
+            if (digit < '0' || digit > '9') {   /* Invalid decimal value */
+                return -1;
+            }
+            if (result > ((uint32_t)-1 / 10)) { /* Failsafe: multiplication by 10 would overflow uint32_t */
+                return -1;
+            }
+            result *= 10;
+            if (result > (uint32_t)-1 - (digit - '0')) {    /* Failsafe: addition of unit would overflow uint32_t */
+                return -1;
+            }
+            result += (digit - '0');    /* Take this digit into account */
+        }
+        return result;
+    }
+
+    /**
+     * @brief Method invoken when a new dataset has been extracted from the TIC stream
+     * 
+     * @param buf A buffer containing full TIC dataset bytes
+     * @param len The number of bytes stored inside @p buf
+     */
     void onDatasetExtracted(const uint8_t* buf, std::size_t cnt) {
         /* This is our actual parsing of a newly received dataset */
+        TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
+        if (dv.isValid()) {
+            /* Search for SINSTS */
+            if (dv.labelSz == 6 &&
+                memcmp(dv.labelBuffer, "SINSTS", 6) == 0 &&
+                dv.dataSz > 0) {
+                /* The current label is a SINSTS with some value associated */
+                uint32_t sinsts = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                if (sinsts != (uint32_t)-1)
+                    this->onNewInstPowerMesurement(sinsts);
+            }
+        }
     }
 
     /* The 3 commodity functions below are used as callbacks to retrieve a TicFrameParser casted as a context */
@@ -147,8 +216,9 @@ public:
     }
 
 /* Attributes */
-    unsigned int nbFramesParsed;
-    TIC::DatasetExtractor de;
+    unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
+    TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
+    uint32_t* instPowerStorePtr;    /*:< The location where we should store the instantaneous power measurement */
 };
 
 /**
@@ -209,15 +279,19 @@ int main(void) {
             ticSerial(ticSerial),
             ticUnframer(ticUnframer),
             lostTicBytes(0),
-            serialRxOverflowCount(0) { }
+            serialRxOverflowCount(0),
+            instantaneousPower((uint32_t)-1) { }
 
         Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
         TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
         unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
         unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
+        uint32_t instantaneousPower;    /*!< A place to store the instantaneous power measurement */
     };
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
+
+    ticParser.setInstPowerMeasurementStorage(&(ticContext.instantaneousPower)); /* When instantaneous power is parsed, it will be stored in that variable */
 
     auto streamTicRxBytesToUnframer = [](void* context) {
         if (context == nullptr)
@@ -253,7 +327,7 @@ int main(void) {
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
         /* We can now work on draft buffer */
-        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@@@XB - @@@@XR";
+        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@Winst - @@@@XR";
         statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
         statusLine[2]=(lcdRefreshCount / 10) % 10 + '0';
@@ -273,19 +347,42 @@ int main(void) {
         statusLine[20]=(rxBytesCount / 10) % 10 + '0';
         statusLine[21]=(rxBytesCount / 1) % 10 + '0';
 
-        unsigned long lostTicBytes = ticContext.lostTicBytes;
-        statusLine[26]=(lostTicBytes / 100000) % 10 + '0';
-        statusLine[27]=(lostTicBytes / 10000) % 10 + '0';
-        statusLine[28]=(lostTicBytes / 1000) % 10 + '0';
-        statusLine[29]=(lostTicBytes / 100) % 10 + '0';
-        statusLine[30]=(lostTicBytes / 10) % 10 + '0';
-        statusLine[31]=(lostTicBytes / 1) % 10 + '0';
+        uint32_t instantaneousPower = ticContext.instantaneousPower;
+        instantaneousPower = 2345;
+        if (instantaneousPower <= 9999) {
+            if (instantaneousPower < 1000) {
+                statusLine[26]=' ';
+            } else {
+                uint8_t digit1000 = (instantaneousPower / 1000) % 10;
+                statusLine[26]=digit1000 + '0';
+            }
+            if (instantaneousPower < 100) {
+                statusLine[27]=' ';
+            } else {
+                uint8_t digit100 = (instantaneousPower / 100) % 10;
+                statusLine[27]=digit100 + '0';
+            }
+            if (instantaneousPower < 10) {
+                statusLine[28]=' ';
+            } else {
+                uint8_t digit10 = (instantaneousPower / 10) % 10;
+                statusLine[28]=digit10  + '0';
+            }
+            uint8_t digit1 = (instantaneousPower / 1) % 10;
+            statusLine[29]=digit1 + '0';
+        }
+        else {
+            statusLine[26]='?';
+            statusLine[27]='?';
+            statusLine[28]='?';
+            statusLine[29]='?';
+        }
 
         unsigned int serialRxOverflowCount = ticContext.serialRxOverflowCount;
-        statusLine[37]=(serialRxOverflowCount / 1000) % 10 + '0';
-        statusLine[38]=(serialRxOverflowCount / 100) % 10 + '0';
-        statusLine[39]=(serialRxOverflowCount / 10) % 10 + '0';
-        statusLine[40]=(serialRxOverflowCount / 1) % 10 + '0';
+        statusLine[38]=(serialRxOverflowCount / 1000) % 10 + '0';
+        statusLine[39]=(serialRxOverflowCount / 100) % 10 + '0';
+        statusLine[40]=(serialRxOverflowCount / 10) % 10 + '0';
+        statusLine[41]=(serialRxOverflowCount / 1) % 10 + '0';
 
         /* We're getting a lot of bytes in RX, but somehow we're missing frames */
         BSP_LCD_SetFont(&Font24);
