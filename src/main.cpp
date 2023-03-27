@@ -9,6 +9,7 @@ extern "C" {
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
+#include "font58.h"
 
 static void SystemClock_Config(void); /* Defined below */
 }
@@ -348,28 +349,33 @@ int main(void) {
         statusLine[21]=(rxBytesCount / 1) % 10 + '0';
 
         uint32_t instantaneousPower = ticContext.instantaneousPower;
-        instantaneousPower = 2345;
+        lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
         if (instantaneousPower <= 9999) {
             if (instantaneousPower < 1000) {
                 statusLine[26]=' ';
             } else {
                 uint8_t digit1000 = (instantaneousPower / 1000) % 10;
                 statusLine[26]=digit1000 + '0';
+                lcd.drawGlyph(100, 6*24, get_font58_ptr(digit1000 + '0'), 60, 120);
             }
             if (instantaneousPower < 100) {
                 statusLine[27]=' ';
             } else {
                 uint8_t digit100 = (instantaneousPower / 100) % 10;
                 statusLine[27]=digit100 + '0';
+                lcd.drawGlyph(160, 6*24, get_font58_ptr(digit100 + '0'), 60, 120);
             }
             if (instantaneousPower < 10) {
                 statusLine[28]=' ';
             } else {
                 uint8_t digit10 = (instantaneousPower / 10) % 10;
                 statusLine[28]=digit10  + '0';
+                lcd.drawGlyph(220, 6*24, get_font58_ptr(digit10 + '0'), 60, 120);
             }
             uint8_t digit1 = (instantaneousPower / 1) % 10;
             statusLine[29]=digit1 + '0';
+            lcd.drawGlyph(280, 6*24, get_font58_ptr(digit1 + '0'), 60, 120);
+            lcd.drawGlyph(340, 6*24, get_font58_ptr('W'), 60, 120);
         }
         else {
             statusLine[26]='?';
@@ -386,11 +392,12 @@ int main(void) {
 
         /* We're getting a lot of bytes in RX, but somehow we're missing frames */
         BSP_LCD_SetFont(&Font24);
-        BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-        BSP_LCD_FillRect(0, 24*3, 800, 24*2);
+        lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
         BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
         BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-        BSP_LCD_DisplayStringAtLine(4, (uint8_t *)statusLine);
+        auto get_font24_ptr = [](const char c){ return &(Font24.table[(c-' ')]); };
+        //lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+        BSP_LCD_DisplayStringAtLine(3, (uint8_t *)statusLine);
 
         //BSP_LED_On(LED1);
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
