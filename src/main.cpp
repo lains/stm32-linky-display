@@ -179,20 +179,21 @@ public:
 
 class TicFrameParser {
 public:
-    TicFrameParser(uint32_t* instPowerStorePtr = nullptr) :
+    TicFrameParser() :
         nbFramesParsed(0),
         de(ticFrameParserUnWrapDatasetExtracter, this),
-        instPowerStorePtr(instPowerStorePtr) { }
-
-    void setInstPowerMeasurementStorage(uint32_t* ptr) {
-        this->instPowerStorePtr = ptr;
-    }
+        lastFrameMeasurements() { }
 
     void onNewMeasurementAvailable() {
         if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
             //this->lastFrameMeasurements.swapWith(TicMeasurements(this->nbFramesParsed));  /* Create a new empty measurement datastore for the new frame */
             this->lastFrameMeasurements.reset();
         }
+    }
+
+    void onNewDate(const TIC::Horodate& horodate) {
+        this->onNewMeasurementAvailable();
+        this->lastFrameMeasurements.horodate = horodate;
     }
 
     void onRefPowerInfo(uint32_t power) {
@@ -206,9 +207,7 @@ public:
      */
     void onNewInstPowerMesurement(uint32_t power) {
         this->onNewMeasurementAvailable();
-        if (this->instPowerStorePtr != nullptr) {
-            *(this->instPowerStorePtr) = power;
-        }
+        this->lastFrameMeasurements.instDrawnPower = power;
     }
 
     /**
@@ -300,8 +299,7 @@ public:
                 memcmp(dv.labelBuffer, "DATE", 4) == 0) {
                 /* The current label is a DATE */
                 if (dv.horodate.isValid) {
-                    this->lastFrameHorodate.first = this->nbFramesParsed;
-                    this->lastFrameHorodate.second = dv.horodate;
+                    this->onNewDate(dv.horodate);
                 }
             }
             /* Search for SINSTS */
@@ -390,9 +388,7 @@ public:
 
 /* Attributes */
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
-    std::pair<unsigned int, TIC::Horodate> lastFrameHorodate;   /*!< The frame number and horodate of the last frame */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
-    uint32_t* instPowerStorePtr;    /*!< The location where we should store the instantaneous power measurement */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
 };
 
@@ -453,18 +449,18 @@ int main(void) {
             ticUnframer(ticUnframer),
             lostTicBytes(0),
             serialRxOverflowCount(0),
-            instantaneousPower((uint32_t)-1) { }
+            instantaneousPower(static_cast<uint32_t>(-1)),
+            lastParsedFrameNb(static_cast<unsigned int>(-1)) { }
 
         Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
         TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
         unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
         unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
         uint32_t instantaneousPower;    /*!< A place to store the instantaneous power measurement */
+        unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
     };
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
-
-    ticParser.setInstPowerMeasurementStorage(&(ticContext.instantaneousPower)); /* When instantaneous power is parsed, it will be stored in that variable */
 
     auto streamTicRxBytesToUnframer = [](void* context) {
         if (context == nullptr)
@@ -499,6 +495,9 @@ int main(void) {
     unsigned int lcdRefreshCount = 0;
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
+
+        ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
+
         /* We can now work on draft buffer */
         char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@Winst - @@@@XR";
         statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
@@ -520,7 +519,7 @@ int main(void) {
         statusLine[20]=(rxBytesCount / 10) % 10 + '0';
         statusLine[21]=(rxBytesCount / 1) % 10 + '0';
 
-        uint32_t instantaneousPower = ticContext.instantaneousPower;
+        uint32_t instantaneousPower = ticParser.lastFrameMeasurements.instDrawnPower;
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
         if (instantaneousPower <= 9999) {
             if (instantaneousPower < 1000) {
