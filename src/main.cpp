@@ -395,7 +395,11 @@ int main(void) {
         lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
         BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
         BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-        auto get_font24_ptr = [](const char c){ return &(Font24.table[(c-' ')]); };
+        auto get_font24_ptr = [](const char c) {
+            unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
+            return &(Font24.table[(c-' ') * bytesPerGlyph]);
+        };
+
         //lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
         BSP_LCD_DisplayStringAtLine(3, (uint8_t *)statusLine);
 
