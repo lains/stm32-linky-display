@@ -83,6 +83,100 @@ void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr,
 
 class TicFrameParser; /* Forward declaration */
 
+// namespace std {
+//     void swap(TicEvaluatedPower first, TicEvaluatedPower second); /* Forward declaration */
+// }
+
+class TicEvaluatedPower {
+public:
+    TicEvaluatedPower() :
+        isValid(false),
+        minValue(0),
+        maxValue(0)
+        { }
+
+    TicEvaluatedPower(signed int minValue, signed int maxValue) :
+        isValid(true),
+        minValue(minValue),
+        maxValue(maxValue) {
+            if (this->minValue > this->maxValue) {
+                std::swap(this->minValue, this->maxValue);
+            }
+        }
+
+    void swapWith(TicEvaluatedPower& other) {
+        std::swap(this->isValid, other.isValid);
+        std::swap(this->minValue, other.minValue);
+        std::swap(this->maxValue, other.maxValue);
+    }
+
+    // friend void ::std::swap(TicEvaluatedPower first, TicEvaluatedPower second);
+
+/* Attributes */
+    bool isValid; /*!< Is this evaluated absolute power valid? */
+    signed int minValue; /*!< Minimum possible power (signed, in Watts) */
+    signed int maxValue; /*!< Maximum possible power (signed, in Watts) */
+};
+
+// void std::swap(TicEvaluatedPower first, TicEvaluatedPower second) {
+//     first.swapWith(second);
+// }
+
+class TicMeasurements {
+public:
+    TicMeasurements() :
+        fromFrameNb(static_cast<unsigned int>(-1)),
+        horodate(),
+        instDrawnPower(static_cast<unsigned int>(-1)),
+        instVoltage(static_cast<unsigned int>(-1)),
+        instAbsCurrent(static_cast<unsigned int>(-1)),
+        instEvalPower()
+        { }
+
+    TicMeasurements(unsigned int fromFrameNb) :
+        fromFrameNb(fromFrameNb),
+        horodate(),
+        instDrawnPower(static_cast<unsigned int>(-1)),
+        instVoltage(static_cast<unsigned int>(-1)),
+        instAbsCurrent(static_cast<unsigned int>(-1)),
+        instEvalPower()
+        { }
+
+    void reset() {
+        this->fromFrameNb = static_cast<unsigned int>(-1);
+        this->horodate = TIC::Horodate();
+        this->instDrawnPower = static_cast<unsigned int>(-1);
+        this->instVoltage = static_cast<unsigned int>(-1);
+        this->instAbsCurrent = static_cast<unsigned int>(-1);
+        this->instEvalPower = TicEvaluatedPower();
+    }
+
+    void swapWith(TicMeasurements& other) {
+        std::swap(this->fromFrameNb, other.fromFrameNb);
+        std::swap(this->horodate, other.horodate);
+        std::swap(this->instDrawnPower, other.instDrawnPower);
+        std::swap(this->instVoltage, other.instVoltage);
+        std::swap(this->instAbsCurrent, other.instAbsCurrent);
+        std::swap(this->maxSubscribedPower, other.maxSubscribedPower);
+        this->instEvalPower.swapWith(other.instEvalPower);
+    }
+
+    // friend void ::std::swap(TicMeasurements first, TicMeasurements second);
+
+/* Attributes */
+    unsigned int fromFrameNb; /*!< The TIC frame ID from which the enclosed data has been extracted */
+    TIC::Horodate horodate; /*!< The optional horodate for the TIC frame */
+    unsigned int instDrawnPower; /*!< The instantaneous (ie within the last TIC frame) withdrawn power, in Watts */
+    unsigned int instVoltage; /*!< The instantaneous (ie within the last TIC frame) RMS voltage, in Volts */
+    unsigned int instAbsCurrent; /*!< The instantaneous (ie within the last TIC frame) absolute current, in Amps */
+    unsigned int maxSubscribedPower; /*!< The maximum allowed withdrawned power (subscribed), in Watts */
+    TicEvaluatedPower instEvalPower; /*!< The instantaneous (ie within the last TIC frame) signed computed power (negative is injected, positive is withdrawn), in Amps */
+};
+
+// void std::swap(TicMeasurements first, TicMeasurements second) {
+//     first.swapWith(second);
+// }
+
 class TicFrameParser {
 public:
     TicFrameParser(uint32_t* instPowerStorePtr = nullptr) :
@@ -94,14 +188,57 @@ public:
         this->instPowerStorePtr = ptr;
     }
 
+    void onNewMeasurementAvailable() {
+        if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
+            //this->lastFrameMeasurements.swapWith(TicMeasurements(this->nbFramesParsed));  /* Create a new empty measurement datastore for the new frame */
+            this->lastFrameMeasurements.reset();
+        }
+    }
+
+    void onRefPowerInfo(uint32_t power) {
+        //FIXME: Todo
+    }
+
     /**
      * @brief Take into account a refreshed instantenous power measurement
      * 
      * @param power The instantaneous power (in Watts)
      */
     void onNewInstPowerMesurement(uint32_t power) {
+        this->onNewMeasurementAvailable();
         if (this->instPowerStorePtr != nullptr) {
             *(this->instPowerStorePtr) = power;
+        }
+    }
+
+    /**
+     * @brief Take into account a refreshed instantenous voltage measurement
+     * 
+     * @param voltage The instantaneous mains voltage (in Volts)
+     */
+    void onNewInstVoltageMeasurement(uint32_t voltage) {
+        this->onNewMeasurementAvailable();
+        this->lastFrameMeasurements.instVoltage = voltage;
+        this->mayComputePowerFromIURms();
+    }
+
+    /**
+     * @brief Take into account a refreshed instantenous current measurement
+     * 
+     * @param voltage The instantaneous mains absolute current (in Amperes), the sign is not provided so this current can be widthdrawn or injected
+     */
+    void onNewInstCurrentMeasurement(uint32_t current) {
+        this->onNewMeasurementAvailable();
+        this->lastFrameMeasurements.instAbsCurrent = current;
+        this->mayComputePowerFromIURms();
+    }
+
+    void mayComputePowerFromIURms() {
+        if (this->lastFrameMeasurements.instVoltage != static_cast<unsigned int>(-1) &&
+            this->lastFrameMeasurements.instAbsCurrent != static_cast<unsigned int>(-1)) {
+            /* We have both voltage and current, we can grossly approximate the power (withdrawn or injected) */
+            this->lastFrameMeasurements.instEvalPower.isValid = true;
+            //FIXME: todo
         }
     }
 
@@ -159,14 +296,49 @@ public:
         /* This is our actual parsing of a newly received dataset */
         TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
         if (dv.isValid()) {
+            if (dv.labelSz == 4 &&
+                memcmp(dv.labelBuffer, "DATE", 4) == 0) {
+                /* The current label is a DATE */
+                if (dv.horodate.isValid) {
+                    this->lastFrameHorodate.first = this->nbFramesParsed;
+                    this->lastFrameHorodate.second = dv.horodate;
+                }
+            }
             /* Search for SINSTS */
-            if (dv.labelSz == 6 &&
+            else if (dv.labelSz == 6 &&
                 memcmp(dv.labelBuffer, "SINSTS", 6) == 0 &&
                 dv.dataSz > 0) {
                 /* The current label is a SINSTS with some value associated */
                 uint32_t sinsts = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
                 if (sinsts != (uint32_t)-1)
                     this->onNewInstPowerMesurement(sinsts);
+            }
+            /* Search for URMS1 */
+            else if (dv.labelSz == 5 &&
+                memcmp(dv.labelBuffer, "URMS1", 5) == 0 &&
+                dv.dataSz > 0) {
+                /* The current label is a URMS1 with some value associated */
+                uint32_t urms1 = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                if (urms1 != (uint32_t)-1)
+                    this->onNewInstVoltageMeasurement(urms1);
+            }
+            /* Search for IRMS1 */
+            else if (dv.labelSz == 5 &&
+                memcmp(dv.labelBuffer, "IRMS1", 5) == 0 &&
+                dv.dataSz > 0) {
+                /* The current label is a URMS1 with some value associated */
+                uint32_t irms1 = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                if (irms1 != (uint32_t)-1)
+                    this->onNewInstCurrentMeasurement(irms1);
+            }
+            /* Search for PREF */
+            else if (dv.labelSz == 4 &&
+                memcmp(dv.labelBuffer, "PREF", 4) == 0 &&
+                dv.dataSz > 0) {
+                /* The current label is a URMS1 with some value associated */
+                uint32_t pref = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                if (pref != (uint32_t)-1)
+                    this->onRefPowerInfo(pref);
             }
         }
     }
@@ -218,14 +390,14 @@ public:
 
 /* Attributes */
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
+    std::pair<unsigned int, TIC::Horodate> lastFrameHorodate;   /*!< The frame number and horodate of the last frame */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
-    uint32_t* instPowerStorePtr;    /*:< The location where we should store the instantaneous power measurement */
+    uint32_t* instPowerStorePtr;    /*!< The location where we should store the instantaneous power measurement */
+    TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
 };
 
 /**
  * @brief  Main program
- * @param  None
- * @retval None
  */
 int main(void) {
     /* STM32F4xx HAL library initialization:
