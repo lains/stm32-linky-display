@@ -29,6 +29,10 @@ public:
     typedef enum {
         Black = LCD_COLOR_BLACK,
         White = LCD_COLOR_WHITE,
+        Green = LCD_COLOR_GREEN,
+        Orange = LCD_COLOR_ORANGE,
+        Red = LCD_COLOR_RED,
+        Blue = LCD_COLOR_BLUE,
         Transparent = (uint32_t)(0x00000000)
     } LCD_Color;
 

@@ -4,6 +4,7 @@
 #include "TIC/Unframer.h"
 #include "TIC/DatasetExtractor.h"
 #include "TIC/DatasetView.h"
+#include <utility> // For std::swap()
 
 extern "C" {
 #include "main.h"
@@ -81,11 +82,14 @@ void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr,
     }
 }
 
-class TicFrameParser; /* Forward declaration */
-
-// namespace std {
-//     void swap(TicEvaluatedPower first, TicEvaluatedPower second); /* Forward declaration */
-// }
+/* Forward declarations */
+class TicFrameParser;
+class TicEvaluatedPower;
+class TicMeasurements;
+namespace std {
+     void swap(TicEvaluatedPower& first, TicEvaluatedPower& second);
+     void swap(TicMeasurements& first, TicMeasurements& second);
+}
 
 class TicEvaluatedPower {
 public:
@@ -110,7 +114,7 @@ public:
         std::swap(this->maxValue, other.maxValue);
     }
 
-    // friend void ::std::swap(TicEvaluatedPower first, TicEvaluatedPower second);
+    friend void ::std::swap(TicEvaluatedPower& first, TicEvaluatedPower& second);
 
 /* Attributes */
     bool isValid; /*!< Is this evaluated absolute power valid? */
@@ -118,9 +122,9 @@ public:
     signed int maxValue; /*!< Maximum possible power (signed, in Watts) */
 };
 
-// void std::swap(TicEvaluatedPower first, TicEvaluatedPower second) {
-//     first.swapWith(second);
-// }
+void std::swap(TicEvaluatedPower& first, TicEvaluatedPower& second) {
+    first.swapWith(second);
+}
 
 class TicMeasurements {
 public:
@@ -158,10 +162,10 @@ public:
         std::swap(this->instVoltage, other.instVoltage);
         std::swap(this->instAbsCurrent, other.instAbsCurrent);
         std::swap(this->maxSubscribedPower, other.maxSubscribedPower);
-        this->instEvalPower.swapWith(other.instEvalPower);
+        std::swap(this->instEvalPower, other.instEvalPower);
     }
 
-    // friend void ::std::swap(TicMeasurements first, TicMeasurements second);
+    friend void ::std::swap(TicMeasurements& first, TicMeasurements& second);
 
 /* Attributes */
     unsigned int fromFrameNb; /*!< The TIC frame ID from which the enclosed data has been extracted */
@@ -173,9 +177,9 @@ public:
     TicEvaluatedPower instEvalPower; /*!< The instantaneous (ie within the last TIC frame) signed computed power (negative is injected, positive is withdrawn), in Amps */
 };
 
-// void std::swap(TicMeasurements first, TicMeasurements second) {
-//     first.swapWith(second);
-// }
+void std::swap(TicMeasurements& first, TicMeasurements& second) {
+    first.swapWith(second);
+}
 
 class TicFrameParser {
 public:
@@ -186,8 +190,8 @@ public:
 
     void onNewMeasurementAvailable() {
         if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
-            //this->lastFrameMeasurements.swapWith(TicMeasurements(this->nbFramesParsed));  /* Create a new empty measurement datastore for the new frame */
-            this->lastFrameMeasurements.reset();
+            TicMeasurements blankMeasurements(this->nbFramesParsed);
+            std::swap(this->lastFrameMeasurements, blankMeasurements);  /* Create a new empty measurement datastore for the new frame */
         }
     }
 
@@ -570,9 +574,8 @@ int main(void) {
             unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
             return &(Font24.table[(c-' ') * bytesPerGlyph]);
         };
-
-        //lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
-        BSP_LCD_DisplayStringAtLine(3, (uint8_t *)statusLine);
+        
+        lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
         //BSP_LED_On(LED1);
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););

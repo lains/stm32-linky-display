@@ -4,8 +4,7 @@
  */
 #pragma once
 #include <cstddef> // For std::size_t
-#define __TIC_TO_STRING__
-#ifdef __TIC_TO_STRING__
+#ifdef __TIC_LIB_USE_STD_STRING__
 #include <string>
 #endif
 #include <stdint.h>
