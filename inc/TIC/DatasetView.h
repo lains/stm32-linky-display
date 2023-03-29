@@ -8,6 +8,12 @@
 #endif
 #include <stdint.h>
 
+#ifndef ARDUINO
+#define STATIC_CONSTEXPR static constexpr
+#else
+#define STATIC_CONSTEXPR static const
+#endif
+
 namespace TIC {
 class Horodate {
 public:
@@ -19,7 +25,7 @@ public:
         Malformed,
     } Season;
 /* Constants */
-    static constexpr unsigned int HORODATE_SIZE = 13; /*!< Size for a horodate tag (in bytes) */
+    STATIC_CONSTEXPR unsigned int HORODATE_SIZE = 13; /*!< Size for a horodate tag (in bytes) */
 
 /* Methods */
     Horodate():
@@ -63,8 +69,8 @@ public:
     } DatasetType;
 
 /* Constants */
-    static constexpr uint8_t HT = 0x09; /* Horizontal tab */
-    static constexpr uint8_t SP = 0x20; /* Space */
+    STATIC_CONSTEXPR uint8_t _HT = 0x09; /* Horizontal tab */
+    STATIC_CONSTEXPR uint8_t _SP = 0x20; /* Space */
 
 /* Methods */
     /**

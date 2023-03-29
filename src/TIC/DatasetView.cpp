@@ -147,11 +147,11 @@ horodate() {
 
     /* Once checksum byte has been removed, we have a delimiter just at the end */
     uint8_t delimiter = *(datasetBuf + datasetBufSz - 1);
-    if (delimiter == TIC::DatasetView::HT) {
+    if (delimiter == TIC::DatasetView::_HT) {
         /* Getting a HT here means this is a standard TIC dataset */
         isTicStandard = true;
     }
-    else if (delimiter == TIC::DatasetView::SP) {
+    else if (delimiter == TIC::DatasetView::_SP) {
         isTicStandard = false;
     }
     else {
