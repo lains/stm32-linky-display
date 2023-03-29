@@ -569,6 +569,87 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_standard_TIC)
 	}
 }
 
+TEST(TicDatasetView_tests, TicDatasetView_uint32FromValueBuffer) {
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("0"), 1) != 0) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("1"), 1) != 1) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("9"), 1) != 9) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("19"), 2) != 19) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("00"), 2) != 0) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("01"), 2) != 1) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("10"), 2) != 10) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("50"), 2) != 50) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("90"), 2) != 90) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("99"), 2) != 99) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("099"), 3) != 99) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("999"), 3) != 999) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("123"), 3) != 123) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("1234"), 4) != 1234) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("12345"), 5) != 12345) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("123456"), 6) != 123456) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("1234567"), 7) != 1234567) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("12345678"), 8) != 12345678) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("123456789"), 9) != 123456789) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("100000000"), 9) != 100000000) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("1000000000"), 10) != 1000000000) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("0000000001"), 10) != 1) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("0000000010"), 10) != 10) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("4294967294"), 10) != 4294967294) { /* 4294967294 is (uint32_t)(-2), this is the max acceptable value */
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("9999999999"), 10) != (uint32_t)-1) {
+		FAILF("Failed parsing value");
+	}
+	if (TIC::DatasetView::uint32FromValueBuffer((const uint8_t*)("99999999999999"), 14) != (uint32_t)-1) {
+		FAILF("Failed parsing value");
+	}
+}
+
 TEST(TicHorodate_tests, TicHorodate_sample_date1) {
 	char sampleHorodateAsCString[] = "H081225223518";
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
@@ -741,6 +822,7 @@ void runTicDatasetViewAllUnitTests() {
 	TicDatasetView_too_short();
 	TicDatasetView_valid_with_horodate_without_value();
 	TicDatasetView_standard_with_horodate_and_value();
+	TicDatasetView_uint32FromValueBuffer();
 	Chunked_sample_unframe_dsextract_decode_historical_TIC();
 	Chunked_sample_unframe_dsextract_decode_standard_TIC();
 	TicHorodate_sample_date1();

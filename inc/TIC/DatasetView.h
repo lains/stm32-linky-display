@@ -83,6 +83,15 @@ public:
      */
     bool isValid() const;
 
+    /**
+     * @brief Compute a unsigned int value from a dataset value buffer
+     * 
+     * @param buf A pointer to the dataset value buffer
+     * @param cnt The number of digits in @p buf
+     * @return The decoded unsigned int value, or -1 in case of errors
+     */
+    static uint32_t uint32FromValueBuffer(const uint8_t* buf, std::size_t cnt);
+
 private:
     static uint8_t computeCRC(const uint8_t* bytes, unsigned int count);
 

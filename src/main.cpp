@@ -222,6 +222,7 @@ public:
     void onNewInstPowerMesurement(uint32_t power) {
         this->onNewMeasurementAvailable();
         this->lastFrameMeasurements.instDrawnPower = power;
+        //this->recordPowerHistory(power); //FIXME: todo
     }
 
     /**
@@ -257,7 +258,14 @@ public:
             /* We have both voltage and current, we can grossly approximate the power (withdrawn or injected) */
             unsigned int& urms = this->lastFrameMeasurements.instVoltage;
             unsigned int& irms = this->lastFrameMeasurements.instAbsCurrent;
-            this->lastFrameMeasurements.instEvalPower.setMinMax(irms * urms - urms/2, irms * urms + urms/2);
+            unsigned int avg = irms * urms;
+            unsigned int min = 0;
+            if (avg >= urms/2) {
+                min = avg - urms/2;
+            }
+            /* If average - urms/2 becomes negative, assume a minimum power of 0 instead of that negative value */
+            
+            this->lastFrameMeasurements.instEvalPower.setMinMax(min, avg + urms/2);
         }
     }
 
@@ -286,25 +294,6 @@ public:
         this->nbFramesParsed++;
     }
 
-    static uint32_t uint32FromValueBuffer(const uint8_t* buf, std::size_t cnt) {
-        uint32_t result = 0;
-        for (std::size_t idx = 0; idx < cnt; idx++) {
-            uint8_t digit = buf[idx];
-            if (digit < '0' || digit > '9') {   /* Invalid decimal value */
-                return -1;
-            }
-            if (result > ((uint32_t)-1 / 10)) { /* Failsafe: multiplication by 10 would overflow uint32_t */
-                return -1;
-            }
-            result *= 10;
-            if (result > (uint32_t)-1 - (digit - '0')) {    /* Failsafe: addition of unit would overflow uint32_t */
-                return -1;
-            }
-            result += (digit - '0');    /* Take this digit into account */
-        }
-        return result;
-    }
-
     /**
      * @brief Method invoken when a new dataset has been extracted from the TIC stream
      * 
@@ -327,7 +316,7 @@ public:
                 memcmp(dv.labelBuffer, "SINSTS", 6) == 0 &&
                 dv.dataSz > 0) {
                 /* The current label is a SINSTS with some value associated */
-                uint32_t sinsts = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                uint32_t sinsts = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
                 if (sinsts != (uint32_t)-1)
                     this->onNewInstPowerMesurement(sinsts);
             }
@@ -336,7 +325,7 @@ public:
                 memcmp(dv.labelBuffer, "URMS1", 5) == 0 &&
                 dv.dataSz > 0) {
                 /* The current label is a URMS1 with some value associated */
-                uint32_t urms1 = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                uint32_t urms1 = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
                 if (urms1 != (uint32_t)-1)
                     this->onNewInstVoltageMeasurement(urms1);
             }
@@ -345,7 +334,7 @@ public:
                 memcmp(dv.labelBuffer, "IRMS1", 5) == 0 &&
                 dv.dataSz > 0) {
                 /* The current label is a URMS1 with some value associated */
-                uint32_t irms1 = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                uint32_t irms1 = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
                 if (irms1 != (uint32_t)-1)
                     this->onNewInstCurrentMeasurement(irms1);
             }
@@ -354,7 +343,7 @@ public:
                 memcmp(dv.labelBuffer, "PREF", 4) == 0 &&
                 dv.dataSz > 0) {
                 /* The current label is a URMS1 with some value associated */
-                uint32_t pref = uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                uint32_t pref = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
                 if (pref != (uint32_t)-1)
                     this->onRefPowerInfo(pref);
             }

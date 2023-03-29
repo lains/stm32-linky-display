@@ -247,3 +247,21 @@ uint8_t TIC::DatasetView::computeCRC(const uint8_t* bytes, unsigned int count) {
     return (S1 & 0x3f) + 0x20;
 }
 
+uint32_t TIC::DatasetView::uint32FromValueBuffer(const uint8_t* buf, std::size_t cnt) {
+    uint32_t result = 0;
+    for (std::size_t idx = 0; idx < cnt; idx++) {
+        uint8_t digit = buf[idx];
+        if (digit < '0' || digit > '9') {   /* Invalid decimal value */
+            return -1;
+        }
+        if (result > ((uint32_t)-1 / 10)) { /* Failsafe: multiplication by 10 would overflow uint32_t */
+            return -1;
+        }
+        result *= 10;
+        if (result > (uint32_t)-1 - (digit - '0')) {    /* Failsafe: addition of unit would overflow uint32_t */
+            return -1;
+        }
+        result += (digit - '0');    /* Take this digit into account */
+    }
+    return result;
+}
