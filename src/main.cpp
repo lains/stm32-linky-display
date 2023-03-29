@@ -549,11 +549,60 @@ int main(void) {
         char mainInstPowerText[] = "-[9999;9999]W";
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
         uint32_t instantaneousPower = ticParser.lastFrameMeasurements.instDrawnPower;
-        instantaneousPower = 1234;
         if (instantaneousPower == 0) {  /* We may be injecting */
             if (ticParser.lastFrameMeasurements.instEvalPower.isValid) {
                 unsigned int minPower = ticParser.lastFrameMeasurements.instEvalPower.minValue;
                 unsigned int maxPower = ticParser.lastFrameMeasurements.instEvalPower.maxValue;
+                mainInstPowerText[0]='-';
+                mainInstPowerText[1]='[';
+                if (minPower < 1000) {
+                    mainInstPowerText[2]=' ';
+                } else {
+                    uint8_t digit1000 = (minPower / 1000) % 10;
+                    mainInstPowerText[2]=digit1000 + '0';
+                }
+                if (minPower < 100) {
+                    mainInstPowerText[3]=' ';
+                } else {
+                    uint8_t digit100 = (minPower / 100) % 10;
+                    mainInstPowerText[3]=digit100 + '0';
+                }
+                if (minPower < 10) {
+                    mainInstPowerText[4]=' ';
+                } else {
+                    uint8_t digit10 = (minPower / 10) % 10;
+                    mainInstPowerText[4]=digit10  + '0';
+                }
+                {
+                    uint8_t digit1 = (minPower / 1) % 10;
+                    mainInstPowerText[5]=digit1 + '0';
+                }
+                mainInstPowerText[6]=';';
+
+                if (maxPower < 1000) {
+                    mainInstPowerText[7]=' ';
+                } else {
+                    uint8_t digit1000 = (maxPower / 1000) % 10;
+                    mainInstPowerText[7]=digit1000 + '0';
+                }
+                if (maxPower < 100) {
+                    mainInstPowerText[8]=' ';
+                } else {
+                    uint8_t digit100 = (maxPower / 100) % 10;
+                    mainInstPowerText[8]=digit100 + '0';
+                }
+                if (maxPower < 10) {
+                    mainInstPowerText[9]=' ';
+                } else {
+                    uint8_t digit10 = (maxPower / 10) % 10;
+                    mainInstPowerText[9]=digit10  + '0';
+                }
+                {
+                    uint8_t digit1 = (maxPower / 1) % 10;
+                    mainInstPowerText[10]=digit1 + '0';
+                }
+                mainInstPowerText[11]=']';
+                mainInstPowerText[12]='W';
             }
         }
         else if (instantaneousPower <= 9999) {
@@ -578,17 +627,17 @@ int main(void) {
                 uint8_t digit10 = (instantaneousPower / 10) % 10;
                 mainInstPowerText[10]=digit10  + '0';
             }
-            uint8_t digit1 = (instantaneousPower / 1) % 10;
-            mainInstPowerText[11]=digit1 + '0';
+            {
+                uint8_t digit1 = (instantaneousPower / 1) % 10;
+                mainInstPowerText[11]=digit1 + '0';
+            }
             mainInstPowerText[12]='W';
-            lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
         }
         else {
-            statusLine[26]='?';
-            statusLine[27]='?';
-            statusLine[28]='?';
-            statusLine[29]='?';
+            for (unsigned int pos=0; pos<sizeof(mainInstPowerText)-1; pos++)
+                mainInstPowerText[pos] = '?';   /* Fill all characters with blank */
         }
+        lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
 
 
         //BSP_LED_On(LED1);
