@@ -125,7 +125,7 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_historical_data
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Incorrect parsing of dataset");
@@ -156,7 +156,7 @@ TEST(TicDatasetView_tests, TicDatasetView_correct_sample_typical_standard_datase
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Incorrect parsing of dataset");
@@ -189,7 +189,7 @@ TEST(TicDatasetView_tests, TicDatasetView_extra_leading_start_marker) {
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Incorrect parsing of dataset");
@@ -218,7 +218,7 @@ TEST(TicDatasetView_tests, TicDatasetView_extra_trailing_end_marker) {
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Incorrect parsing of dataset");
@@ -246,7 +246,7 @@ TEST(TicDatasetView_tests, TicDatasetView_wrong_crc) {
 
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (dv.isValid()) {
 		FAILF("Expecting invalid dataset");
@@ -261,7 +261,7 @@ TEST(TicDatasetView_tests, TicDatasetView_very_short) {
 	const char dataset[] = "VTIC\t02\tJ";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Incorrect parsing of dataset");
@@ -279,10 +279,10 @@ TEST(TicDatasetView_tests, TicDatasetView_very_short) {
 		FAILF("NULL dataBuffer");
 	}
 	if (dv.dataBuffer != &(datasetBuf[5])) {
-		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
+		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%u", static_cast<unsigned int>(dv.dataBuffer - datasetBuf));
 	}
 	if (dv.dataSz != 2) {
-		FAILF("Wrong dataset data size: %zu, expecting it to contain our short value (2 chars)", dv.dataSz);
+		FAILF("Wrong dataset data size: %u, expecting it to contain our short value (2 chars)", dv.dataSz);
 	}
 }
 
@@ -290,7 +290,7 @@ TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 	const char dataset[] = "PJOURF+1\t00008001 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE\t9";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Incorrect parsing of dataset");
@@ -308,10 +308,10 @@ TEST(TicDatasetView_tests, TicDatasetView_very_long) {
 		FAILF("NULL dataBuffer");
 	}
 	if (dv.dataBuffer != &(datasetBuf[9])) {
-		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%zu", dv.dataBuffer - datasetBuf);
+		FAILF("Wrong dataset data, expected it to point to adress dataset+8, instead, it points to dataset+%u", static_cast<unsigned int>(dv.dataBuffer - datasetBuf));
 	}
 	if (dv.dataSz != 98) {
-		FAILF("Wrong dataset data size: %zu, expecting it to contain our long value (98 chars)", dv.dataSz);
+		FAILF("Wrong dataset data size: %u, expecting it to contain our long value (98 chars)", dv.dataSz);
 	}
 }
 
@@ -319,7 +319,7 @@ TEST(TicDatasetView_tests, TicDatasetView_too_short) {
 	const char dataset[] = "L V ";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	for (std::size_t datasetTestLength = 0; datasetTestLength <= (std::size_t)(strlen(dataset)); datasetTestLength++) {
+	for (unsigned int datasetTestLength = 0; datasetTestLength <= static_cast<unsigned int>(strlen(dataset)); datasetTestLength++) {
 		TIC::DatasetView dv((const uint8_t*)datasetBuf, datasetTestLength);
 		
 		if (dv.isValid() || dv.decodedType != TIC::DatasetView::DatasetType::Malformed) {
@@ -332,7 +332,7 @@ TEST(TicDatasetView_tests, TicDatasetView_valid_with_horodate_without_value) {
 	const char dataset[] = "DATE\tH101112010203\t\t-";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Dataset shoud be valid");
@@ -347,7 +347,7 @@ TEST(TicDatasetView_tests, TicDatasetView_valid_with_horodate_without_value) {
 	}
 
 	if (dv.dataSz != 0) {
-		FAILF("Wrong dataset data size: %zu, expecting it to contain an empty string", dv.dataSz);
+		FAILF("Wrong dataset data size: %u, expecting it to contain an empty string", dv.dataSz);
 	}
 
 	if (!dv.horodate.isValid) {
@@ -372,7 +372,7 @@ TEST(TicDatasetView_tests, TicDatasetView_standard_with_horodate_and_value) {
 	const char dataset[] = "UMOY1\tH101112010203\t229\t'";
 	const uint8_t* datasetBuf = reinterpret_cast<const unsigned char*>(dataset);
 
-	TIC::DatasetView dv((const uint8_t*)datasetBuf, (std::size_t)(strlen(dataset)));
+	TIC::DatasetView dv((const uint8_t*)datasetBuf, static_cast<unsigned int>(strlen(dataset)));
 	
 	if (!dv.isValid()) {
 		FAILF("Dataset shoud be valid");
@@ -434,7 +434,7 @@ static void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& tic
 TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_historical_TIC) {
 	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_3P_historical_TIC_sample.bin");
 
-	for (size_t chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
+	for (unsigned int chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
 		DatasetViewStub stub;
 		TIC::DatasetExtractor de(datasetViewStubUnwrapInvoke, &stub);
 		TIC::Unframer tu(datasetExtractorUnwrapForwardFrameBytes, datasetExtractorUnWrapFrameFinished, &de);
@@ -444,23 +444,24 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_historical_TI
 		/**
 		 * @brief Sizes (in bytes) of the successive dataset in each repeated TIC frame
 		 */
-		std::size_t datasetExpectedSizes[] = { 19, /* ADCO label */
-		                                       14, 11, 16, 11,
-											   12, 12, 12, /* Three times IINST? labels (on each phase) */
-											   11, 11, 11, /* Three times IMAX? labels (on each phase) */
-											   12, 12, 9, 17, 9 };
+		unsigned int datasetExpectedSizes[] = { 19, /* ADCO label */
+		                                        14, 11, 16, 11,
+		                                        12, 12, 12, /* Three times IINST? labels (on each phase) */
+		                                        11, 11, 11, /* Three times IMAX? labels (on each phase) */
+		                                        12, 12, 9, 17, 9
+		                                      };
 		unsigned int nbExpectedDatasetPerFrame = sizeof(datasetExpectedSizes)/sizeof(datasetExpectedSizes[0]);
 
 		// printf("%zu datasets decoded in total:\n", stub.datasetContentList.size());
-		// for (std::size_t datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
-		// 	printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
+		// for (unsigned int datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
+		// 	printf("At index %u: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
 		// }
-		std::size_t expectedTotalDatasetCount = 6 * nbExpectedDatasetPerFrame; /* 6 frames, each containing the above datasets */
+		unsigned int expectedTotalDatasetCount = 6 * nbExpectedDatasetPerFrame; /* 6 frames, each containing the above datasets */
 #ifdef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
 		expectedTotalDatasetCount += 6;	/* 6 more trailing dataset within an unterminated frame */
 #endif
 		if (stub.datasetContentList.size() != expectedTotalDatasetCount) {
-			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
+			FAILF("When using chunk size %u: Wrong dataset count: %zu, expected %u\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
 		}
 		if (stub.datasetContentList[3].label != "BASE") {
 			FAILF("Unexpected 4th dataset label");
@@ -478,7 +479,7 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_standard_TIC)
 
 	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_1P_standard_TIC_sample.bin");
 
-	for (size_t chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
+	for (unsigned int chunkSize = 1; chunkSize <= TIC::DatasetExtractor::MAX_DATASET_SIZE; chunkSize++) {
 		DatasetViewStub stub;
 		TIC::DatasetExtractor de(datasetViewStubUnwrapInvoke, &stub);
 		TIC::Unframer tu(datasetExtractorUnwrapForwardFrameBytes, datasetExtractorUnWrapFrameFinished, &de);
@@ -488,24 +489,25 @@ TEST(TicDatasetView_tests, Chunked_sample_unframe_dsextract_decode_standard_TIC)
 		/**
 		 * @brief Sizes (in bytes) of the successive dataset in each repeated TIC frame
 		 */
-		std::size_t datasetExpectedSizes[] = { 19, /* ADSC label */
-		                                       9, 21, 23, 24, 16,
-		                                       18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, /* 14 labels with EASF+EASD data */
-											   11, 11, 9, 10, 14, 28, 30, 27, 29, 25, 15, 39,
-											   20, /* PRM label */
-											   12, 10,
-											   11, /* NJOURF label */
-											   13, /* NJOURF+1 label */
-											   109 /* Long PJOURF+1 label */ };
+		unsigned int datasetExpectedSizes[] = { 19, /* ADSC label */
+		                                        9, 21, 23, 24, 16,
+		                                        18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, /* 14 labels with EASF+EASD data */
+		                                        11, 11, 9, 10, 14, 28, 30, 27, 29, 25, 15, 39,
+		                                        20, /* PRM label */
+		                                        12, 10,
+		                                        11, /* NJOURF label */
+		                                        13, /* NJOURF+1 label */
+		                                        109 /* Long PJOURF+1 label */
+		                                      };
 		unsigned int nbExpectedDatasetPerFrame = sizeof(datasetExpectedSizes)/sizeof(datasetExpectedSizes[0]);
 
 		// printf("%zu datasets decoded in total:\n", stub.datasetContentList.size());
-		// for (std::size_t datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
-		// 	printf("At index %zu: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
+		// for (unsigned int datasetIndex = 0; datasetIndex < stub.datasetContentList.size(); datasetIndex++) {
+		// 	printf("At index %u: %s\n", datasetIndex, stub.datasetContentList[datasetIndex].toString().c_str());
 		// }
-		std::size_t expectedTotalDatasetCount = 12 * nbExpectedDatasetPerFrame; /* 12 frames, each containing the above datasets */
+		unsigned int expectedTotalDatasetCount = 12 * nbExpectedDatasetPerFrame; /* 12 frames, each containing the above datasets */
 		if (stub.datasetContentList.size() != expectedTotalDatasetCount) {
-			FAILF("When using chunk size %zu: Wrong dataset count: %zu, expected %zu\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
+			FAILF("When using chunk size %u: Wrong dataset count: %zu, expected %u\nDatasets received:\n%s", chunkSize, stub.datasetContentList.size(), expectedTotalDatasetCount, stub.toString().c_str());
 		}
 		if (stub.datasetContentList[0].label != "ADSC") {
 			FAILF("Unexpected 1st dataset label");

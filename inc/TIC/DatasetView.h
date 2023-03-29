@@ -3,7 +3,6 @@
  * @brief TIC label decoder
  */
 #pragma once
-#include <cstddef> // For std::size_t
 #ifdef __TIC_LIB_USE_STD_STRING__
 #include <string>
 #endif
@@ -20,7 +19,7 @@ public:
         Malformed,
     } Season;
 /* Constants */
-    static constexpr std::size_t HORODATE_SIZE = 13; /*!< Size for a horodate tag (in bytes) */
+    static constexpr unsigned int HORODATE_SIZE = 13; /*!< Size for a horodate tag (in bytes) */
 
 /* Methods */
     Horodate():
@@ -74,7 +73,7 @@ public:
      * @param datasetBuf A pointer to a byte buffer containing a full dataset
      * @param datasetBufSz The number of valid bytes in @p datasetBuf
      */
-    DatasetView(const uint8_t* datasetBuf, std::size_t datasetBufSz);
+    DatasetView(const uint8_t* datasetBuf, unsigned int datasetBufSz);
 
     /**
      * @brief Does the dataset buffer used at constructor contain a properly formatted dataset?
@@ -90,7 +89,7 @@ public:
      * @param cnt The number of digits in @p buf
      * @return The decoded unsigned int value, or -1 in case of errors
      */
-    static uint32_t uint32FromValueBuffer(const uint8_t* buf, std::size_t cnt);
+    static uint32_t uint32FromValueBuffer(const uint8_t* buf, unsigned int cnt);
 
 private:
     static uint8_t computeCRC(const uint8_t* bytes, unsigned int count);
@@ -99,9 +98,9 @@ public:
 /* Attributes */
     DatasetType decodedType;  /*!< What is the resulting type of the parsed dataset? */
     const uint8_t* labelBuffer; /*!< A pointer to the label buffer */
-    std::size_t labelSz; /*!< The size of the label in bytes */
+    unsigned int labelSz; /*!< The size of the label in bytes */
     const uint8_t* dataBuffer; /*!< A pointer to the data buffer associated with the label */
-    std::size_t dataSz; /*!< The size of the label in bytes */
+    unsigned int dataSz; /*!< The size of the label in bytes */
     Horodate horodate; /*!< The horodate for this dataset */
 };
 } // namespace TIC

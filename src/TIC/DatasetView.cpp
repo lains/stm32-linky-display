@@ -106,7 +106,7 @@ std::string TIC::Horodate::toString() const {
 }
 #endif // __TIC_LIB_USE_STD_STRING__
 
-TIC::DatasetView::DatasetView(const uint8_t* datasetBuf, std::size_t datasetBufSz) :
+TIC::DatasetView::DatasetView(const uint8_t* datasetBuf, unsigned int datasetBufSz) :
 decodedType(TIC::DatasetView::DatasetType::Malformed),
 labelBuffer(datasetBuf),
 labelSz(datasetBufSz),
@@ -211,7 +211,7 @@ horodate() {
     datasetDelimFound = (uint8_t*)(memchr(datasetBuf, delimiter, datasetBufSz));
 
     if (datasetDelimFound != nullptr) { /* There is another delimiter further away, so horodate is included */
-        std::size_t horodateSz = datasetDelimFound - datasetBuf;
+        unsigned int horodateSz = datasetDelimFound - datasetBuf;
 
         this->horodate = Horodate::fromLabelBytes(datasetBuf, horodateSz);
 
@@ -247,9 +247,9 @@ uint8_t TIC::DatasetView::computeCRC(const uint8_t* bytes, unsigned int count) {
     return (S1 & 0x3f) + 0x20;
 }
 
-uint32_t TIC::DatasetView::uint32FromValueBuffer(const uint8_t* buf, std::size_t cnt) {
+uint32_t TIC::DatasetView::uint32FromValueBuffer(const uint8_t* buf, unsigned int cnt) {
     uint32_t result = 0;
-    for (std::size_t idx = 0; idx < cnt; idx++) {
+    for (unsigned int idx = 0; idx < cnt; idx++) {
         uint8_t digit = buf[idx];
         if (digit < '0' || digit > '9') {   /* Invalid decimal value */
             return -1;
