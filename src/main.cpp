@@ -95,19 +95,29 @@ class TicEvaluatedPower {
 public:
     TicEvaluatedPower() :
         isValid(false),
-        minValue(0),
-        maxValue(0)
+        minValue(static_cast<unsigned int>(-1)),
+        maxValue(static_cast<unsigned int>(-1))
         { }
 
-    TicEvaluatedPower(signed int minValue, signed int maxValue) :
+    TicEvaluatedPower(unsigned int minValue, unsigned int maxValue) :
         isValid(true),
-        minValue(minValue),
-        maxValue(maxValue) {
-            if (this->minValue > this->maxValue) {
-                std::swap(this->minValue, this->maxValue);
-            }
+        minValue(static_cast<unsigned int>(-1)),
+        maxValue(static_cast<unsigned int>(-1)) {
+            this->setMinMax(minValue, maxValue);
         }
 
+    void setMinMax(unsigned int minValue, unsigned int maxValue) {
+        this->isValid = true;
+        if (minValue <= maxValue) {
+            this->minValue = minValue;
+            this->maxValue = maxValue;
+        }
+        else {
+            this->minValue = maxValue;
+            this->maxValue = minValue;
+
+        }
+    }
     void swapWith(TicEvaluatedPower& other) {
         std::swap(this->isValid, other.isValid);
         std::swap(this->minValue, other.minValue);
@@ -118,8 +128,8 @@ public:
 
 /* Attributes */
     bool isValid; /*!< Is this evaluated absolute power valid? */
-    signed int minValue; /*!< Minimum possible power (signed, in Watts) */
-    signed int maxValue; /*!< Maximum possible power (signed, in Watts) */
+    unsigned int minValue; /*!< Minimum possible power, in Watts) */
+    unsigned int maxValue; /*!< Maximum possible power, in Watts) */
 };
 
 void std::swap(TicEvaluatedPower& first, TicEvaluatedPower& second) {
@@ -236,12 +246,18 @@ public:
         this->mayComputePowerFromIURms();
     }
 
+    /**
+     * @brief Try to guess a power range withdrawn or injected, based on RMS voltage+amps
+     * 
+     * @note This is very approximative, but if we don't have a precise instantaneous power, but we do have I and U, this is the best we can do
+     */
     void mayComputePowerFromIURms() {
         if (this->lastFrameMeasurements.instVoltage != static_cast<unsigned int>(-1) &&
             this->lastFrameMeasurements.instAbsCurrent != static_cast<unsigned int>(-1)) {
             /* We have both voltage and current, we can grossly approximate the power (withdrawn or injected) */
-            this->lastFrameMeasurements.instEvalPower.isValid = true;
-            //FIXME: todo
+            unsigned int& urms = this->lastFrameMeasurements.instVoltage;
+            unsigned int& irms = this->lastFrameMeasurements.instAbsCurrent;
+            this->lastFrameMeasurements.instEvalPower.setMinMax(irms * urms - urms/2, irms * urms + urms/2);
         }
     }
 
@@ -503,7 +519,7 @@ int main(void) {
         ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
 
         /* We can now work on draft buffer */
-        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@Winst - @@@@XR";
+        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@XR";
         statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
         statusLine[2]=(lcdRefreshCount / 10) % 10 + '0';
@@ -523,47 +539,11 @@ int main(void) {
         statusLine[20]=(rxBytesCount / 10) % 10 + '0';
         statusLine[21]=(rxBytesCount / 1) % 10 + '0';
 
-        uint32_t instantaneousPower = ticParser.lastFrameMeasurements.instDrawnPower;
-        lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
-        if (instantaneousPower <= 9999) {
-            if (instantaneousPower < 1000) {
-                statusLine[26]=' ';
-            } else {
-                uint8_t digit1000 = (instantaneousPower / 1000) % 10;
-                statusLine[26]=digit1000 + '0';
-                lcd.drawGlyph(100, 6*24, get_font58_ptr(digit1000 + '0'), 60, 120);
-            }
-            if (instantaneousPower < 100) {
-                statusLine[27]=' ';
-            } else {
-                uint8_t digit100 = (instantaneousPower / 100) % 10;
-                statusLine[27]=digit100 + '0';
-                lcd.drawGlyph(160, 6*24, get_font58_ptr(digit100 + '0'), 60, 120);
-            }
-            if (instantaneousPower < 10) {
-                statusLine[28]=' ';
-            } else {
-                uint8_t digit10 = (instantaneousPower / 10) % 10;
-                statusLine[28]=digit10  + '0';
-                lcd.drawGlyph(220, 6*24, get_font58_ptr(digit10 + '0'), 60, 120);
-            }
-            uint8_t digit1 = (instantaneousPower / 1) % 10;
-            statusLine[29]=digit1 + '0';
-            lcd.drawGlyph(280, 6*24, get_font58_ptr(digit1 + '0'), 60, 120);
-            lcd.drawGlyph(340, 6*24, get_font58_ptr('W'), 60, 120);
-        }
-        else {
-            statusLine[26]='?';
-            statusLine[27]='?';
-            statusLine[28]='?';
-            statusLine[29]='?';
-        }
-
         unsigned int serialRxOverflowCount = ticContext.serialRxOverflowCount;
-        statusLine[38]=(serialRxOverflowCount / 1000) % 10 + '0';
-        statusLine[39]=(serialRxOverflowCount / 100) % 10 + '0';
-        statusLine[40]=(serialRxOverflowCount / 10) % 10 + '0';
-        statusLine[41]=(serialRxOverflowCount / 1) % 10 + '0';
+        statusLine[26]=(serialRxOverflowCount / 1000) % 10 + '0';
+        statusLine[27]=(serialRxOverflowCount / 100) % 10 + '0';
+        statusLine[28]=(serialRxOverflowCount / 10) % 10 + '0';
+        statusLine[29]=(serialRxOverflowCount / 1) % 10 + '0';
 
         /* We're getting a lot of bytes in RX, but somehow we're missing frames */
         BSP_LCD_SetFont(&Font24);
@@ -576,6 +556,51 @@ int main(void) {
         };
         
         lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+
+        char mainInstPowerText[] = "-[9999;9999]W";
+        lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
+        uint32_t instantaneousPower = ticParser.lastFrameMeasurements.instDrawnPower;
+        instantaneousPower = 1234;
+        if (instantaneousPower == 0) {  /* We may be injecting */
+            if (ticParser.lastFrameMeasurements.instEvalPower.isValid) {
+                unsigned int minPower = ticParser.lastFrameMeasurements.instEvalPower.minValue;
+                unsigned int maxPower = ticParser.lastFrameMeasurements.instEvalPower.maxValue;
+            }
+        }
+        else if (instantaneousPower <= 9999) {
+            for (unsigned int pos=0; pos<8; pos++)
+                mainInstPowerText[pos] = ' ';   /* Fill leading characters with blank */
+            
+            if (instantaneousPower < 1000) {
+                mainInstPowerText[8]=' ';
+            } else {
+                uint8_t digit1000 = (instantaneousPower / 1000) % 10;
+                mainInstPowerText[8]=digit1000 + '0';
+            }
+            if (instantaneousPower < 100) {
+                mainInstPowerText[9]=' ';
+            } else {
+                uint8_t digit100 = (instantaneousPower / 100) % 10;
+                mainInstPowerText[9]=digit100 + '0';
+            }
+            if (instantaneousPower < 10) {
+                mainInstPowerText[10]=' ';
+            } else {
+                uint8_t digit10 = (instantaneousPower / 10) % 10;
+                mainInstPowerText[10]=digit10  + '0';
+            }
+            uint8_t digit1 = (instantaneousPower / 1) % 10;
+            mainInstPowerText[11]=digit1 + '0';
+            mainInstPowerText[12]='W';
+            lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
+        }
+        else {
+            statusLine[26]='?';
+            statusLine[27]='?';
+            statusLine[28]='?';
+            statusLine[29]='?';
+        }
+
 
         //BSP_LED_On(LED1);
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
