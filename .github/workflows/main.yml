@@ -7,6 +7,8 @@ jobs:
     runs-on: stronglytyped/arm-none-eabi-gcc
 
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - name: Build
         run: make
 
@@ -14,5 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}
       - name: Test
-        run: make check
+        run: |
+          make check
