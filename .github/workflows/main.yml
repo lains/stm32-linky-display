@@ -1,0 +1,18 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: stronglytyped/arm-none-eabi-gcc
+
+    steps:
+      - name: Build
+        run: make
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test
+        run: make check
