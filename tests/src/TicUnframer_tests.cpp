@@ -20,7 +20,7 @@ public:
 	
 	virtual ~FrameDecoderStub() { }
 
-	virtual void onNewBytesCallback(const uint8_t* buf, size_t cnt) {
+	virtual void onNewBytesCallback(const uint8_t* buf, unsigned int cnt) {
 		std::vector<uint8_t> newBytes(buf, buf+cnt);
 		/* Append the new bytes at the end of the previously existing ones */
 		this->currentFrame.insert(this->currentFrame.end(), newBytes.begin(), newBytes.end());
@@ -52,7 +52,7 @@ public:
  * @param len The number of bytes stored inside @p buf
  * @param context A context as provided by TICUnframer, used to retrieve the wrapped FrameDecoderStub instance
  */
-static void frameDecoderStubUnwrapForwardFrameBytes(const uint8_t* buf, std::size_t cnt, void* context) {
+static void frameDecoderStubUnwrapForwardFrameBytes(const uint8_t* buf, unsigned int cnt, void* context) {
     if (context == NULL)
         return; /* Failsafe, discard if no context */
     FrameDecoderStub* stub = static_cast<FrameDecoderStub*>(context);
@@ -77,7 +77,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_10bytes) {
 	TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 	tu.pushBytes(buffer, sizeof(buffer));
 	if (stub.decodedFramesList.size() != 1) {
-		FAILF("Wrong frame count: %ld", stub.decodedFramesList.size());
+		FAILF("Wrong frame count: %zu", stub.decodedFramesList.size());
 	}
 	if (stub.decodedFramesList[0] != std::vector<uint8_t>({0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
 		FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
@@ -94,7 +94,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_marke
 	tu.pushBytes(buffer, sizeof(buffer));
 	tu.pushBytes(&end_marker, 1);
 	if (stub.decodedFramesList.size() != 1) {
-		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
+		FAILF("Wrong frame count: %zu\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
 	if (stub.decodedFramesList[0] != std::vector<uint8_t>({0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
 		FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
@@ -113,7 +113,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_standalone_bytes
 	}
 	tu.pushBytes(&end_marker, 1);
 	if (stub.decodedFramesList.size() != 1) {
-		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
+		FAILF("Wrong frame count: %zu\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
 	if (stub.decodedFramesList[0] != std::vector<uint8_t>({0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
 		FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
@@ -136,7 +136,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves_max_b
 	tu.pushBytes(buffer, sizeof(buffer) / 2);
 	tu.pushBytes(buffer + sizeof(buffer) / 2, sizeof(buffer) - sizeof(buffer) / 2);
 	if (stub.decodedFramesList.size() != 1) {
-		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
+		FAILF("Wrong frame count: %zu\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
 	if (stub.decodedFramesList[0] != std::vector<uint8_t>(buffer+1, buffer+sizeof(buffer)-1)) {	/* Compare with buffer, but leave out first (STX) and last (ETX) bytes */
 		FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
@@ -155,7 +155,7 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
 	}
 	tu.pushBytes(&end_marker, 1);
 	if (stub.decodedFramesList.size() != 1) {
-		FAILF("Wrong frame count: %ld\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
+		FAILF("Wrong frame count: %zu\nFrames received:\n%s", stub.decodedFramesList.size(), stub.toString().c_str());
 	}
 	if (stub.decodedFramesList[0] != std::vector<uint8_t>({0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39})) {
 		FAILF("Wrong frame decoded: %s", vectorToHexString(stub.decodedFramesList[0]).c_str());
@@ -169,10 +169,10 @@ TEST(TicUnframer_tests, TicUnframer_test_one_pure_stx_etx_frame_two_halves) {
  * @param maxChunkSize The size of each chunks (except the last one, that may be smaller)
  * @param ticUnframer The TIC::Unframer object in which we will inject chunks
  */
-static void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, size_t maxChunkSize, TIC::Unframer& ticUnframer) {
+static void TicUnframer_test_file_sent_by_chunks(const std::vector<uint8_t>& ticData, unsigned int maxChunkSize, TIC::Unframer& ticUnframer) {
 
-	for (size_t bytesRead = 0; bytesRead < ticData.size();) {
-		size_t nbBytesToRead = ticData.size() - bytesRead;
+	for (unsigned int bytesRead = 0; bytesRead < ticData.size();) {
+		unsigned int nbBytesToRead = ticData.size() - bytesRead;
 		if (nbBytesToRead > maxChunkSize) {
 			nbBytesToRead = maxChunkSize; // Limit the number of bytes pushed to the provided max chunkSize
 		}
@@ -185,7 +185,7 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_historical_TIC) {
 
 	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_3P_historical_TIC_sample.bin");
 
-	for (size_t chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
+	for (unsigned int chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
 		FrameDecoderStub stub;
 		TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 
@@ -193,11 +193,11 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_historical_TIC) {
 
 		std::size_t expectedTotalFramesCount = 6;
 		if (stub.decodedFramesList.size() != expectedTotalFramesCount) {
-			FAILF("When using chunk size %zu: Wrong frame count: %zu, exepcted %zu\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), expectedTotalFramesCount, stub.toString().c_str());
+			FAILF("When using chunk size %u: Wrong frame count: %zu, exepcted %zu\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), expectedTotalFramesCount, stub.toString().c_str());
 		}
 		for (auto it : stub.decodedFramesList) {
 			if (it.size() != 233)
-				FAILF("When using chunk size %zu: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
+				FAILF("When using chunk size %u: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
 		}
 	}
 }
@@ -206,7 +206,7 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_standard_TIC) {
 
 	std::vector<uint8_t> ticData = readVectorFromDisk("./samples/continuous_linky_1P_standard_TIC_sample.bin");
 
-	for (size_t chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
+	for (unsigned int chunkSize = 1; chunkSize <= TIC::Unframer::MAX_FRAME_SIZE; chunkSize++) {
 		FrameDecoderStub stub;
 		TIC::Unframer tu(frameDecoderStubUnwrapForwardFrameBytes, frameDecoderStubUnwrapFrameFinished, &stub);
 
@@ -214,11 +214,11 @@ TEST(TicUnframer_tests, TicUnframer_chunked_sample_unframe_standard_TIC) {
 
 		std::size_t expectedTotalFramesCount = 12;
 		if (stub.decodedFramesList.size() != expectedTotalFramesCount) {
-			FAILF("When using chunk size %zu: Wrong frame count: %zu, exepcted %zu\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), expectedTotalFramesCount, stub.toString().c_str());
+			FAILF("When using chunk size %u: Wrong frame count: %zu, exepcted %zu\nFrames received:\n%s", chunkSize, stub.decodedFramesList.size(), expectedTotalFramesCount, stub.toString().c_str());
 		}
 		for (auto it : stub.decodedFramesList) {
 			if (it.size() != 863)
-				FAILF("When using chunk size %zu: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
+				FAILF("When using chunk size %u: Wrong frame decoded: %s", chunkSize, vectorToHexString(it).c_str());
 		}
 	}
 }
@@ -234,7 +234,7 @@ TEST(TicUnframer_tests, TicUnframer_unframe_callbacks_in_cached_mode) {
 
 		virtual ~CallbackSequenceCheckerStub() { }
 
-		virtual void onNewBytesCallback(const uint8_t* buf, size_t cnt) override {
+		virtual void onNewBytesCallback(const uint8_t* buf, unsigned int cnt) override {
 			std::vector<uint8_t> newBytes(buf, buf+cnt);
 			if (this->sequence == 0) {
 				if (newBytes.size() != 9 || newBytes != std::vector<uint8_t>({'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'})) {
@@ -296,7 +296,7 @@ TEST(TicUnframer_tests, TicUnframer_unframe_callbacks_in_on_the_fly_mode) {
 
 		virtual ~CallbackSequenceCheckerStub() { }
 
-		virtual void onNewBytesCallback(const uint8_t* buf, size_t cnt) override {
+		virtual void onNewBytesCallback(const uint8_t* buf, unsigned int cnt) override {
 			std::vector<uint8_t> newBytes(buf, buf+cnt);
 			if (this->sequence == 0) {
 				if (newBytes.size() != 4 || newBytes != std::vector<uint8_t>({'a', 'b', 'c', 'd'})) {

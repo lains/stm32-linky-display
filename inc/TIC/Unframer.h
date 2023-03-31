@@ -3,7 +3,6 @@
  * @brief TIC frame payload extractor
  */
 #pragma once
-#include <cstddef> // For std::size_t
 #include <stdint.h>
 #include "FixedSizeRingBuffer.h"
 
@@ -37,7 +36,7 @@ namespace TIC {
  * * The first argument is a generic context pointer, identical to the parserFuncContext provided as argument to the constructor. It can be used to provide context to onFrameComplete() that, in turn, for example, can read data structures from this context pointer.
  *
  * Sample code to count TIC frames from a byte stream:
-void onNewFrameBytes(const uint8_t* buf, std::size_t cnt, void* context) {
+void onNewFrameBytes(const uint8_t* buf, unsigned int cnt, void* context) {
   unsigned int* frameCount = static_cast<unsigned int*>(context);
   (*frameCount)++;
 }
@@ -54,7 +53,7 @@ printf("%u\n", frameCount); // Two TIC frames have been parsed, this line will t
 class Unframer {
 public:
 /* Types */
-    typedef void(*FOnNewFrameBytesFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onNewFrameBytes */
+    typedef void(*FOnNewFrameBytesFunc)(const uint8_t* buf, unsigned int cnt, void* context); /*!< The prototype of callbacks invoked onNewFrameBytes */
     typedef void(*FOnFrameCompleteFunc)(void* context); /*!< The prototype of callbacks invoked onFrameComplete */
 
 /* Constants */
@@ -62,7 +61,7 @@ public:
     static constexpr uint8_t ETX = 0x03; /*!< The ETX marker */
     static constexpr uint8_t START_MARKER = STX; /*!< Frame start marker (STX) */
     static constexpr uint8_t END_MARKER = ETX; /*!< Frame end marker (ETX) */
-    static constexpr std::size_t MAX_FRAME_SIZE = 2048; /* Max acceptable TIC frame payload size (excluding STX and ETX markers) */
+    static constexpr unsigned int MAX_FRAME_SIZE = 2048; /* Max acceptable TIC frame payload size (excluding STX and ETX markers) */
     static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 
 /* Methods */
@@ -86,7 +85,7 @@ public:
      * @param len The number of bytes to read from @p buffer
      * @return The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
      */
-    std::size_t pushBytes(const uint8_t* buffer, std::size_t len);
+    unsigned int pushBytes(const uint8_t* buffer, unsigned int len);
 
     /**
      * @brief Are we synchronized with a TIC frame stream
@@ -98,18 +97,18 @@ public:
     /**
      * @brief Get the max TIC frame size from the recent history buffer
      * 
-     * @return std::size_t The max frame size in bytes
+     * @return The max frame size in bytes
      */
-    std::size_t getMaxFrameSizeFromRecentHistory() const;
+    unsigned int getMaxFrameSizeFromRecentHistory() const;
 
 private:
 #ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
     /**
      * @brief Get the remaining free size in our internal buffer currentFrame
      * 
-     * @return std::size_t The number of bytes that we can still store or 0 if the buffer is full
+     * @return The number of bytes that we can still store or 0 if the buffer is full
      */
-    std::size_t getFreeBytes() const;
+    unsigned int getFreeBytes() const;
 #endif
 
     /**
@@ -117,9 +116,9 @@ private:
      * 
      * @param buffer The buffer to the new frame bytes
      * @param len The number of bytes to read from @p buffer
-     * @return std::size_t The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
+     * @return The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
      */
-    std::size_t processIncomingFrameBytes(const uint8_t* buffer, std::size_t len);
+    unsigned int processIncomingFrameBytes(const uint8_t* buffer, unsigned int len);
     
     /**
      * @brief Process a current frame that has been completely received (from start to end markers)

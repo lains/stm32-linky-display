@@ -3,7 +3,6 @@
  * @brief TIC dataset sequence extractor
  */
 #pragma once
-#include <cstddef> // For std::size_t
 #include <stdint.h>
 
 namespace TIC {
@@ -19,11 +18,11 @@ namespace TIC {
  * 
  * Sample code to count al TIC datasets from a TIC byte stream:
 
-void onDatasetExtracted(const uint8_t* buf, std::size_t cnt, void* context) {
+void onDatasetExtracted(const uint8_t* buf, unsigned int cnt, void* context) {
   unsigned int* datasetCount = static_cast<unsigned int*>(context);
   (*datasetCount)++;
 }
-void onFrameComplete(const uint8_t* buf, std::size_t cnt, void* context) {
+void onFrameComplete(const uint8_t* buf, unsigned int cnt, void* context) {
   TIC::DatasetExtractor* datasetExtractor = static_cast<TIC::DatasetExtractor*>(context);
   datasetExtractor->reset();
   datasetExtractor->pushBytes(buf, cnt);
@@ -45,14 +44,14 @@ printf("%u\n", datasetCount); // Two TIC datasets have been parsed inside one si
 class DatasetExtractor {
 public:
 /* Types */
-    typedef void(*FDatasetParserFunc)(const uint8_t* buf, std::size_t cnt, void* context); /*!< The prototype of callbacks invoked onDatasetExtracted */
+    typedef void(*FDatasetParserFunc)(const uint8_t* buf, unsigned int cnt, void* context); /*!< The prototype of callbacks invoked onDatasetExtracted */
     
 /* Constants */
     static constexpr uint8_t LF = 0x0a;
     static constexpr uint8_t CR = 0x0d;
     static constexpr uint8_t START_MARKER = LF; /*!< Dataset start marker (line feed) */
     static constexpr uint8_t END_MARKER = CR; /*!< Dataset end marker (carriage return) */
-    static constexpr std::size_t MAX_DATASET_SIZE = 128; /*!< Max size for a dataset storage (in bytes) */
+    static constexpr unsigned int MAX_DATASET_SIZE = 128; /*!< Max size for a dataset storage (in bytes) */
 
 /* Methods */
     /**
@@ -85,7 +84,7 @@ public:
      * @param len The number of bytes to read from @p buffer
      * @return The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
      */
-    std::size_t pushBytes(const uint8_t* buffer, std::size_t len);
+    unsigned int pushBytes(const uint8_t* buffer, unsigned int len);
 
     /**
      * @brief Are we synchronized with a TIC dataset
@@ -98,9 +97,9 @@ private:
     /**
      * @brief Get the remaining free size in our internal buffer currentDataset
      * 
-     * @return std::size_t The number of bytes that we can still store or 0 if the buffer is full
+     * @return The number of bytes that we can still store or 0 if the buffer is full
      */
-    std::size_t getFreeBytes() const;
+    unsigned int getFreeBytes() const;
 
     /**
      * @brief Take new dataset bytes into account
@@ -108,9 +107,9 @@ private:
      * @param buffer The buffer to the new dataset bytes
      * @param len The number of bytes to read from @p buffer
      * @param datasetComplete Is the dataset complete?
-     * @return std::size_t The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
+     * @return The number of bytes used from buffer (if it is <len, some bytes could not be processed due to a full buffer. This is an error case)
      */
-    std::size_t processIncomingDatasetBytes(const uint8_t* buffer, std::size_t len, bool datasetComplete = false);
+    unsigned int processIncomingDatasetBytes(const uint8_t* buffer, unsigned int len, bool datasetComplete = false);
     
     /**
      * @brief Process a current dataset that has been completely received (from start to end markers)
