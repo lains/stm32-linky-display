@@ -5,8 +5,7 @@ TIC::Unframer::Unframer(FOnNewFrameBytesFunc onNewFrameBytes, FOnFrameCompleteFu
 sync(false),
 onNewFrameBytes(onNewFrameBytes),
 onFrameComplete(onFrameComplete),
-parserFuncContext(parserFuncContext),
-frameSizeHistory()
+parserFuncContext(parserFuncContext)
 #ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
 ,
 nextWriteInCurrentFrame(0)
@@ -87,7 +86,6 @@ unsigned int TIC::Unframer::processIncomingFrameBytes(const uint8_t* buffer, uns
 
 void TIC::Unframer::processCurrentFrame() {
 #ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
-    this->recordFrameSize(this->nextWriteInCurrentFrame);
     if (this->onNewFrameBytes != nullptr)
         this->onNewFrameBytes(this->currentFrame, this->nextWriteInCurrentFrame, this->parserFuncContext);
     this->nextWriteInCurrentFrame = 0; /* Wipe any data in the current frame, start over */
@@ -105,7 +103,3 @@ unsigned int TIC::Unframer::getFreeBytes() const {
     return MAX_FRAME_SIZE - this->nextWriteInCurrentFrame;
 }
 #endif
-
-void TIC::Unframer::recordFrameSize(unsigned int frameSize) {
-    this->frameSizeHistory.push(frameSize);
-}

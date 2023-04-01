@@ -128,19 +128,11 @@ private:
      */
     void processCurrentFrame();
 
-    /**
-     * @brief Record a new full frame size in our recent frame size history (for statistics)
-     * 
-     * @param frameSize The new frame size (in bytes) to record
-     */
-    void recordFrameSize(unsigned int frameSize); /*!< Record a frame size in our history */
-
 /* Attributes */
     bool sync;  /*!< Are we currently in sync? (correct parsing) */
     FOnNewFrameBytesFunc onNewFrameBytes; /*!< Pointer to a function invoked at each new byte block added inside the current frame */
     FOnFrameCompleteFunc onFrameComplete; /*!< Pointer to a function invoked for each full TIC frame received */
     void* parserFuncContext; /*!< A context pointer passed to onNewFrameBytes() and onFrameComplete() at invokation */
-    FixedSizeRingBuffer<unsigned int, STATS_NB_FRAMES> frameSizeHistory;  /* A rotating buffer containing the history of received TIC frames sizes */
 #ifndef __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
     uint8_t currentFrame[MAX_FRAME_SIZE]; /*!< Our internal accumulating buffer used to store the current frame */
     unsigned int nextWriteInCurrentFrame; /*!< The index of the next bytes to receive in buffer currentFrame */
