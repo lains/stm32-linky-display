@@ -4,7 +4,6 @@
  */
 #pragma once
 #include <stdint.h>
-#include "FixedSizeRingBuffer.h"
 
 #define __TIC_UNFRAMER_FORWARD_FRAME_BYTES_ON_THE_FLY__
 
@@ -62,7 +61,6 @@ public:
     static constexpr uint8_t START_MARKER = STX; /*!< Frame start marker (STX) */
     static constexpr uint8_t END_MARKER = ETX; /*!< Frame end marker (ETX) */
     static constexpr unsigned int MAX_FRAME_SIZE = 2048; /* Max acceptable TIC frame payload size (excluding STX and ETX markers) */
-    static constexpr unsigned int STATS_NB_FRAMES = 128;  /* On how many last frames do we compute statistics */
 
 /* Methods */
     /**
