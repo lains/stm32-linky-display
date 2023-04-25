@@ -176,8 +176,8 @@ $(SRC_BUILD_PREFIX)/%.hex: $(SRC_BUILD_PREFIX)/%.elf
 	$(Q)$(CROSS_OBJCOPY) -Oihex $< $@
 
 # Unit tests
-#check:
-#	$(MAKE) -C tests/ check
+check:
+	$(MAKE) -C $(TOPDIR)/test check
 
 # Program using st-flash utility
 flash: $(SRC_BUILD_PREFIX)/$(BINARY).hex
