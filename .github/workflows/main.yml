@@ -10,6 +10,11 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: List files in the repository
+        run: |
+          find ${{ github.workspace }}
       - name: Build
         run: make
 
