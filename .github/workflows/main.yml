@@ -8,15 +8,34 @@ jobs:
     container: stronglytyped/arm-none-eabi-gcc
 
     steps:
+      - name: Upgrade git
+        run: |
+          # The hardcoded PGP key is a dump of the online key retreived from "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xe1dd270288b4e6030699e45fa1715d88e1df1f24"
+          echo "-----BEGIN PGP PUBLIC KEY BLOCK-----\nComment: Hostname: \nVersion: Hockeypuck 2.1.0-189-g15ebf24\n\nxo0ESXjaGwEEAMA26F3+mnRW8uRqASMsEa5EsmgvUpLD7EKpC7903OpiMGSvZ2sE\n34g7W6nUQY0R//AZS2iW4ZXfvdhQTQuuPlHM6Q3iUAt+nyXcf9xBlscs8Gm722u4\njAtFtBS4BMQRhRRfWTHwJIOM6OpGIccjPe8pQfIeoRxkKJxlehzw2mU1ABEBAAHN\nKExhdW5jaHBhZCBQUEEgZm9yIFVidW50dSBHaXQgTWFpbnRhaW5lcnPCtgQTAQIA\nIAUCSXjaGwIbAwYLCQgHAwIEFQIIAwQWAgMBAh4BAheAAAoJEKFxXYjh3x8k/zMD\n/RKBMjavvFl71YBazSOGl2YfSsZiR/ANsby3+rUaULb8uxzCHXAQnlH5vdtLSPry\naLBvzCU8C3C02qNT8jRacU2752zsCkCi1SLRSOXdI/ATJHza5aTvYV93rTITBhU4\nsJQeK9RW0CtaDRAxJsn/Dr6J3lL/c9m9cT5fFpxOIsF4\n=7kFR\n-----END PGP PUBLIC KEY BLOCK-----\n" > /tmp/git-core-ppa.pgp
+          echo "Key used for git-core-ppa:"
+          cat /tmp/git-core-ppa.pgp
+          cat /tmp/git-core-ppa.pgp | gpg --dearmor -o /usr/share/keyrings/git-core-ppa.gpg && rm /tmp/git-core-ppa.pgp
+          md5sum /usr/share/keyrings/git-core-ppa.gpg
+          echo "deb [signed-by=/usr/share/keyrings/git-core-ppa.gpg] https://ppa.launchpadcontent.net/git-core/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/git-core.list
+          apt update || :
+          apt install -y git
+      - name: Dump versions
+        run: |
+          lsb_release -a 2>/dev/null || cat /etc/issue
+          git --version
+          make --version
+          arm-none-eabi-gcc --version
+          arm-none-eabi-g++ --version
       - name: Check out repository code
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: List files in the repository
         run: |
-          find ${{ github.workspace }}
+          pwd
+          find .
       - name: Build
-        run: make
+        run: make TOOLCHAIN_PATH_PREFIX=
 
   test:
     runs-on: ubuntu-latest

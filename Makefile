@@ -7,7 +7,7 @@ endif
 CROSS_PREFIX    ?= arm-none-eabi
 
 # Path you your toolchain installation, leave empty if already in system PATH
-TOOLCHAIN_ROOT = /opt/st/gcc-arm-none-eabi-10.3-2021.10/bin
+TOOLCHAIN_PATH_PREFIX ?= /opt/st/gcc-arm-none-eabi-10.3-2021.10/bin/
 
 ###############################################################################
 
@@ -29,14 +29,14 @@ TICDECODECPP = $(TOPDIR)/ticdecodecpp
 
 
 # Toolchain
-CROSS_CC        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gcc
-CROSS_CXX       := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-g++
-CROSS_LD        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gcc
-CROSS_AR        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-ar
-CROSS_AS        := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-as
-CROSS_OBJCOPY   := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-objcopy
-CROSS_OBJDUMP   := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-objdump
-CROSS_GDB       := $(TOOLCHAIN_ROOT)/$(CROSS_PREFIX)-gdb
+CROSS_CC        := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-gcc
+CROSS_CXX       := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-g++
+CROSS_LD        := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-gcc
+CROSS_AR        := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-ar
+CROSS_AS        := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-as
+CROSS_OBJCOPY   := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-objcopy
+CROSS_OBJDUMP   := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-objdump
+CROSS_GDB       := $(TOOLCHAIN_PATH_PREFIX)$(CROSS_PREFIX)-gdb
 STFLASH         := $(shell which st-flash)
 
 # Project target build dirs
