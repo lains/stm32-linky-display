@@ -50,17 +50,11 @@ In order to clone this repository, use `git clone --recursive`, this will allow 
 
 ### Executing
 
-Once programming is finished, you will have to wire the board to a serial link adapter.
+Once programming is finished, you will have to wire the board to a serial link adapter (see instructions above).
 
-In order to receive the TIC data from the energy, I solderde home-made a Linky serial adapter including optocoupler and transitor-based level shifter. Examples can be found here: https://faire-ca-soi-meme.fr/domotique/2016/09/12/module-teleinformation-tic/
+Press the black reset button to start executing the program.
 
-Once the serial adapter is connected to the Arduino's GND, Vcc and Serial RX (PIN on Arduino Uno), the Arduino will be able to receive TIC stream data sent by the meter.
-
-The software is currently configured to decode Linky data in standard TIC mode (9600 bauds), which is not the default built-in mode for Linky meters. In order to switch to this more verbose mode (that also provides more data), you need to make a request to your energy vendor. As an alternative, the code can be slightly tweaked to switch to historical mode and to work at 1200 bauds (this is the default mode for Linky meters).
-
-I use the LCD to display the withdrawn power in real-time.
-
-press the black reset button to start executing the program.
+The instantaneous power consumption will be displayed in real-time.
 
 ### Debug
 
