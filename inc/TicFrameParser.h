@@ -26,8 +26,8 @@ public:
 
 /* Attributes */
     bool isValid; /*!< Is this evaluated absolute power valid? */
-    unsigned int minValue; /*!< Minimum possible power, in Watts) */
-    unsigned int maxValue; /*!< Maximum possible power, in Watts) */
+    int minValue; /*!< Minimum possible power, in Watts) */
+    int maxValue; /*!< Maximum possible power, in Watts) */
 };
 
 class TicMeasurements {
@@ -63,11 +63,11 @@ public:
     void onRefPowerInfo(uint32_t power);
 
     /**
-     * @brief Take into account a refreshed instantenous power measurement
+     * @brief Take into account a refreshed instantenous withdrawn power measurement
      * 
-     * @param power The instantaneous power (in Watts)
+     * @param power The instantaneous withdrawn power (in Watts)
      */
-    void onNewInstPowerMesurement(uint32_t power);
+    void onNewWithdrawnPowerMesurement(uint32_t power);
 
     /**
      * @brief Take into account a refreshed instantenous voltage measurement
@@ -84,11 +84,12 @@ public:
     void onNewInstCurrentMeasurement(uint32_t current);
 
     /**
-     * @brief Try to guess a power range withdrawn or injected, based on RMS voltage+amps
+     * @brief Try to compute the current withdrawn or injected power as soon as we have collected enough values (power, abs current, rms voltage)
      * 
-     * @note This is very approximative, but if we don't have a precise instantaneous power, but we do have I and U, this is the best we can do
+     * @param source The measurement type to take into account
+     * @param value The instantaneous value corresponding to @p source
      */
-    void mayComputePowerFromIURms();
+    void mayComputePower(unsigned int source, unsigned int value);
 
     /* The 3 methods below are invoked as callbacks by TIC::Unframer and TIC::DatasetExtractor durig the TIC decoding process */
     /**

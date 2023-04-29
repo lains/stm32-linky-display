@@ -95,6 +95,75 @@ TicFrameParser::TicFrameParser() :
 {
 }
 
+#define RESET 0
+#define WITHDRAWN_POWER 1
+#define RMS_VOLTAGE 2
+#define ABS_CURRENT 3
+
+void TicFrameParser::onNewWithdrawnPowerMesurement(uint32_t power) {
+    this->onNewMeasurementAvailable();
+    this->lastFrameMeasurements.instDrawnPower = power;
+    //this->recordPowerHistory(power); //FIXME: todo
+}
+
+void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
+    static bool powerKnownForCurrentFrame = false;
+    static bool mayInject = false;
+    static unsigned int knownRmsVoltage = static_cast<unsigned int>(-1);
+    static unsigned int knownAbsCurrent = static_cast<unsigned int>(-1);
+
+    if (source == RESET) {
+        if (!powerKnownForCurrentFrame) {
+           //this->ctx.tic.lastValidWithdrawnPower = INT32_MIN; /* Unknown power */
+        }
+        powerKnownForCurrentFrame = false;
+        mayInject = false;
+        knownRmsVoltage = static_cast<unsigned int>(-1);
+        knownAbsCurrent = static_cast<unsigned int>(-1);
+        return;
+    }
+    if (powerKnownForCurrentFrame)
+        return;
+
+    if (source == WITHDRAWN_POWER) {
+        if (value > 0) {
+            powerKnownForCurrentFrame = true;
+            this->lastFrameMeasurements.instDrawnPower = static_cast<unsigned int>(value);
+            return;
+        }
+        else { /* Withdrawn power is 0, we may actually inject */
+            mayInject = true;
+        }
+    }
+    else if (source == RMS_VOLTAGE) {
+        knownRmsVoltage = value;
+    }
+    else if (source == ABS_CURRENT) {
+        knownAbsCurrent = value;
+    }
+    if (!powerKnownForCurrentFrame &&
+        mayInject &&
+        knownRmsVoltage != static_cast<unsigned int>(-1) &&
+        knownAbsCurrent != static_cast<unsigned int>(-1)) {
+        /* We are able to estimate the injected power */
+        /* We have both voltage and current, we can grossly approximate the power (withdrawn or injected) */
+        unsigned int& urms = knownRmsVoltage;
+        unsigned int& irms = knownAbsCurrent;
+        unsigned int avg = irms * urms;
+        unsigned int min = 0;
+        if (avg >= urms/2) {
+            min = avg - urms/2;
+        }
+        /* If average - urms/2 becomes negative, assume a minimum power of 0 instead of that negative value */
+
+        unsigned max = avg + urms/2;
+        
+        /* min and max are *positive* minimum and maximum injected power values, we thus negate them before storing in the instantaneous power */
+        this->lastFrameMeasurements.instEvalPower.setMinMax(-max, -min);
+        powerKnownForCurrentFrame = true;
+    }
+}
+
 void TicFrameParser::onNewMeasurementAvailable() {
     if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
         TicMeasurements blankMeasurements(this->nbFramesParsed);
@@ -111,42 +180,19 @@ void TicFrameParser::onRefPowerInfo(uint32_t power) {
     //FIXME: Todo
 }
 
-void TicFrameParser::onNewInstPowerMesurement(uint32_t power) {
-    this->onNewMeasurementAvailable();
-    this->lastFrameMeasurements.instDrawnPower = power;
-    //this->recordPowerHistory(power); //FIXME: todo
-}
-
 void TicFrameParser::onNewInstVoltageMeasurement(uint32_t voltage) {
     this->onNewMeasurementAvailable();
     this->lastFrameMeasurements.instVoltage = voltage;
-    this->mayComputePowerFromIURms();
+    this->mayComputePower(RMS_VOLTAGE, voltage);
 }
 
 void TicFrameParser::onNewInstCurrentMeasurement(uint32_t current) {
     this->onNewMeasurementAvailable();
     this->lastFrameMeasurements.instAbsCurrent = current;
-    this->mayComputePowerFromIURms();
+    this->mayComputePower(ABS_CURRENT, current);
 }
 
-void TicFrameParser::mayComputePowerFromIURms() {
-    if (this->lastFrameMeasurements.instVoltage != static_cast<unsigned int>(-1) &&
-        this->lastFrameMeasurements.instAbsCurrent != static_cast<unsigned int>(-1)) {
-        /* We have both voltage and current, we can grossly approximate the power (withdrawn or injected) */
-        unsigned int& urms = this->lastFrameMeasurements.instVoltage;
-        unsigned int& irms = this->lastFrameMeasurements.instAbsCurrent;
-        unsigned int avg = irms * urms;
-        unsigned int min = 0;
-        if (avg >= urms/2) {
-            min = avg - urms/2;
-        }
-        /* If average - urms/2 becomes negative, assume a minimum power of 0 instead of that negative value */
-        
-        this->lastFrameMeasurements.instEvalPower.setMinMax(min, avg + urms/2);
-    }
-}
-
-void TicFrameParser::onNewFrameBytes(const uint8_t* buf, std::size_t cnt) {
+void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
     this->de.pushBytes(buf, cnt);   /* Forward the bytes to the dataset extractor */
 }
 
@@ -174,7 +220,7 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, std::size_t cnt) {
             /* The current label is a SINSTS with some value associated */
             uint32_t sinsts = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
             if (sinsts != (uint32_t)-1)
-                this->onNewInstPowerMesurement(sinsts);
+                this->onNewWithdrawnPowerMesurement(sinsts);
         }
         /* Search for URMS1 */
         else if (dv.labelSz == 5 &&
