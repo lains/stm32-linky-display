@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef> // For std::size_t
 #include <utility> // For std::swap()
+#include <vector>
 
 /* T is the type of stored items and N is the number of items */
 template <class T, std::size_t N>
@@ -17,6 +18,8 @@ public:
     bool isEmpty() const;
     std::size_t getCapacity() const;
     std::size_t getCount() const;
+    std::vector<T> getTail(std::size_t n) const;
+    std::vector<T> toVector() const;
 
 private:
     T buf[MAX_ELEMENTS];
@@ -66,6 +69,21 @@ T FixedSizeRingBuffer<T, N>::pop() {
 	this->tail = (this->tail + 1) % N;
 
 	return val;
+}
+
+template <class T, std::size_t N>
+std::vector<T> FixedSizeRingBuffer<T, N>::getTail(std::size_t len) const {
+    std::vector<T> result;
+    if (len > this->getCount())
+        len = this->getCount();
+    result.reserve(len);
+    result.assign(this->buf, this->buf[len]);
+    return result;
+}
+
+template <class T, std::size_t N>
+std::vector<T> FixedSizeRingBuffer<T, N>::toVector() const {
+    return this->getTail(this->getCount());
 }
 
 template <class T, std::size_t N>
