@@ -93,7 +93,8 @@ void std::swap(TicMeasurements& first, TicMeasurements& second) {
 TicFrameParser::TicFrameParser() :
     nbFramesParsed(0),
     de(ticFrameParserUnWrapDatasetExtracter, this),
-    lastFrameMeasurements()
+    lastFrameMeasurements(),
+    powerHistory()
 {
 }
 
@@ -130,6 +131,7 @@ void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
         if (value > 0) {
             powerKnownForCurrentFrame = true;
             this->lastFrameMeasurements.instPower.set(static_cast<int>(value));
+            this->powerHistory.push(this->lastFrameMeasurements.instPower);
             return;
         }
         else { /* Withdrawn power is 0, we may actually inject */
@@ -159,9 +161,10 @@ void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
 
         unsigned int max = avg + urms/2;
         
-        /* min and max are *positive* minimum and maximum injected power values, we thus negate them before storing in the instantaneous power */
-        this->lastFrameMeasurements.instPower.setMinMax(-max, -min);
         powerKnownForCurrentFrame = true;
+        this->lastFrameMeasurements.instPower.setMinMax(-max, -min); /* min and max are *positive* minimum and maximum injected power values, we thus negate them before storing in the instantaneous power */
+        this->powerHistory.push(this->lastFrameMeasurements.instPower);
+        return;
     }
 }
 

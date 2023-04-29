@@ -2,6 +2,7 @@
 
 #include "TIC/DatasetExtractor.h"
 #include "TIC/DatasetView.h"
+#include "FixedSizeRingBuffer.h"
 
 /* Forward declarations */
 class TicFrameParser;
@@ -152,4 +153,5 @@ public:
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
+    FixedSizeRingBuffer<TicEvaluatedPower, 1024> powerHistory;    /*!< The last n instantaneous power measurements */
 };

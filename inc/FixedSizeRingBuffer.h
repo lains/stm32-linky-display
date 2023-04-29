@@ -1,6 +1,6 @@
 #pragma once
 #include <cstddef> // For std::size_t
-#include <string.h> // For memset()
+#include <utility> // For std::swap()
 
 /* T is the type of stored items and N is the number of items */
 template <class T, int N>
@@ -26,11 +26,8 @@ private:
 };
 
 template <class T, int N>
-FixedSizeRingBuffer<T, N>::FixedSizeRingBuffer() :
-    head(0),
-    tail(0),
-    full(false) {
-    memset(this->buf, 0, N*sizeof(T));
+FixedSizeRingBuffer<T, N>::FixedSizeRingBuffer() {
+    this->reset();
 }
 
 template <class T, int N>
@@ -38,7 +35,10 @@ void FixedSizeRingBuffer<T, N>::reset() {
 	this->head = 0;
     this->tail = 0;
 	this->full = false;
-    memset(this->buf, 0, N*sizeof(T));
+    for (unsigned int i; i < N; i++) {
+        T emptyElement;
+        std::swap(this->buf[i], emptyElement);
+    }
 }
 
 template <class T, int N>
@@ -92,4 +92,3 @@ std::size_t FixedSizeRingBuffer<T, N>::getCount() const {
         return N;
     }
 }
-
