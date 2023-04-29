@@ -1,5 +1,6 @@
 #include "TicFrameParser.h"
 
+#include <climits>
 #include <string.h>
 #include <utility> // For std::swap()
 
@@ -9,20 +10,20 @@ extern "C" {
 
 TicEvaluatedPower::TicEvaluatedPower() :
     isValid(false),
-    minValue(static_cast<unsigned int>(-1)),
-    maxValue(static_cast<unsigned int>(-1))
+    minValue(INT_MIN),
+    maxValue(INT_MAX)
 {
 }
 
-TicEvaluatedPower::TicEvaluatedPower(unsigned int minValue, unsigned int maxValue) :
+TicEvaluatedPower::TicEvaluatedPower(int minValue, int maxValue) :
     isValid(true),
-    minValue(static_cast<unsigned int>(-1)),
-    maxValue(static_cast<unsigned int>(-1))
+    minValue(INT_MIN), /* Note: we don't set actual min and max here, but using the utility method setMinMax() below */
+    maxValue(INT_MAX)
 {
     this->setMinMax(minValue, maxValue);
 }
 
-void TicEvaluatedPower::setMinMax(unsigned int minValue, unsigned int maxValue) {
+void TicEvaluatedPower::setMinMax(int minValue, int maxValue) {
     this->isValid = true;
     if (minValue <= maxValue) {
         this->minValue = minValue;
@@ -33,6 +34,11 @@ void TicEvaluatedPower::setMinMax(unsigned int minValue, unsigned int maxValue) 
         this->maxValue = minValue;
 
     }
+    this->isExact = (minValue == maxValue);
+}
+
+void TicEvaluatedPower::set(int value) {
+    this->setMinMax(value, value);
 }
 
 void TicEvaluatedPower::swapWith(TicEvaluatedPower& other) {
@@ -48,40 +54,36 @@ void std::swap(TicEvaluatedPower& first, TicEvaluatedPower& second) {
 TicMeasurements::TicMeasurements() :
     fromFrameNb(static_cast<unsigned int>(-1)),
     horodate(),
-    instDrawnPower(static_cast<unsigned int>(-1)),
     instVoltage(static_cast<unsigned int>(-1)),
     instAbsCurrent(static_cast<unsigned int>(-1)),
-    instEvalPower()
+    instPower()
 {
 }
 
 TicMeasurements::TicMeasurements(unsigned int fromFrameNb) :
     fromFrameNb(fromFrameNb),
     horodate(),
-    instDrawnPower(static_cast<unsigned int>(-1)),
     instVoltage(static_cast<unsigned int>(-1)),
     instAbsCurrent(static_cast<unsigned int>(-1)),
-    instEvalPower()
+    instPower()
 {
 }
 
 void TicMeasurements::reset() {
     this->fromFrameNb = static_cast<unsigned int>(-1);
     this->horodate = TIC::Horodate();
-    this->instDrawnPower = static_cast<unsigned int>(-1);
     this->instVoltage = static_cast<unsigned int>(-1);
     this->instAbsCurrent = static_cast<unsigned int>(-1);
-    this->instEvalPower = TicEvaluatedPower();
+    this->instPower = TicEvaluatedPower();
 }
 
 void TicMeasurements::swapWith(TicMeasurements& other) {
     std::swap(this->fromFrameNb, other.fromFrameNb);
     std::swap(this->horodate, other.horodate);
-    std::swap(this->instDrawnPower, other.instDrawnPower);
     std::swap(this->instVoltage, other.instVoltage);
     std::swap(this->instAbsCurrent, other.instAbsCurrent);
     std::swap(this->maxSubscribedPower, other.maxSubscribedPower);
-    std::swap(this->instEvalPower, other.instEvalPower);
+    std::swap(this->instPower, other.instPower);
 }
 
 void std::swap(TicMeasurements& first, TicMeasurements& second) {
@@ -102,8 +104,7 @@ TicFrameParser::TicFrameParser() :
 
 void TicFrameParser::onNewWithdrawnPowerMesurement(uint32_t power) {
     this->onNewMeasurementAvailable();
-    this->lastFrameMeasurements.instDrawnPower = power;
-    //this->recordPowerHistory(power); //FIXME: todo
+    this->mayComputePower(WITHDRAWN_POWER, static_cast<unsigned int>(power));
 }
 
 void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
@@ -128,7 +129,7 @@ void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
     if (source == WITHDRAWN_POWER) {
         if (value > 0) {
             powerKnownForCurrentFrame = true;
-            this->lastFrameMeasurements.instDrawnPower = static_cast<unsigned int>(value);
+            this->lastFrameMeasurements.instPower.set(static_cast<int>(value));
             return;
         }
         else { /* Withdrawn power is 0, we may actually inject */
@@ -156,10 +157,10 @@ void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
         }
         /* If average - urms/2 becomes negative, assume a minimum power of 0 instead of that negative value */
 
-        unsigned max = avg + urms/2;
+        unsigned int max = avg + urms/2;
         
         /* min and max are *positive* minimum and maximum injected power values, we thus negate them before storing in the instantaneous power */
-        this->lastFrameMeasurements.instEvalPower.setMinMax(-max, -min);
+        this->lastFrameMeasurements.instPower.setMinMax(-max, -min);
         powerKnownForCurrentFrame = true;
     }
 }
@@ -183,13 +184,13 @@ void TicFrameParser::onRefPowerInfo(uint32_t power) {
 void TicFrameParser::onNewInstVoltageMeasurement(uint32_t voltage) {
     this->onNewMeasurementAvailable();
     this->lastFrameMeasurements.instVoltage = voltage;
-    this->mayComputePower(RMS_VOLTAGE, voltage);
+    this->mayComputePower(RMS_VOLTAGE, static_cast<unsigned int>(voltage));
 }
 
 void TicFrameParser::onNewInstCurrentMeasurement(uint32_t current) {
     this->onNewMeasurementAvailable();
     this->lastFrameMeasurements.instAbsCurrent = current;
-    this->mayComputePower(ABS_CURRENT, current);
+    this->mayComputePower(ABS_CURRENT, static_cast<unsigned int>(current));
 }
 
 void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {

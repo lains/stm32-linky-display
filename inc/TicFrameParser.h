@@ -16,9 +16,11 @@ class TicEvaluatedPower {
 public:
     TicEvaluatedPower();
 
-    TicEvaluatedPower(unsigned int minValue, unsigned int maxValue);
+    TicEvaluatedPower(int minValue, int maxValue);
 
-    void setMinMax(unsigned int minValue, unsigned int maxValue);
+    void setMinMax(int minValue, int maxValue);
+
+    void set(int value);
 
     void swapWith(TicEvaluatedPower& other);
 
@@ -26,6 +28,7 @@ public:
 
 /* Attributes */
     bool isValid; /*!< Is this evaluated absolute power valid? */
+    bool isExact; /*!< Is this power exact (in such cases, min and max are equal), if false, we store an approxmation range)*/
     int minValue; /*!< Minimum possible power, in Watts) */
     int maxValue; /*!< Maximum possible power, in Watts) */
 };
@@ -45,11 +48,10 @@ public:
 /* Attributes */
     unsigned int fromFrameNb; /*!< The TIC frame ID from which the enclosed data has been extracted */
     TIC::Horodate horodate; /*!< The optional horodate for the TIC frame */
-    unsigned int instDrawnPower; /*!< The instantaneous (ie within the last TIC frame) withdrawn power, in Watts */
     unsigned int instVoltage; /*!< The instantaneous (ie within the last TIC frame) RMS voltage, in Volts */
     unsigned int instAbsCurrent; /*!< The instantaneous (ie within the last TIC frame) absolute current, in Amps */
     unsigned int maxSubscribedPower; /*!< The maximum allowed withdrawned power (subscribed), in Watts */
-    TicEvaluatedPower instEvalPower; /*!< The instantaneous (ie within the last TIC frame) signed computed power (negative is injected, positive is withdrawn), in Amps */
+    TicEvaluatedPower instPower; /*!< The instantaneous (ie within the last TIC frame) signed power (negative if injected, positive if withdrawn), in Watts... may be an exact value or a range if approximated */
 };
 
 class TicFrameParser {

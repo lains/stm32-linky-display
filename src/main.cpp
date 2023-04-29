@@ -226,11 +226,46 @@ int main(void) {
 
         char mainInstPowerText[] = "-[9999;9999]W";
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
-        uint32_t instantaneousPower = ticParser.lastFrameMeasurements.instDrawnPower;
-        if (instantaneousPower == 0) {  /* We may be injecting */
-            if (ticParser.lastFrameMeasurements.instEvalPower.isValid) {
-                unsigned int minPower = ticParser.lastFrameMeasurements.instEvalPower.minValue;
-                unsigned int maxPower = ticParser.lastFrameMeasurements.instEvalPower.maxValue;
+        const TicEvaluatedPower& instantaneousPower = ticParser.lastFrameMeasurements.instPower;
+        if (instantaneousPower.isExact && instantaneousPower.minValue>0) {  /* We are withdrawing power */
+            unsigned int withdrawnPower = static_cast<unsigned int>(instantaneousPower.minValue);
+            if (withdrawnPower <= 9999) {
+                for (unsigned int pos=0; pos<8; pos++)
+                    mainInstPowerText[pos] = ' ';   /* Fill leading characters with blank */
+                
+                if (withdrawnPower < 1000) {
+                    mainInstPowerText[8]=' ';
+                } else {
+                    uint8_t digit1000 = (withdrawnPower / 1000) % 10;
+                    mainInstPowerText[8]=digit1000 + '0';
+                }
+                if (withdrawnPower < 100) {
+                    mainInstPowerText[9]=' ';
+                } else {
+                    uint8_t digit100 = (withdrawnPower / 100) % 10;
+                    mainInstPowerText[9]=digit100 + '0';
+                }
+                if (withdrawnPower < 10) {
+                    mainInstPowerText[10]=' ';
+                } else {
+                    uint8_t digit10 = (withdrawnPower / 10) % 10;
+                    mainInstPowerText[10]=digit10  + '0';
+                }
+                {
+                    uint8_t digit1 = (withdrawnPower / 1) % 10;
+                    mainInstPowerText[11]=digit1 + '0';
+                }
+                mainInstPowerText[12]='W';
+            }
+            else {
+                for (unsigned int pos=0; pos<sizeof(mainInstPowerText)-1; pos++)
+                    mainInstPowerText[pos] = '?';   /* Fill all characters with blank */
+            }
+        }
+        else { /* We are injecting power */
+            if (instantaneousPower.isValid) {
+                unsigned int minPower = -(instantaneousPower.minValue); /* min and max will be negative */
+                unsigned int maxPower = -(instantaneousPower.maxValue);
                 mainInstPowerText[0]='-';
                 mainInstPowerText[1]='[';
                 if (minPower < 1000) {
@@ -282,38 +317,6 @@ int main(void) {
                 mainInstPowerText[11]=']';
                 mainInstPowerText[12]='W';
             }
-        }
-        else if (instantaneousPower <= 9999) {
-            for (unsigned int pos=0; pos<8; pos++)
-                mainInstPowerText[pos] = ' ';   /* Fill leading characters with blank */
-            
-            if (instantaneousPower < 1000) {
-                mainInstPowerText[8]=' ';
-            } else {
-                uint8_t digit1000 = (instantaneousPower / 1000) % 10;
-                mainInstPowerText[8]=digit1000 + '0';
-            }
-            if (instantaneousPower < 100) {
-                mainInstPowerText[9]=' ';
-            } else {
-                uint8_t digit100 = (instantaneousPower / 100) % 10;
-                mainInstPowerText[9]=digit100 + '0';
-            }
-            if (instantaneousPower < 10) {
-                mainInstPowerText[10]=' ';
-            } else {
-                uint8_t digit10 = (instantaneousPower / 10) % 10;
-                mainInstPowerText[10]=digit10  + '0';
-            }
-            {
-                uint8_t digit1 = (instantaneousPower / 1) % 10;
-                mainInstPowerText[11]=digit1 + '0';
-            }
-            mainInstPowerText[12]='W';
-        }
-        else {
-            for (unsigned int pos=0; pos<sizeof(mainInstPowerText)-1; pos++)
-                mainInstPowerText[pos] = '?';   /* Fill all characters with blank */
         }
         lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
 
