@@ -3,9 +3,9 @@
 #include <utility> // For std::swap()
 
 /* T is the type of stored items and N is the number of items */
-template <class T, int N>
+template <class T, std::size_t N>
 class FixedSizeRingBuffer {
-    static constexpr size_t MAX_ELEMENTS = N;
+    static constexpr std::size_t MAX_ELEMENTS = N;
 
 public:
     FixedSizeRingBuffer();
@@ -25,23 +25,23 @@ private:
     bool full;  /*!< If the buffer full? */
 };
 
-template <class T, int N>
+template <class T, std::size_t N>
 FixedSizeRingBuffer<T, N>::FixedSizeRingBuffer() {
     this->reset();
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 void FixedSizeRingBuffer<T, N>::reset() {
 	this->head = 0;
     this->tail = 0;
 	this->full = false;
-    for (unsigned int i; i < N; i++) {
+    for (std::size_t i; i < N; i++) {
         T emptyElement;
         std::swap(this->buf[i], emptyElement);
     }
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 void FixedSizeRingBuffer<T, N>::push(T item) {
 	this->buf[this->head] = item;
 
@@ -55,7 +55,7 @@ void FixedSizeRingBuffer<T, N>::push(T item) {
         this->full = true;
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 T FixedSizeRingBuffer<T, N>::pop() {
 	if (this->isEmpty()) {
 		return T(); // FIXME: error condition
@@ -68,22 +68,22 @@ T FixedSizeRingBuffer<T, N>::pop() {
 	return val;
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 bool FixedSizeRingBuffer<T, N>::isFull() const {
 	return this->full;
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 bool FixedSizeRingBuffer<T, N>::isEmpty() const {
 	return (!this->full && (this->head == this->tail));
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 std::size_t FixedSizeRingBuffer<T, N>::getCapacity() const {
 	return N;
 }
 
-template <class T, int N>
+template <class T, std::size_t N>
 std::size_t FixedSizeRingBuffer<T, N>::getCount() const {
 	if (!this->full) {
         return (N + this->head - this->tail) % N;
