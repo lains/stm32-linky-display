@@ -227,98 +227,100 @@ int main(void) {
         char mainInstPowerText[] = "-[9999;9999]W";
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
         const TicEvaluatedPower& instantaneousPower = ticParser.lastFrameMeasurements.instPower;
-        if (instantaneousPower.isExact && instantaneousPower.minValue>0) {  /* We are withdrawing power */
-            unsigned int withdrawnPower = static_cast<unsigned int>(instantaneousPower.minValue);
-            if (withdrawnPower <= 9999) {
-                for (unsigned int pos=0; pos<8; pos++)
-                    mainInstPowerText[pos] = ' ';   /* Fill leading characters with blank */
-                
-                if (withdrawnPower < 1000) {
-                    mainInstPowerText[8]=' ';
-                } else {
-                    uint8_t digit1000 = (withdrawnPower / 1000) % 10;
-                    mainInstPowerText[8]=digit1000 + '0';
+        if (instantaneousPower.isValid) {
+            if (instantaneousPower.isExact && instantaneousPower.minValue>0) {  /* We are withdrawing power */
+                unsigned int withdrawnPower = static_cast<unsigned int>(instantaneousPower.minValue);
+                if (withdrawnPower <= 9999) {
+                    for (unsigned int pos=0; pos<8; pos++)
+                        mainInstPowerText[pos] = ' ';   /* Fill leading characters with blank */
+                    
+                    if (withdrawnPower < 1000) {
+                        mainInstPowerText[8]=' ';
+                    } else {
+                        uint8_t digit1000 = (withdrawnPower / 1000) % 10;
+                        mainInstPowerText[8]=digit1000 + '0';
+                    }
+                    if (withdrawnPower < 100) {
+                        mainInstPowerText[9]=' ';
+                    } else {
+                        uint8_t digit100 = (withdrawnPower / 100) % 10;
+                        mainInstPowerText[9]=digit100 + '0';
+                    }
+                    if (withdrawnPower < 10) {
+                        mainInstPowerText[10]=' ';
+                    } else {
+                        uint8_t digit10 = (withdrawnPower / 10) % 10;
+                        mainInstPowerText[10]=digit10  + '0';
+                    }
+                    {
+                        uint8_t digit1 = (withdrawnPower / 1) % 10;
+                        mainInstPowerText[11]=digit1 + '0';
+                    }
+                    mainInstPowerText[12]='W';
                 }
-                if (withdrawnPower < 100) {
-                    mainInstPowerText[9]=' ';
-                } else {
-                    uint8_t digit100 = (withdrawnPower / 100) % 10;
-                    mainInstPowerText[9]=digit100 + '0';
+                else {
+                    for (unsigned int pos=0; pos<sizeof(mainInstPowerText)-1; pos++)
+                        mainInstPowerText[pos] = '?';   /* Fill all characters with blank */
                 }
-                if (withdrawnPower < 10) {
-                    mainInstPowerText[10]=' ';
-                } else {
-                    uint8_t digit10 = (withdrawnPower / 10) % 10;
-                    mainInstPowerText[10]=digit10  + '0';
-                }
-                {
-                    uint8_t digit1 = (withdrawnPower / 1) % 10;
-                    mainInstPowerText[11]=digit1 + '0';
-                }
-                mainInstPowerText[12]='W';
             }
-            else {
-                for (unsigned int pos=0; pos<sizeof(mainInstPowerText)-1; pos++)
-                    mainInstPowerText[pos] = '?';   /* Fill all characters with blank */
-            }
-        }
-        else { /* We are injecting power */
-            if (instantaneousPower.isValid) {
-                unsigned int minPower = -(instantaneousPower.minValue); /* min and max will be negative */
-                unsigned int maxPower = -(instantaneousPower.maxValue);
-                mainInstPowerText[0]='-';
-                mainInstPowerText[1]='[';
-                if (minPower < 1000) {
-                    mainInstPowerText[2]=' ';
-                } else {
-                    uint8_t digit1000 = (minPower / 1000) % 10;
-                    mainInstPowerText[2]=digit1000 + '0';
-                }
-                if (minPower < 100) {
-                    mainInstPowerText[3]=' ';
-                } else {
-                    uint8_t digit100 = (minPower / 100) % 10;
-                    mainInstPowerText[3]=digit100 + '0';
-                }
-                if (minPower < 10) {
-                    mainInstPowerText[4]=' ';
-                } else {
-                    uint8_t digit10 = (minPower / 10) % 10;
-                    mainInstPowerText[4]=digit10  + '0';
-                }
-                {
-                    uint8_t digit1 = (minPower / 1) % 10;
-                    mainInstPowerText[5]=digit1 + '0';
-                }
-                mainInstPowerText[6]=';';
+            else { /* We are injecting power */
+                if (instantaneousPower.isValid) {
+                    unsigned int minPower = -(instantaneousPower.minValue); /* min and max will be negative */
+                    unsigned int maxPower = -(instantaneousPower.maxValue);
+                    mainInstPowerText[0]='-';
+                    mainInstPowerText[1]='[';
+                    if (minPower < 1000) {
+                        mainInstPowerText[2]=' ';
+                    } else {
+                        uint8_t digit1000 = (minPower / 1000) % 10;
+                        mainInstPowerText[2]=digit1000 + '0';
+                    }
+                    if (minPower < 100) {
+                        mainInstPowerText[3]=' ';
+                    } else {
+                        uint8_t digit100 = (minPower / 100) % 10;
+                        mainInstPowerText[3]=digit100 + '0';
+                    }
+                    if (minPower < 10) {
+                        mainInstPowerText[4]=' ';
+                    } else {
+                        uint8_t digit10 = (minPower / 10) % 10;
+                        mainInstPowerText[4]=digit10  + '0';
+                    }
+                    {
+                        uint8_t digit1 = (minPower / 1) % 10;
+                        mainInstPowerText[5]=digit1 + '0';
+                    }
+                    mainInstPowerText[6]=';';
 
-                if (maxPower < 1000) {
-                    mainInstPowerText[7]=' ';
-                } else {
-                    uint8_t digit1000 = (maxPower / 1000) % 10;
-                    mainInstPowerText[7]=digit1000 + '0';
+                    if (maxPower < 1000) {
+                        mainInstPowerText[7]=' ';
+                    } else {
+                        uint8_t digit1000 = (maxPower / 1000) % 10;
+                        mainInstPowerText[7]=digit1000 + '0';
+                    }
+                    if (maxPower < 100) {
+                        mainInstPowerText[8]=' ';
+                    } else {
+                        uint8_t digit100 = (maxPower / 100) % 10;
+                        mainInstPowerText[8]=digit100 + '0';
+                    }
+                    if (maxPower < 10) {
+                        mainInstPowerText[9]=' ';
+                    } else {
+                        uint8_t digit10 = (maxPower / 10) % 10;
+                        mainInstPowerText[9]=digit10  + '0';
+                    }
+                    {
+                        uint8_t digit1 = (maxPower / 1) % 10;
+                        mainInstPowerText[10]=digit1 + '0';
+                    }
+                    mainInstPowerText[11]=']';
+                    mainInstPowerText[12]='W';
                 }
-                if (maxPower < 100) {
-                    mainInstPowerText[8]=' ';
-                } else {
-                    uint8_t digit100 = (maxPower / 100) % 10;
-                    mainInstPowerText[8]=digit100 + '0';
-                }
-                if (maxPower < 10) {
-                    mainInstPowerText[9]=' ';
-                } else {
-                    uint8_t digit10 = (maxPower / 10) % 10;
-                    mainInstPowerText[9]=digit10  + '0';
-                }
-                {
-                    uint8_t digit1 = (maxPower / 1) % 10;
-                    mainInstPowerText[10]=digit1 + '0';
-                }
-                mainInstPowerText[11]=']';
-                mainInstPowerText[12]='W';
             }
+            lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
         }
-        lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
 
 
         //BSP_LED_On(LED1);
