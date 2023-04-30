@@ -171,6 +171,7 @@ void TicFrameParser::onNewMeasurementAvailable() {
     if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
         TicMeasurements blankMeasurements(this->nbFramesParsed);
         std::swap(this->lastFrameMeasurements, blankMeasurements);  /* Create a new empty measurement datastore for the new frame */
+        mayComputePower(RESET, 0); /* Reset the computed power, we will need to collect all data again from the new frame */
     }
 }
 
