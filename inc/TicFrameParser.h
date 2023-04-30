@@ -57,13 +57,30 @@ public:
 
 class TicFrameParser {
 public:
-    TicFrameParser();
+/* Types */
+    typedef void(*FOnNewPowerData)(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context); /*!< The prototype of callbacks invoked on new power data */
 
+/* Methods */
+    /**
+     * @brief Construct a new TicFrameParser object
+     * 
+     * @param onNewPowerData A FOnNewPowerData function to invoke for each new power data received
+     * @param onNewPowerDataContext A user-defined pointer that will be passed as last argument when invoking onNewPowerData()
+     * 
+     * @note We are using C-style function pointers here (with data-encapsulation via a context pointer)
+     *       This is because we don't have 100% guarantee that exceptions are allowed (especially on embedded targets) and using std::function requires enabling exceptions.
+     *       We can still use non-capturing lambdas as function pointer if needed (see https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer)
+     */
+    TicFrameParser(FOnNewPowerData onNewPowerData = nullptr, void* onNewPowerDataContext = nullptr);
+
+protected:
     void onNewMeasurementAvailable();
 
     void onNewDate(const TIC::Horodate& horodate);
 
     void onRefPowerInfo(uint32_t power);
+
+    void onNewComputedPower(int minValue, int maxValue);
 
     /**
      * @brief Take into account a refreshed instantenous withdrawn power measurement
@@ -94,6 +111,7 @@ public:
      */
     void mayComputePower(unsigned int source, unsigned int value);
 
+public:
     /* The 3 methods below are invoked as callbacks by TIC::Unframer and TIC::DatasetExtractor durig the TIC decoding process */
     /**
      * @brief Method invoked on new bytes received inside a TIC frame
@@ -147,11 +165,12 @@ public:
      * 
      * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
      */
-    static void ticFrameParserUnWrapDatasetExtracter(const uint8_t* buf, unsigned int cnt, void* context);
+    static void ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, unsigned int cnt, void* context);
 
 /* Attributes */
+    FOnNewPowerData onNewPowerData; /*!< Pointer to a function invoked at each new power data (withdrawn or injected) computed from a TIC frame */
+    void* onNewPowerDataContext; /*!< A context pointer passed to onNewFrameBytes() and onFrameComplete() at invokation */
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
-    FixedSizeRingBuffer<TicEvaluatedPower, 1024> powerHistory;    /*!< The last n instantaneous power measurements */
 };

@@ -79,6 +79,54 @@ void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr,
     }
 }
 
+struct TicProcessingContext {
+    /* Default constructor */
+    TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Unframer& ticUnframer) :
+        ticSerial(ticSerial),
+        ticUnframer(ticUnframer),
+        lostTicBytes(0),
+        serialRxOverflowCount(0),
+        instantaneousPower(static_cast<uint32_t>(-1)),
+        lastParsedFrameNb(static_cast<unsigned int>(-1)) { }
+
+/* Attributes */
+    Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
+    TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
+    unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
+    unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
+    uint32_t instantaneousPower;    /*!< A place to store the instantaneous power measurement */
+    unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
+};
+
+struct PowerHistory {
+    PowerHistory() : data() { }
+
+    void onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
+        this->data.push(power); // FIXME: we should not discard horodate and if invalid, fetch the timestamp
+    }
+
+    /**
+     * @brief Utility function to unwrap a TicFrameParser instance and invoke onDatasetExtracted() on it
+     * It is used as a callback provided to TIC::DatasetExtractor
+     * 
+     * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
+     */
+    static void unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context) {
+        if (context == nullptr)
+            return; /* Failsafe, discard if no context */
+        PowerHistory* powerHistoryInstance = static_cast<PowerHistory*>(context);
+        /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
+        powerHistoryInstance->onNewPowerData(power, horodate);
+    }
+
+/* Attributes */
+    FixedSizeRingBuffer<TicEvaluatedPower, 1024> data;    /*!< The last n instantaneous power measurements */
+};
+
+void drawHistory(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
+
+}
+
 /**
  * @brief  Main program
  */
@@ -123,29 +171,13 @@ int main(void) {
 
     //ticSerial.print("Buffers created. Starting...\r\n");
 
-    TicFrameParser ticParser;
+    PowerHistory powerHistory;
+
+    TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
     TIC::Unframer ticUnframer(TicFrameParser::unwrapInvokeOnFrameNewBytes,
                               TicFrameParser::unwrapInvokeOnFrameComplete,
                               (void *)(&ticParser));
-
-    struct TicProcessingContext {
-        /* Default constructor */
-        TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Unframer& ticUnframer) :
-            ticSerial(ticSerial),
-            ticUnframer(ticUnframer),
-            lostTicBytes(0),
-            serialRxOverflowCount(0),
-            instantaneousPower(static_cast<uint32_t>(-1)),
-            lastParsedFrameNb(static_cast<unsigned int>(-1)) { }
-
-        Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
-        TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
-        unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
-        unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
-        uint32_t instantaneousPower;    /*!< A place to store the instantaneous power measurement */
-        unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
-    };
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
 
@@ -319,7 +351,8 @@ int main(void) {
                     mainInstPowerText[12]='W';
                 }
             }
-            lcd.drawText(00, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
+            lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
+            drawHistory(0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
         }
 
 

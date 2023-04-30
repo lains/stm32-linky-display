@@ -90,11 +90,12 @@ void std::swap(TicMeasurements& first, TicMeasurements& second) {
     first.swapWith(second);
 }
 
-TicFrameParser::TicFrameParser() :
+TicFrameParser::TicFrameParser(FOnNewPowerData onNewPowerData, void* onNewPowerDataContext) :
+    onNewPowerData(onNewPowerData),
+    onNewPowerDataContext(onNewPowerDataContext),
     nbFramesParsed(0),
-    de(ticFrameParserUnWrapDatasetExtracter, this),
-    lastFrameMeasurements(),
-    powerHistory()
+    de(ticFrameParserUnWrapDatasetExtractor, this),
+    lastFrameMeasurements()
 {
 }
 
@@ -130,8 +131,7 @@ void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
     if (source == WITHDRAWN_POWER) {
         if (value > 0) {
             powerKnownForCurrentFrame = true;
-            this->lastFrameMeasurements.instPower.set(static_cast<int>(value));
-            this->powerHistory.push(this->lastFrameMeasurements.instPower);
+            this->onNewComputedPower(value, value);
             return;
         }
         else { /* Withdrawn power is 0, we may actually inject */
@@ -162,8 +162,7 @@ void TicFrameParser::mayComputePower(unsigned int source, unsigned int value) {
         unsigned int max = avg + urms/2;
         
         powerKnownForCurrentFrame = true;
-        this->lastFrameMeasurements.instPower.setMinMax(-max, -min); /* min and max are *positive* minimum and maximum injected power values, we thus negate them before storing in the instantaneous power */
-        this->powerHistory.push(this->lastFrameMeasurements.instPower);
+        this->onNewComputedPower(-max, -min); /* min and max are *positive* minimum and maximum injected power values, we thus negate them before storing in the instantaneous power */
         return;
     }
 }
@@ -198,6 +197,13 @@ void TicFrameParser::onNewInstCurrentMeasurement(uint32_t current) {
 
 void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
     this->de.pushBytes(buf, cnt);   /* Forward the bytes to the dataset extractor */
+}
+
+void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
+    this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
+    if (this->onNewPowerData != nullptr) {
+        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.horodate, this->onNewPowerDataContext);
+    }
 }
 
 void TicFrameParser::onFrameComplete() {
@@ -277,7 +283,7 @@ void TicFrameParser::unwrapInvokeOnFrameComplete(void *context) {
      * 
      * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
      */
-void TicFrameParser::ticFrameParserUnWrapDatasetExtracter(const uint8_t* buf, std::size_t cnt, void* context) {
+void TicFrameParser::ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, std::size_t cnt, void* context) {
     if (context == nullptr)
         return; /* Failsafe, discard if no context */
     TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
