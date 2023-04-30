@@ -77,7 +77,7 @@ std::vector<T> FixedSizeRingBuffer<T, N>::getTail(std::size_t len) const {
     if (len > this->getCount())
         len = this->getCount();
     result.reserve(len);
-    result.assign(this->buf, this->buf[len]);
+    result.assign(this->buf, &(this->buf[len]));
     return result;
 }
 
