@@ -47,8 +47,8 @@ STFLASH         := $(shell which st-flash)
 SRC_BUILD_PREFIX = build
 
 # Own project sources
-SRC_FILES = $(shell find $(SRC_DIR)/ -name '*.c' -o -name '*.cpp')
-ASM_FILES = $(shell find $(SRC_DIR)/ -name '*.s')
+PROJECT_SRC_FILES = $(shell find $(SRC_DIR)/ -name '*.c' -o -name '*.cpp')
+PROJECT_ASM_FILES = $(shell find $(SRC_DIR)/ -name '*.s')
 LDSCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
 
 # Project includes
@@ -58,36 +58,36 @@ INCLUDES_FILES  += $(TICDECODECPP)/include
 
 # Vendor sources: Note that files in "Templates" are normally copied into project for customization,
 # but we direclty use provided source files whenever possible.
-ASM_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f469xx.s
-SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
-#SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
-#SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dsi.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc_ex.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sdram.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/nt35510/nt35510.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/otm8009a/otm8009a.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_sdram.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
-SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_qspi.c
+BSP_ASM_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f469xx.s
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
+#BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+#BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dsi.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc_ex.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sdram.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/nt35510/nt35510.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/otm8009a/otm8009a.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_sdram.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_qspi.c
 
 #libticdecodecpp related source files
-SRC_FILES += $(TICDECODECPP)/src/TIC/Unframer.cpp
-SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetExtractor.cpp
-SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetView.cpp
+PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/Unframer.cpp
+PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetExtractor.cpp
+PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetView.cpp
 
 # Vendor includes
 INCLUDES_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Core/Include
@@ -115,6 +115,8 @@ LDLIBS   += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 # files into a build directory would be a better solution, but the goal was to
 # keep this file very simple.
 
+SRC_FILES = $(PROJECT_SRC_FILES) $(BSP_SRC_FILES)
+ASM_FILES = $(PROJECT_ASM_FILES) $(BSP_ASM_FILES)
 C_SRC_FILES = $(shell realpath --relative-to $(TOPDIR) $(filter %.c, $(SRC_FILES)))
 C_OBJS_WITHOUT_PREFIX = $(C_SRC_FILES:.c=.o)
 CPP_SRC_FILES = $(shell realpath --relative-to $(TOPDIR) $(filter %.cpp, $(SRC_FILES)))
@@ -190,7 +192,7 @@ unit_testing: $(UT_BUILT_EXEC)
 	@cmp --quiet $< $@ || cp $< $@
 
 #FIXME: also depend on all headers taken into account in INCLUDES
-$(UT_BUILT_EXEC): $(SRC_FILES) $(ASM_FILES)
+$(UT_BUILT_EXEC): $(PROJECT_SRC_FILES) $(PROJECT_ASM_FILES)
 	$(Q)cmake $(CMAKE_VERBOSE_OPT) -B $(UT_BUILD_DIR)/
 	$(Q)make -j $(nproc) -C $(UT_BUILD_DIR) $(UT_MAKE_VERBOSE_OPT)
 
