@@ -187,12 +187,12 @@ UT_BUILD_DIR=cmake-ut-build
 UT_BUILT_EXEC=$(UT_BUILD_DIR)/$(TEST_SUBDIR)/unit_testing
 
 unit_testing: $(UT_BUILT_EXEC)
-	cmp $< $@ || cp $< $@
+	@cmp --quiet $< $@ || cp $< $@
 
 #FIXME: also depend on all headers taken into account in INCLUDES
 $(UT_BUILT_EXEC): $(SRC_FILES) $(ASM_FILES)
-	cmake $(CMAKE_VERBOSE_OPT) -B $(UT_BUILD_DIR)/
-	make -j $(nproc) -C $(UT_BUILD_DIR) $(UT_MAKE_VERBOSE_OPT)
+	$(Q)cmake $(CMAKE_VERBOSE_OPT) -B $(UT_BUILD_DIR)/
+	$(Q)make -j $(nproc) -C $(UT_BUILD_DIR) $(UT_MAKE_VERBOSE_OPT)
 
 # Program using st-flash utility
 flash: $(SRC_BUILD_PREFIX)/$(BINARY).hex
