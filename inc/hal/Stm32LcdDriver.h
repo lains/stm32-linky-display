@@ -72,6 +72,16 @@ public:
     uint16_t getHeight() const;
 
     /**
+     * @brief Draw a plain 1-pixel wide vertical line
+     * 
+     * @param x The x position of the line on the LCD
+     * @param y The top y position of the line on the LCD
+     * @param yPlus The length of the line (in pixels), drawn towards the bottom of the screen, starting from (x;y)
+     * @param color An optional 32-bit text color to use when drawing
+     */
+    void drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color = LCD_Color::Black);
+
+    /**
      * @brief Draw a character (glyph) on the LCD
      * 
      * @param x The origin (left boundary) of the character on the LCD
@@ -79,8 +89,8 @@ public:
      * @param c A pointer to a buffer containing the character pixel (one bit per dot)
      * @param fontHeight The height of the character in buffer @p c in pixels
      * @param fontWidth The width of the character in buffer @p c in pixels
-     * @param fgColor An optional 32-bit text color to use when drawing text
-     * @param bgColor An optional 32-bit background color to use when drawing text
+     * @param fgColor An optional 32-bit text color to use when drawing
+     * @param bgColor An optional 32-bit background color to use when drawing
      */
     void drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, unsigned int fontWidth, unsigned int fontHeight, LCD_Color fgColor = LCD_Color::Black, LCD_Color bgColor = LCD_Color::Transparent);
 
@@ -92,8 +102,8 @@ public:
      * @param text A pointer to a '\0'-terminated buffer containing the character string
      * @param fontHeight The height of the character in buffer @p c in pixels
      * @param fontWidth The width of the character in buffer @p c in pixels
-     * @param fgColor An optional 32-bit text color to use when drawing text
-     * @param bgColor An optional 32-bit background color to use when drawing text
+     * @param fgColor An optional 32-bit text color to use when drawing
+     * @param bgColor An optional 32-bit background color to use when drawing
      */
     void drawText(uint16_t x, uint16_t y, const char *text, unsigned int fontWidth, unsigned int fontHeight, FCharacterToGlyphPtr charToGlyphFunc, LCD_Color fgColor, LCD_Color bgColor);
 

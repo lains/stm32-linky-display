@@ -322,6 +322,11 @@ uint16_t Stm32LcdDriver::getHeight() const {
     return LCDHeight;
 }
 
+void Stm32LcdDriver::drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color) {
+    BSP_LCD_SetTextColor(color);
+    BSP_LCD_DrawVLine(x, y, yPlus);
+}
+
 void Stm32LcdDriver::drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, unsigned int fontWidth, unsigned int fontHeight, LCD_Color fgColor, LCD_Color bgColor) {
     const uint8_t* glyphDefByte;
 

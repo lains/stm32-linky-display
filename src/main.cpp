@@ -291,7 +291,7 @@ struct PowerHistory {
      * 
      * @note The horodate of the most recent entry can be retrieved in the first element of the result array (if nb!=0 at return)
      */
-    void getLastPower(unsigned int& nb, PowerHistoryEntry* result) {
+    void getLastPower(unsigned int& nb, PowerHistoryEntry* result) const {
         if (nb > this->data.getCount())
             nb = this->data.getCount();   /* Saturate to the number of actual values we hold */
         for (unsigned int reversePos = 0; reversePos < nb; reversePos++) {
@@ -305,8 +305,75 @@ struct PowerHistory {
     TIC::Horodate lastPowerHorodate;    /*!< The horodate of the last received power measurement */
 };
 
-void drawHistory(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
-    #warning use getLastPower, for each entry, if we have a range and the high boundary is positive, what do we display?
+void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
+    unsigned int nbSamples = width; /* Initially try to fill-in all the area */
+    PowerHistoryEntry powerMeasurements[nbSamples];
+    history.getLastPower(nbSamples, powerMeasurements);
+    if (nbSamples > width) {    /* Sanity, should never occur */
+        nbSamples = width;
+    }
+    uint8_t pos = 0;
+    char statusLine[]="DH=@@@@";
+    pos+=3; // "DH="
+    statusLine[pos++]=(nbSamples / 1000) % 10 + '0';
+    statusLine[pos++]=(nbSamples / 100) % 10 + '0';
+    statusLine[pos++]=(nbSamples / 10) % 10 + '0';
+    statusLine[pos++]=(nbSamples / 1) % 10 + '0';
+    pos++;
+    auto get_font24_ptr = [](const char c) {
+        unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
+        return &(Font24.table[(c-' ') * bytesPerGlyph]);
+    };
+    
+    lcd.drawText(0, 4*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+
+    for (unsigned int measurementAge = 0; measurementAge < nbSamples; measurementAge++) {
+        uint16_t thisSampleAbsoluteX = x + width - measurementAge;   /* First measurement sample is at the extreme right of the allocated area, next samples will be placed to the left */
+        PowerHistoryEntry& thisSampleEntry = powerMeasurements[measurementAge];
+        TicEvaluatedPower& thisSamplePower = thisSampleEntry.power;
+        if (thisSamplePower.isValid) {
+            const int maxPower = 3000;
+            const int minPower = -1500;
+            uint16_t zeroSampleAbsoluteY = y;
+            zeroSampleAbsoluteY += (static_cast<unsigned long int>(maxPower) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+            uint16_t thisSampleTopAbsoluteY = 0;
+            uint16_t thisSampleBottomAbsoluteY = 0;
+            if (thisSamplePower.maxValue > 0) { /* Positive value, even if range, display the highest value of the range (worst case) */
+                uint16_t thisSampleMaxRelativeY = 0;
+                if (thisSamplePower.maxValue > 0) { /* Positive and exact power */
+                    thisSampleMaxRelativeY = (static_cast<unsigned long int>(thisSamplePower.maxValue) / static_cast<unsigned long int>(maxPower - minPower));
+                    thisSampleTopAbsoluteY = zeroSampleAbsoluteY - thisSampleMaxRelativeY;
+                    thisSampleBottomAbsoluteY = thisSampleBottomAbsoluteY;
+                }
+                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::Red);
+            }
+            else {  /* Max value is negative, we are injecting, display the range */
+                uint16_t thisSampleMaxRelativeY = 0;
+                uint16_t thisSampleMinRelativeY = 0;
+                bool maxIsBelow0 = (thisSamplePower.maxValue > 0);
+                bool minIsBelow0 = (thisSamplePower.minValue > 0);
+                unsigned int maxAbsValue = maxIsBelow0?-thisSamplePower.maxValue:thisSamplePower.maxValue;
+                unsigned int minAbsValue = minIsBelow0?-thisSamplePower.minValue:thisSamplePower.minValue;
+                thisSampleMaxRelativeY = (static_cast<unsigned int>(maxAbsValue) / static_cast<unsigned int>(maxPower - minPower));
+                thisSampleMinRelativeY = (static_cast<unsigned int>(minAbsValue) / static_cast<unsigned int>(maxPower - minPower));
+                uint16_t thisSampleTopAbsoluteY = 0;
+                uint16_t thisSampleBottomAbsoluteY = 0;
+                if (maxIsBelow0)
+                    thisSampleTopAbsoluteY = zeroSampleAbsoluteY + thisSampleMaxRelativeY;
+                else
+                    thisSampleTopAbsoluteY = zeroSampleAbsoluteY - thisSampleMaxRelativeY;
+                if (minIsBelow0)
+                    thisSampleBottomAbsoluteY = zeroSampleAbsoluteY + thisSampleMinRelativeY;
+                else
+                    thisSampleBottomAbsoluteY = zeroSampleAbsoluteY - thisSampleMinRelativeY;
+                
+                if (thisSampleTopAbsoluteY > thisSampleBottomAbsoluteY) {   /* Failsafe, should not occur */
+                    std::swap(thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY);
+                }
+                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::Green);
+            }
+        }
+    }
 }
 
 /**
@@ -394,39 +461,97 @@ int main(void) {
     };
 
     unsigned int lcdRefreshCount = 0;
+    char sampleHorodateAsCString[] = "e230502000000";
+	TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
 
         ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
 
+        int simulatedPower = 3000 - static_cast<int>(lcdRefreshCount*10);
+        while (simulatedPower < -1200) {
+            simulatedPower+= 4000;
+        }
+        TicEvaluatedPower power((simulatedPower<0)?simulatedPower/2:simulatedPower, simulatedPower);
+        fakeHorodate.second++;
+        if (fakeHorodate.second >= 60) {
+            fakeHorodate.second = 0;
+            fakeHorodate.minute++;
+            if (fakeHorodate.minute >= 60) {
+                fakeHorodate.minute = 0;
+                fakeHorodate.hour++;
+            }
+        }
+        powerHistory.onNewPowerData(power, fakeHorodate);
         /* We can now work on draft buffer */
-        char statusLine[]="@@@@L - @@@@F - @@@@@@B - @@@@XR";
-        statusLine[0]=(lcdRefreshCount / 1000) % 10 + '0';
-        statusLine[1]=(lcdRefreshCount / 100) % 10 + '0';
-        statusLine[2]=(lcdRefreshCount / 10) % 10 + '0';
-        statusLine[3]=(lcdRefreshCount / 1) % 10 + '0';
+        uint8_t pos = 0;
+        char statusLine[]="@@@@L @@@@F @@@@@@B @@X @@:@@:@@ @@@@@;@@@@@W";
+        statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
+        statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
+        statusLine[pos++]=(lcdRefreshCount / 10) % 10 + '0';
+        statusLine[pos++]=(lcdRefreshCount / 1) % 10 + '0';
+        pos++; // 'L'
+
+        pos++;
 
         unsigned int framesCount = ticParser.nbFramesParsed;
-        statusLine[8]=(framesCount / 1000) % 10 + '0';
-        statusLine[9]=(framesCount / 100) % 10 + '0';
-        statusLine[10]=(framesCount / 10) % 10 + '0';
-        statusLine[11]=(framesCount / 1) % 10 + '0';
+        statusLine[pos++]=(framesCount / 1000) % 10 + '0';
+        statusLine[pos++]=(framesCount / 100) % 10 + '0';
+        statusLine[pos++]=(framesCount / 10) % 10 + '0';
+        statusLine[pos++]=(framesCount / 1) % 10 + '0';
+        pos++; // 'F'
+
+        pos++;
 
         unsigned long rxBytesCount = ticSerial.getRxBytesTotal();
-        statusLine[16]=(rxBytesCount / 100000) % 10 + '0';
-        statusLine[17]=(rxBytesCount / 10000) % 10 + '0';
-        statusLine[18]=(rxBytesCount / 1000) % 10 + '0';
-        statusLine[19]=(rxBytesCount / 100) % 10 + '0';
-        statusLine[20]=(rxBytesCount / 10) % 10 + '0';
-        statusLine[21]=(rxBytesCount / 1) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 100000) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 10000) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 1000) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 100) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 10) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 1) % 10 + '0';
+        pos++; // 'B'
+
+        pos++;
 
         unsigned int serialRxOverflowCount = ticContext.serialRxOverflowCount;
-        statusLine[26]=(serialRxOverflowCount / 1000) % 10 + '0';
-        statusLine[27]=(serialRxOverflowCount / 100) % 10 + '0';
-        statusLine[28]=(serialRxOverflowCount / 10) % 10 + '0';
-        statusLine[29]=(serialRxOverflowCount / 1) % 10 + '0';
+        statusLine[pos++]=(serialRxOverflowCount / 10) % 10 + '0';
+        statusLine[pos++]=(serialRxOverflowCount / 1) % 10 + '0';
+        pos++; // 'X'
 
-        /* We're getting a lot of bytes in RX, but somehow we're missing frames */
+        pos++;
+
+        const TIC::Horodate& displayedHorodate = fakeHorodate;
+        unsigned int horodateHour = displayedHorodate.hour;
+        statusLine[pos++]=(horodateHour / 10) % 10 + '0';
+        statusLine[pos++]=(horodateHour / 1) % 10 + '0';
+        pos++;
+        unsigned int horodateMinute = displayedHorodate.minute;
+        statusLine[pos++]=(horodateMinute / 10) % 10 + '0';
+        statusLine[pos++]=(horodateMinute / 1) % 10 + '0';
+        pos++;
+        unsigned int horodateSecond = displayedHorodate.second;
+        statusLine[pos++]=(horodateSecond / 10) % 10 + '0';
+        statusLine[pos++]=(horodateSecond / 1) % 10 + '0';
+        pos++;
+
+        const TicEvaluatedPower& displayedPower = power;
+        statusLine[pos++]=(displayedPower.minValue<0)?'-':' ';
+        unsigned int minValue = (displayedPower.minValue<0)?-displayedPower.minValue:displayedPower.minValue;
+        statusLine[pos++]=(minValue / 1000) % 10 + '0';
+        statusLine[pos++]=(minValue / 100) % 10 + '0';
+        statusLine[pos++]=(minValue / 10) % 10 + '0';
+        statusLine[pos++]=(minValue / 1) % 10 + '0';
+        pos++; // ';'
+
+        statusLine[pos++]=(displayedPower.maxValue<0)?'-':' ';
+        unsigned int maxValue = (displayedPower.maxValue<0)?-displayedPower.maxValue:displayedPower.maxValue;
+        statusLine[pos++]=(maxValue / 1000) % 10 + '0';
+        statusLine[pos++]=(maxValue / 100) % 10 + '0';
+        statusLine[pos++]=(maxValue / 10) % 10 + '0';
+        statusLine[pos++]=(maxValue / 1) % 10 + '0';
+        pos++; // 'W'
+
         BSP_LCD_SetFont(&Font24);
         lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
         BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
@@ -534,9 +659,9 @@ int main(void) {
                 }
             }
             lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
-            drawHistory(0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
+            //drawHistory(lcd, 0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
         }
-
+        drawHistory(lcd, 0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
 
         //BSP_LED_On(LED1);
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
