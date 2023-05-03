@@ -1,4 +1,4 @@
-![CI status](actions/workflows/main.yml/badge.svg)
+![CI status](https://github.com/lains/stm32-linky-display/actions/workflows/main.yml/badge.svg)
 
 # STM32-based TIC display
 
