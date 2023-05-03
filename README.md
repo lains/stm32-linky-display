@@ -1,3 +1,5 @@
+![CI status](actions/workflows/main.yml/badge.svg)
+
 # STM32-based TIC display
 
 ## Overview
