@@ -52,9 +52,9 @@ PROJECT_ASM_FILES = $(shell find $(SRC_DIR)/ -name '*.s')
 LDSCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
 
 # Project includes
-INCLUDES_FILES   = $(INC_DIR)
-INCLUDES_FILES  += $(INC_DIR)/hal
-INCLUDES_FILES  += $(TICDECODECPP)/include
+PROJECT_INCLUDE_DIRS   = $(INC_DIR)
+PROJECT_INCLUDE_DIRS  += $(INC_DIR)/hal
+PROJECT_INCLUDE_DIRS  += $(TICDECODECPP)/include
 
 # Vendor sources: Note that files in "Templates" are normally copied into project for customization,
 # but we direclty use provided source files whenever possible.
@@ -90,13 +90,13 @@ PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetExtractor.cpp
 PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetView.cpp
 
 # Vendor includes
-INCLUDES_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Core/Include
-INCLUDES_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
-INCLUDES_FILES += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Inc
-INCLUDES_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery
-INCLUDES_FILES_TO_SIMPLIFY = $(INCLUDES_FILES)
-INCLUDES_FILES_SIMPLIFIED = $(shell realpath --relative-to $(TOPDIR) $(INCLUDES_FILES_TO_SIMPLIFY))
-INCLUDES += $(INCLUDES_FILES_SIMPLIFIED:%=-I%)
+BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Core/Include
+BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver/Inc
+BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery
+INCLUDE_DIRS_TO_SIMPLIFY = $(PROJECT_INCLUDE_DIRS) $(BSP_INCLUDE_DIRS)
+INCLUDE_DIRS_SIMPLIFIED = $(shell realpath --relative-to $(TOPDIR) $(INCLUDE_DIRS_TO_SIMPLIFY))
+INCLUDES += $(INCLUDE_DIRS_SIMPLIFIED:%=-I%)
 
 # Compiler Flags
 CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter -fno-exceptions
