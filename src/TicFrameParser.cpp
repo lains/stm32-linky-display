@@ -4,9 +4,13 @@
 #include <string.h>
 #include <utility> // For std::swap()
 
+#ifndef __UNIT_TEST__
 extern "C" {
 #include "main.h" // FIXME: For BSP_LED_Toogle() and LED1, but these concepts should go away from TIC domain
 }
+#else
+#define BSP_LED_Toggle(x) do { } while (0)
+#endif
 
 TicEvaluatedPower::TicEvaluatedPower() :
     isValid(false),

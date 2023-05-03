@@ -1,7 +1,10 @@
 # Be quiet per default, but 'make V=1' will show all compiler calls.
-ifneq ($(V),1)
-Q		:= @
-NULL		:= 2>/dev/null
+ifeq ($(V),1)
+CMAKE_VERBOSE_OPT := -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+UT_MAKE_VERBOSE_OPT := VERBOSE=1
+else
+Q := @
+NULL := 2>/dev/null
 endif
 
 CROSS_PREFIX    ?= arm-none-eabi
@@ -19,7 +22,8 @@ THIS_MAKEFILE_DIR := $(patsubst %/,%,$(dir $(THIS_MAKEFILE_PATH)))
 TOPDIR = $(shell realpath $(THIS_MAKEFILE_DIR))
 SRC_DIR = $(TOPDIR)/src
 INC_DIR = $(TOPDIR)/inc
-TEST_DIR = $(TOPDIR)/tests
+TEST_SUBDIR = test
+TEST_DIR = $(TOPDIR)/$(TEST_SUBDIR)
 
 # Path to the STM32 codebase, make sure to fetch submodules to populate this directory
 VENDOR_ROOT = $(TOPDIR)/bsp/STM32CubeF4
@@ -176,8 +180,19 @@ $(SRC_BUILD_PREFIX)/%.hex: $(SRC_BUILD_PREFIX)/%.elf
 	$(Q)$(CROSS_OBJCOPY) -Oihex $< $@
 
 # Unit tests
-check:
-	$(MAKE) -C $(TOPDIR)/test check
+check: unit_testing
+	./unit_testing
+
+UT_BUILD_DIR=cmake-ut-build
+UT_BUILT_EXEC=$(UT_BUILD_DIR)/$(TEST_SUBDIR)/unit_testing
+
+unit_testing: $(UT_BUILT_EXEC)
+	cmp $< $@ || cp $< $@
+
+#FIXME: also depend on all headers taken into account in INCLUDES
+$(UT_BUILT_EXEC): $(SRC_FILES) $(ASM_FILES)
+	cmake $(CMAKE_VERBOSE_OPT) -B $(UT_BUILD_DIR)/
+	make -j $(nproc) -C $(UT_BUILD_DIR) $(UT_MAKE_VERBOSE_OPT)
 
 # Program using st-flash utility
 flash: $(SRC_BUILD_PREFIX)/$(BINARY).hex
@@ -187,6 +202,8 @@ flash: $(SRC_BUILD_PREFIX)/$(BINARY).hex
 # Clean
 clean:
 	@rm -f $(ALL_OBJS) $(GENERATED_BINARIES)
+	@rm -rf $(UT_BUILD_DIR)
+	@rm -f $(UT_BUILT_EXEC)
 
 # Debug
 gdb-server_stlink:
