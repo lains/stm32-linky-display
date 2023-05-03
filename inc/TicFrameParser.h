@@ -30,8 +30,8 @@ public:
 /* Attributes */
     bool isValid; /*!< Is this evaluated absolute power valid? */
     bool isExact; /*!< Is this power exact (in such cases, min and max are equal), if false, we store an approxmation range)*/
-    int minValue; /*!< Minimum possible power, in Watts) */
-    int maxValue; /*!< Maximum possible power, in Watts) */
+    int minValue; /*!< Minimum possible power, in Watts), minValue <= maxValue is always satisfied if isValid==true */
+    int maxValue; /*!< Maximum possible power, in Watts), maxValue >= maxValue is always satisfied if isValid==true */
 };
 
 class TicMeasurements {

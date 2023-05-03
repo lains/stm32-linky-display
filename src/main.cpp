@@ -1,4 +1,6 @@
 /* Includes ------------------------------------------------------------------*/
+#include <climits>
+
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "TIC/Unframer.h"
@@ -98,11 +100,173 @@ struct TicProcessingContext {
     unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
 };
 
+
+struct PowerHistoryEntry {
+    PowerHistoryEntry() :
+        power(),
+        horodate(),
+        nbSamples(0)
+    {
+    }
+
+    PowerHistoryEntry(const TicEvaluatedPower& power, const TIC::Horodate& horodate) :
+        power(power),
+        horodate(horodate),
+        nbSamples(1)
+    {
+    }
+
+    signed int truncateSignedLongToSignedInt(const signed long input) {
+        if (input > INT_MAX) {
+            return INT_MAX;
+        }
+        if (input < INT_MIN) {
+            return INT_MIN;
+        }
+        return static_cast<signed int>(input);
+    }
+
+    /**
+     * @brief Update this object with an average between our current value and a new power measurement sample
+     * 
+     * @param power A new power measurement sample to take into account
+     */
+    void averageWithPowerSample(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
+        PowerHistoryEntry result;
+
+        /* If any of the two provided data instances are invalid, discard it and directly return the second one */
+        if (!this->power.isValid) {
+            this->power = power;
+            this->horodate = horodate;
+            this->nbSamples = 1;
+            return;
+        }
+        if (!power.isValid)
+            return; /* New sample is invalid: do nothing, no new calculation should be performed */
+
+        if (horodate > this->horodate)
+            this->horodate = horodate;  /* Update our internal horodate */
+
+        if (this->power.isExact && power.isExact) {
+            /* Averaging two exact measurements */
+            unsigned int totalNbSample = this->nbSamples + 1;
+            unsigned long int averagePower = ((static_cast<unsigned long int>(this->power.minValue) * this->nbSamples) +
+                                              static_cast<unsigned long int>(power.minValue)) / static_cast<unsigned long int>(totalNbSample);
+            this->power.set(truncateSignedLongToSignedInt(averagePower));
+            this->nbSamples = totalNbSample;
+            return;
+        }
+
+        /* Either first, second or both are no exact values but ranges, the calculation is a bit mode complex */
+        unsigned int totalNbSample = this->nbSamples + 1;
+        long int averageMinPower = ((static_cast<long int>(this->power.minValue) * this->nbSamples) +
+                                    static_cast<long int>(power.minValue)) / static_cast<long int>(totalNbSample);
+        long int averageMaxPower = ((static_cast<unsigned long>(this->power.maxValue) * this->nbSamples) +
+                                    static_cast<unsigned long>(power.maxValue)) / static_cast<unsigned long>(totalNbSample);
+        /* We now get a high and low boundary (a range) for power value */
+
+        /* Prior average and/or the new value are estimations, take min and max as they have been calculated */
+        this->power.setMinMax(truncateSignedLongToSignedInt(averageMinPower), truncateSignedLongToSignedInt(averageMaxPower));
+        this->nbSamples = totalNbSample;
+        return;
+    }
+
+/* Attributes */
+    TicEvaluatedPower power; /*!< A power (in multiples or fractions of W... see scale below) */
+    TIC::Horodate horodate; /*!< The horodate for the @p power entry */
+    unsigned int nbSamples; /*!< The number of samples that have been averaged to produce the value in @p power */
+    unsigned int scale; /*!< A divider for @p power. If scale=1000, then power is represented in mW */
+};
+
 struct PowerHistory {
-    PowerHistory() : data() { }
+    /* Types */
+    typedef enum {
+        PerSecond = 0,
+        Per5Seconds,
+        Per10Seconds,
+        Per15Seconds,
+        Per30Seconds,
+        PerMinute,
+        AveraginOverMinutesOrMore = PerMinute,
+        Per5Minutes,
+    } AveragingMode;
+
+    PowerHistory(AveragingMode averagingPeriod) :
+        data(),
+        averagingPeriod(averagingPeriod),
+        lastPowerHorodate()
+    {
+    }
 
     void onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
-        this->data.push(power); // FIXME: we should not discard horodate and if invalid, fetch the timestamp
+        if (!power.isValid || !horodate.isValid) {
+            return;
+        }
+        if (this->horodatesAreInSamePeriodSample(horodate, this->lastPowerHorodate)) {
+            PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
+            if (lastEntry != nullptr) {
+                lastEntry->averageWithPowerSample(power, horodate);
+                this->lastPowerHorodate = horodate;
+                return;
+            }
+            /* If lastEntry is not valid, create a new entry by falling-through the following code */
+        }
+        this->data.push(PowerHistoryEntry(power, horodate)); /* First sample in this period */
+        this->lastPowerHorodate = horodate;
+    }
+
+    bool horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second) {
+        if (first.year != second.year ||
+            first.month != second.month ||
+            first.day != second.day ||
+            first.hour != second.hour)
+            return false; /* Period is different whenever anything longer than one hour is different between the two horodates */
+        if (this->averagingPeriod >= AveraginOverMinutesOrMore) { /* We are averaging over at least 1 minute, so only compare minutes */
+            switch (this->averagingPeriod) {
+                case PerMinute:
+                    return (first.minute == second.minute); /* Minutes should be equal to be in the same sampling period */
+                case Per5Minutes:
+                    if (first.minute > second.minute) {
+                        return ((first.minute - second.minute) < 5);
+                    }
+                    else {
+                        return ((second.minute - first.minute) < 5);
+                    }
+                default:    /* Unsupported averaging period */
+                    return false;
+            }
+        }
+        /* If we fall here, we are averaging over less than 1 minute */
+        if (first.minute != second.minute)
+            return false; /* Period is different whenever the minute is different between the two horodates */
+        unsigned int maxPeriodDeltaInSeconds = 0;
+        switch (this->averagingPeriod) {
+            case PerSecond:
+                maxPeriodDeltaInSeconds = 1;
+                break;
+            case Per5Seconds:
+                maxPeriodDeltaInSeconds = 5;
+                break;
+            case Per10Seconds:
+                maxPeriodDeltaInSeconds = 10;
+                break;
+            case Per15Seconds:
+                maxPeriodDeltaInSeconds = 15;
+                break;
+            case Per30Seconds:
+                maxPeriodDeltaInSeconds = 30;
+                break;
+            default:    /* All other possible periods are over one minute, they have been handled above, this block should never be reached */
+                return false;
+        }
+        unsigned int delta;
+        if (first.second > second.second) {
+            delta = first.second - second.second;
+        }
+        else {
+            delta = second.second - first.second;
+        }
+        return (delta < maxPeriodDeltaInSeconds);
     }
 
     /**
@@ -119,12 +283,30 @@ struct PowerHistory {
         powerHistoryInstance->onNewPowerData(power, horodate);
     }
 
+    /**
+     * @brief Get the Last Values object
+     * 
+     * @param[in,out] nb The max number of measurements requested, modified at return to represent the number of measurements actually retrieved
+     * @param[out] result A C-array of results, the first one being the most recent
+     * 
+     * @note The horodate of the most recent entry can be retrieved in the first element of the result array (if nb!=0 at return)
+     */
+    void getLastPower(unsigned int& nb, PowerHistoryEntry* result) {
+        if (nb > this->data.getCount())
+            nb = this->data.getCount();   /* Saturate to the number of actual values we hold */
+        for (unsigned int reversePos = 0; reversePos < nb; reversePos++) {
+            result[reversePos] = this->data.getReverse(reversePos);
+        }
+    }
+
 /* Attributes */
-    FixedSizeRingBuffer<TicEvaluatedPower, 1024> data;    /*!< The last n instantaneous power measurements */
+    FixedSizeRingBuffer<PowerHistoryEntry, 1024> data;    /*!< The last n instantaneous power measurements */
+    AveragingMode averagingPeriod; /*!< Which sampling period do we record (we will perform an average on all samples within the period) */
+    TIC::Horodate lastPowerHorodate;    /*!< The horodate of the last received power measurement */
 };
 
 void drawHistory(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
-
+    #warning use getLastPower, for each entry, if we have a range and the high boundary is positive, what do we display?
 }
 
 /**
@@ -171,7 +353,7 @@ int main(void) {
 
     //ticSerial.print("Buffers created. Starting...\r\n");
 
-    PowerHistory powerHistory;
+    PowerHistory powerHistory(PowerHistory::Per5Seconds);
 
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 

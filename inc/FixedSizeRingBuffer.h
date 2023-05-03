@@ -14,10 +14,21 @@ public:
     void reset();
     void push(T item);
     T pop();
+
+    /**
+     * @brief Get a pointer to the last element of the buffer
+     * 
+     * @tparam T The type of elements stored
+     * @tparam N The capacity of the buffer
+     * @return A pointer to the last element of nullptr if the buffer is empty (is writable)
+     */
+    T* getPtrToLast();
+
     bool isFull() const;
     bool isEmpty() const;
     std::size_t getCapacity() const;
     std::size_t getCount() const;
+    T getReverse(std::size_t n) const;
     std::vector<T> getTail(std::size_t n) const;
     std::vector<T> toVector() const;
 
@@ -59,6 +70,16 @@ void FixedSizeRingBuffer<T, N>::push(T item) {
 }
 
 template <class T, std::size_t N>
+T FixedSizeRingBuffer<T, N>::getReverse(std::size_t n) const {
+	if (this->isEmpty() || this->getCount() <= n) {
+		return T(); // FIXME: error condition (not enough values in buffer)
+	}
+
+    std::size_t eltOffs = ((this->tail + N) - n) % N;
+    return this->buf[eltOffs];
+}
+
+template <class T, std::size_t N>
 T FixedSizeRingBuffer<T, N>::pop() {
 	if (this->isEmpty()) {
 		return T(); // FIXME: error condition
@@ -69,6 +90,14 @@ T FixedSizeRingBuffer<T, N>::pop() {
 	this->tail = (this->tail + 1) % N;
 
 	return val;
+}
+
+template <class T, std::size_t N>
+T* FixedSizeRingBuffer<T, N>::getPtrToLast() {
+	if (this->isEmpty()) {
+		return nullptr;
+	}
+    return &(this->buf[this->tail]);
 }
 
 template <class T, std::size_t N>
