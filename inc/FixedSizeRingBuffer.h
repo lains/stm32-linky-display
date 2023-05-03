@@ -28,12 +28,22 @@ public:
     bool isEmpty() const;
     std::size_t getCapacity() const;
     std::size_t getCount() const;
+
+    /**
+     * @brief Get the last-rank element in the buffer
+     * 
+     * @param n The rank of the element to get (if 0, we will get the last element, like pop())
+     * @return The element requested or a blank element if we are outside of the valid elements
+     * 
+     * @note Unlike pop(), this method does not remove the element, it only copies its content and returns it
+     */
     T getReverse(std::size_t n) const;
+
     std::vector<T> getTail(std::size_t n) const;
     std::vector<T> toVector() const;
 
 private:
-    T buf[MAX_ELEMENTS];
+    T buf[MAX_ELEMENTS]; /*!< Internal storage */
     std::size_t head;   /*!< Offset of the head element (next push) */
     std::size_t tail;   /*!< Offset of the tail element (next pop) */
     bool full;  /*!< If the buffer full? */
@@ -63,10 +73,11 @@ void FixedSizeRingBuffer<T, N>::push(T item) {
 		this->tail = (this->tail + 1) % N;  /* Drop oldest element */
 	}
 
-	this->head = (this->head + 1) % N;
+	this->head++;
+	this->head %= N;
 
-    if (this->head == this->tail)
-        this->full = true;
+	if (this->head == this->tail)
+		this->full = true;
 }
 
 template <class T, std::size_t N>
@@ -75,7 +86,7 @@ T FixedSizeRingBuffer<T, N>::getReverse(std::size_t n) const {
 		return T(); // FIXME: error condition (not enough values in buffer)
 	}
 
-    std::size_t eltOffs = ((this->tail + N) - n) % N;
+    std::size_t eltOffs = (this->head + 2*N - 1 - n) % N;
     return this->buf[eltOffs];
 }
 
@@ -97,7 +108,8 @@ T* FixedSizeRingBuffer<T, N>::getPtrToLast() {
 	if (this->isEmpty()) {
 		return nullptr;
 	}
-    return &(this->buf[this->tail]);
+	std::size_t eltOffs = (this->head + N - 1) % N;
+	return &(this->buf[eltOffs]);
 }
 
 template <class T, std::size_t N>
