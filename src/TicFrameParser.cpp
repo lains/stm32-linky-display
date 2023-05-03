@@ -217,7 +217,7 @@ void TicFrameParser::onFrameComplete() {
     this->nbFramesParsed++;
 }
 
-void TicFrameParser::onDatasetExtracted(const uint8_t* buf, std::size_t cnt) {
+void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
     /* This is our actual parsing of a newly received dataset */
     TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
     if (dv.isValid()) {
@@ -267,7 +267,7 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, std::size_t cnt) {
     }
 }
 
-void TicFrameParser::unwrapInvokeOnFrameNewBytes(const uint8_t* buf, std::size_t cnt, void* context) {
+void TicFrameParser::unwrapInvokeOnFrameNewBytes(const uint8_t* buf, unsigned int cnt, void* context) {
     if (context == nullptr)
         return; /* Failsafe, discard if no context */
     TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
@@ -288,7 +288,7 @@ void TicFrameParser::unwrapInvokeOnFrameComplete(void *context) {
      * 
      * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
      */
-void TicFrameParser::ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, std::size_t cnt, void* context) {
+void TicFrameParser::ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, unsigned int cnt, void* context) {
     if (context == nullptr)
         return; /* Failsafe, discard if no context */
     TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
