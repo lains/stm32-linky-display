@@ -37,8 +37,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository code
+      - name: Dump versions
+        run: |
+          lsb_release -a 2>/dev/null || cat /etc/issue
+          git --version
+          make --version
+          cmake --version
+          gcc --version
+          g++ --version
+      - name: Check out source code
         uses: actions/checkout@v3
+      - name: Check out ticdecodecpp submodule
+        run: |
+          git submodule init ticdecodecpp
+          git submodule update
       - name: Test
         run: |
           make check
