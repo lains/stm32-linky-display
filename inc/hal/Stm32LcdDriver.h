@@ -33,6 +33,10 @@ public:
         Orange = LCD_COLOR_ORANGE,
         Red = LCD_COLOR_RED,
         Blue = LCD_COLOR_BLUE,
+        Grey = LCD_COLOR_GRAY,
+        DarkGreen = LCD_COLOR_DARKGREEN,
+        DarkRed = LCD_COLOR_DARKRED,
+        DarkBlue = LCD_COLOR_DARKBLUE,
         Transparent = (uint32_t)(0x00000000)
     } LCD_Color;
 
@@ -82,6 +86,15 @@ public:
     void drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color = LCD_Color::Black);
 
     /**
+     * @brief Draw a plain 1-pixel wide vertical line
+     * 
+     * @param x The right x position of the line on the LCD
+     * @param y The y position of the line on the LCD
+     * @param xPlus The length of the line (in pixels), drawn towards the right of the screen, starting from (x;y)
+     * @param color An optional 32-bit text color to use when drawing
+     */
+    void drawHorizontalLine(uint16_t x, uint16_t y, uint16_t xPlus, LCD_Color color = LCD_Color::Black);
+    /**
      * @brief Draw a character (glyph) on the LCD
      * 
      * @param x The origin (left boundary) of the character on the LCD
@@ -121,6 +134,7 @@ public:
 
 private:
     void hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
+    void LL_FillBuffer(uint32_t LayerIndex, void *pDst, uint32_t xSize, uint32_t ySize, uint32_t OffLine, uint32_t ColorIndex);
 
 private:
     Stm32LcdDriver& operator= (const Stm32LcdDriver&) { return *this; }

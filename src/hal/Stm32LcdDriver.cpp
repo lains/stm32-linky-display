@@ -323,8 +323,28 @@ uint16_t Stm32LcdDriver::getHeight() const {
 }
 
 void Stm32LcdDriver::drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color) {
-    BSP_LCD_SetTextColor(color);
-    BSP_LCD_DrawVLine(x, y, yPlus);
+#if 1
+    if (x >= this->getWidth())
+        return;
+    for (unsigned int yPos = y; yPos < y+yPlus; yPos++) {
+        if (yPos >= this->getHeight())
+            return;
+        BSP_LCD_DrawPixel(x, yPos, color);
+    }
+#else
+    uint32_t *topPixelPtr = static_cast<uint32_t*>(this->draftFramebuffer) + (this->getWidth()*y + x); /* Because we are using a uint32_t*, offset will shift the address by 32bits per pixels */
+    LL_FillBuffer(1, topPixelPtr, 1, yPlus, (this->getWidth() - 1), color);
+#endif
+}
+
+void Stm32LcdDriver::drawHorizontalLine(uint16_t x, uint16_t y, uint16_t xPlus, LCD_Color color) {
+    if (y >= this->getHeight())
+        return;
+    for (unsigned int xPos = x; xPos < x+xPlus; xPos++) {
+        if (xPos >= this->getWidth())
+            return;
+        BSP_LCD_DrawPixel(xPos, y, color);
+    }
 }
 
 void Stm32LcdDriver::drawGlyph(uint16_t x, uint16_t y, const uint8_t *c, unsigned int fontWidth, unsigned int fontHeight, LCD_Color fgColor, LCD_Color bgColor) {
@@ -441,6 +461,25 @@ void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t 
       (#) To read the DMA2D error code, use the following function: HAL_DMA2D_GetError().
       */
 #endif
+            }
+        }
+    }
+}
+
+void Stm32LcdDriver::LL_FillBuffer(uint32_t LayerIndex, void *pDst, uint32_t xSize, uint32_t ySize, uint32_t OffLine, uint32_t ColorIndex) {
+    /* Register to memory mode with ARGB8888 as color Mode */
+    this->hdma2d.Init.Mode         = DMA2D_R2M;
+    this->hdma2d.Init.ColorMode    = DMA2D_ARGB8888;
+    this->hdma2d.Init.OutputOffset = OffLine;
+
+    this->hdma2d.Instance = DMA2D;
+
+    /* DMA2D Initialization */
+    if (HAL_DMA2D_Init(&(this->hdma2d)) == HAL_OK) {
+        if (HAL_DMA2D_ConfigLayer(&(this->hdma2d), LayerIndex) == HAL_OK) {
+            if (HAL_DMA2D_Start(&(this->hdma2d), ColorIndex, (uint32_t)pDst, xSize, ySize) == HAL_OK) {
+                /* Polling For DMA transfer */
+                HAL_DMA2D_PollForTransfer(&(this->hdma2d), 10);
             }
         }
     }
