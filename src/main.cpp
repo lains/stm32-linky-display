@@ -1,9 +1,12 @@
 /* Includes ------------------------------------------------------------------*/
+#include <climits>
+
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "TIC/Unframer.h"
 #include "PowerHistory.h"
 #include "TicFrameParser.h"
+
 
 extern "C" {
 #include "main.h"
@@ -102,56 +105,69 @@ struct TicProcessingContext {
 
 
 void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
-    unsigned int nbSamples = width; /* Initially try to fill-in all the area */
+    if (width == 0 || height == 0)
+        return;
+    
+    uint16_t xright = x + width - 1;
+
+    unsigned int nbSamples = width; /* Initially try to fill-in the full width of the area */
+
     PowerHistoryEntry powerMeasurements[nbSamples];
     history.getLastPower(nbSamples, powerMeasurements);
     if (nbSamples > width) {    /* Sanity, should never occur */
         nbSamples = width;
     }
-    uint8_t pos = 0;
-    char statusLine[]="DH=@@@@";
-    pos+=3; // "DH="
-    statusLine[pos++]=(nbSamples / 1000) % 10 + '0';
-    statusLine[pos++]=(nbSamples / 100) % 10 + '0';
-    statusLine[pos++]=(nbSamples / 10) % 10 + '0';
-    statusLine[pos++]=(nbSamples / 1) % 10 + '0';
-    pos++;
-    auto get_font24_ptr = [](const char c) {
-        unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
-        return &(Font24.table[(c-' ') * bytesPerGlyph]);
-    };
-    
-    lcd.drawText(0, 4*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
+    uint16_t debugX = UINT16_MAX;
+    uint16_t debugYtop = UINT16_MAX;
+    uint16_t debugYbottom = UINT16_MAX;
+    int debugValue = INT_MIN;
+
+    if (debugValue == INT_MIN)
+        debugValue = nbSamples;
+
+
+    const int maxPower = 3000;
+    const int minPower = -1500;
+    uint16_t zeroSampleAbsoluteY = y;
+    zeroSampleAbsoluteY += static_cast<uint16_t>(static_cast<unsigned long int>(maxPower) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     for (unsigned int measurementAge = 0; measurementAge < nbSamples; measurementAge++) {
-        uint16_t thisSampleAbsoluteX = x + width - measurementAge;   /* First measurement sample is at the extreme right of the allocated area, next samples will be placed to the left */
+        uint16_t thisSampleAbsoluteX = xright - measurementAge;   /* First measurement sample is at the extreme right of the allocated area, next samples will be placed to the left */
+        if (debugX == UINT16_MAX) debugX = thisSampleAbsoluteX;
         PowerHistoryEntry& thisSampleEntry = powerMeasurements[measurementAge];
         TicEvaluatedPower& thisSamplePower = thisSampleEntry.power;
         if (thisSamplePower.isValid) {
-            const int maxPower = 3000;
-            const int minPower = -1500;
-            uint16_t zeroSampleAbsoluteY = y;
-            zeroSampleAbsoluteY += (static_cast<unsigned long int>(maxPower) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
-            uint16_t thisSampleTopAbsoluteY = 0;
-            uint16_t thisSampleBottomAbsoluteY = 0;
+            /* Review the code below */
             if (thisSamplePower.maxValue > 0) { /* Positive value, even if range, display the highest value of the range (worst case) */
-                uint16_t thisSampleMaxRelativeY = 0;
-                if (thisSamplePower.maxValue > 0) { /* Positive and exact power */
-                    thisSampleMaxRelativeY = (static_cast<unsigned long int>(thisSamplePower.maxValue) / static_cast<unsigned long int>(maxPower - minPower));
-                    thisSampleTopAbsoluteY = zeroSampleAbsoluteY - thisSampleMaxRelativeY;
-                    thisSampleBottomAbsoluteY = thisSampleBottomAbsoluteY;
+                uint16_t thisSampleTopAbsoluteY = 0;
+                uint16_t thisSampleBottomAbsoluteY = 0;
+                uint16_t thisSampleRelativeY = 0;
+                if (true || thisSamplePower.maxValue > 0) { /* Positive and exact power */
+                    thisSampleRelativeY = (static_cast<unsigned long int>(thisSamplePower.maxValue) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+                    thisSampleTopAbsoluteY = zeroSampleAbsoluteY - thisSampleRelativeY;
+                    thisSampleBottomAbsoluteY = zeroSampleAbsoluteY;
+                    if (debugYtop == UINT16_MAX) debugYtop = thisSampleTopAbsoluteY;
+                    if (debugYbottom == UINT16_MAX) debugYbottom = thisSampleBottomAbsoluteY;
+                    lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::Red);
                 }
-                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::Red);
+                else if (thisSamplePower.maxValue < 0) { /* Negative and exact power */
+                    thisSampleRelativeY = (static_cast<unsigned long int>(-thisSamplePower.maxValue) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+                    thisSampleTopAbsoluteY = zeroSampleAbsoluteY;
+                    thisSampleBottomAbsoluteY = zeroSampleAbsoluteY + thisSampleRelativeY;
+                    if (debugYtop == UINT16_MAX) debugYtop = thisSampleTopAbsoluteY;
+                    if (debugYbottom == UINT16_MAX) debugYbottom = thisSampleBottomAbsoluteY;
+                    lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::DarkGreen);
+                }
             }
             else {  /* Max value is negative, we are injecting, display the range */
                 uint16_t thisSampleMaxRelativeY = 0;
                 uint16_t thisSampleMinRelativeY = 0;
-                bool maxIsBelow0 = (thisSamplePower.maxValue > 0);
-                bool minIsBelow0 = (thisSamplePower.minValue > 0);
-                unsigned int maxAbsValue = maxIsBelow0?-thisSamplePower.maxValue:thisSamplePower.maxValue;
-                unsigned int minAbsValue = minIsBelow0?-thisSamplePower.minValue:thisSamplePower.minValue;
-                thisSampleMaxRelativeY = (static_cast<unsigned int>(maxAbsValue) / static_cast<unsigned int>(maxPower - minPower));
-                thisSampleMinRelativeY = (static_cast<unsigned int>(minAbsValue) / static_cast<unsigned int>(maxPower - minPower));
+                bool maxIsBelow0 = (thisSamplePower.maxValue < 0);
+                bool minIsBelow0 = (thisSamplePower.minValue < 0);
+                unsigned int maxAbsValue = maxIsBelow0?(-thisSamplePower.maxValue):thisSamplePower.maxValue;
+                unsigned int minAbsValue = minIsBelow0?(-thisSamplePower.minValue):thisSamplePower.minValue;
+                thisSampleMaxRelativeY = (static_cast<unsigned int>(maxAbsValue) * static_cast<unsigned long int>(height) / static_cast<unsigned int>(maxPower - minPower));
+                thisSampleMinRelativeY = (static_cast<unsigned int>(minAbsValue) * static_cast<unsigned long int>(height) / static_cast<unsigned int>(maxPower - minPower));
                 uint16_t thisSampleTopAbsoluteY = 0;
                 uint16_t thisSampleBottomAbsoluteY = 0;
                 if (maxIsBelow0)
@@ -166,10 +182,92 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
                 if (thisSampleTopAbsoluteY > thisSampleBottomAbsoluteY) {   /* Failsafe, should not occur */
                     std::swap(thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY);
                 }
-                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::Green);
+                if (debugYtop == UINT16_MAX) debugYtop = thisSampleTopAbsoluteY;
+                if (debugYbottom == UINT16_MAX) debugYbottom = thisSampleBottomAbsoluteY;
+                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::DarkGreen);
             }
         }
     }
+    lcd.drawHorizontalLine(x, zeroSampleAbsoluteY, width, Stm32LcdDriver::Black); /* Draw 0 */
+    uint16_t gridY;
+    uint16_t gridX = width - nbSamples;
+    uint16_t gridWidth = nbSamples;
+    gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 3000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw +3000W) */
+    gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 2000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw +2000W */
+    gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw +1000W */
+    gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw -1000W */
+
+    /* FIXME: for debug only - start */
+    uint8_t pos = 0;
+    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@";
+    pos+=3; // "DH="
+    statusLine[pos++]=(nbSamples / 1000) % 10 + '0';
+    statusLine[pos++]=(nbSamples / 100) % 10 + '0';
+    statusLine[pos++]=(nbSamples / 10) % 10 + '0';
+    statusLine[pos++]=(nbSamples / 1) % 10 + '0';
+    pos++;
+
+    pos+=2;
+    statusLine[pos++]=(debugX / 100) % 10 + '0';
+    statusLine[pos++]=(debugX / 10) % 10 + '0';
+    statusLine[pos++]=(debugX / 1) % 10 + '0';
+    pos++;
+
+    pos+=3;
+    if (debugYtop < 1000) {
+        statusLine[pos++]=(debugYtop / 100) % 10 + '0';
+        statusLine[pos++]=(debugYtop / 10) % 10 + '0';
+        statusLine[pos++]=(debugYtop / 1) % 10 + '0';
+    }
+    else if (debugYtop == UINT16_MAX) {
+        statusLine[pos++]='!';
+        statusLine[pos++]='!';
+        statusLine[pos++]='!';
+    }
+    else
+        pos+=3;
+    pos++;
+
+    pos+=3;
+    if (debugYbottom < 1000) {
+        statusLine[pos++]=(debugYbottom / 100) % 10 + '0';
+        statusLine[pos++]=(debugYbottom / 10) % 10 + '0';
+        statusLine[pos++]=(debugYbottom / 1) % 10 + '0';
+    }
+    else if (debugYbottom == UINT16_MAX) {
+        statusLine[pos++]='!';
+        statusLine[pos++]='!';
+        statusLine[pos++]='!';
+    }
+    else
+        pos+=3;
+    pos++;
+
+    pos+=4;
+    if (debugValue != INT_MIN) {
+        if (debugValue < 0) {
+            statusLine[pos++]='-';
+            debugValue = -debugValue;
+        }
+        else
+            statusLine[pos++]=' ';
+        statusLine[pos++]=(debugValue / 1000) % 10 + '0';
+        statusLine[pos++]=(debugValue / 100) % 10 + '0';
+        statusLine[pos++]=(debugValue / 10) % 10 + '0';
+        statusLine[pos++]=(debugValue / 1) % 10 + '0';
+    }
+
+    auto get_font24_ptr = [](const char c) {
+        unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
+        return &(Font24.table[(c-' ') * bytesPerGlyph]);
+    };
+    
+    lcd.drawText(0, 4*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+    /* FIXME: end */
 }
 
 /**
@@ -216,7 +314,7 @@ int main(void) {
 
     //ticSerial.print("Buffers created. Starting...\r\n");
 
-    PowerHistory powerHistory(PowerHistory::Per5Seconds);
+    PowerHistory powerHistory(PowerHistory::PerSecond);
 
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
@@ -264,7 +362,7 @@ int main(void) {
 
         ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
 
-        int simulatedPower = 3000 - static_cast<int>(lcdRefreshCount*10);
+        int simulatedPower = 3000 - static_cast<int>(lcdRefreshCount*100);
         while (simulatedPower < -1200) {
             simulatedPower+= 4000;
         }
@@ -278,7 +376,7 @@ int main(void) {
                 fakeHorodate.hour++;
             }
         }
-        powerHistory.onNewPowerData(power, fakeHorodate);
+        //powerHistory.onNewPowerData(power, fakeHorodate);
         /* We can now work on draft buffer */
         uint8_t pos = 0;
         char statusLine[]="@@@@L @@@@F @@@@@@B @@X @@:@@:@@ @@@@@;@@@@@W";
@@ -457,7 +555,7 @@ int main(void) {
             lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
             //drawHistory(lcd, 0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
         }
-        drawHistory(lcd, 0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
+        drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory);
 
         //BSP_LED_On(LED1);
         //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
