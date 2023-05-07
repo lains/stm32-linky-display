@@ -355,13 +355,14 @@ int main(void) {
     };
 
     unsigned int lcdRefreshCount = 0;
-    char sampleHorodateAsCString[] = "e230502000000";
-	TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+    //char sampleHorodateAsCString[] = "e230502000000";
+	//TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
 
         ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
 
+        /*
         int simulatedPower = 3000 - static_cast<int>(lcdRefreshCount*100);
         while (simulatedPower < -1200) {
             simulatedPower+= 4000;
@@ -377,9 +378,10 @@ int main(void) {
             }
         }
         //powerHistory.onNewPowerData(power, fakeHorodate);
+        */
         /* We can now work on draft buffer */
         uint8_t pos = 0;
-        char statusLine[]="@@@@L @@@@F @@@@@@B @@X @@:@@:@@ @@@@@;@@@@@W";
+        char statusLine[]="@@@@L @@@@F @@@@@@@@B @@X @@:@@:@@";
         statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 10) % 10 + '0';
@@ -398,6 +400,8 @@ int main(void) {
         pos++;
 
         unsigned long rxBytesCount = ticSerial.getRxBytesTotal();
+        statusLine[pos++]=(rxBytesCount / 10000000) % 10 + '0';
+        statusLine[pos++]=(rxBytesCount / 1000000) % 10 + '0';
         statusLine[pos++]=(rxBytesCount / 100000) % 10 + '0';
         statusLine[pos++]=(rxBytesCount / 10000) % 10 + '0';
         statusLine[pos++]=(rxBytesCount / 1000) % 10 + '0';
@@ -415,36 +419,27 @@ int main(void) {
 
         pos++;
 
-        const TIC::Horodate& displayedHorodate = fakeHorodate;
-        unsigned int horodateHour = displayedHorodate.hour;
-        statusLine[pos++]=(horodateHour / 10) % 10 + '0';
-        statusLine[pos++]=(horodateHour / 1) % 10 + '0';
-        pos++;
-        unsigned int horodateMinute = displayedHorodate.minute;
-        statusLine[pos++]=(horodateMinute / 10) % 10 + '0';
-        statusLine[pos++]=(horodateMinute / 1) % 10 + '0';
-        pos++;
-        unsigned int horodateSecond = displayedHorodate.second;
-        statusLine[pos++]=(horodateSecond / 10) % 10 + '0';
-        statusLine[pos++]=(horodateSecond / 1) % 10 + '0';
-        pos++;
-
-        const TicEvaluatedPower& displayedPower = power;
-        statusLine[pos++]=(displayedPower.minValue<0)?'-':' ';
-        unsigned int minValue = (displayedPower.minValue<0)?-displayedPower.minValue:displayedPower.minValue;
-        statusLine[pos++]=(minValue / 1000) % 10 + '0';
-        statusLine[pos++]=(minValue / 100) % 10 + '0';
-        statusLine[pos++]=(minValue / 10) % 10 + '0';
-        statusLine[pos++]=(minValue / 1) % 10 + '0';
-        pos++; // ';'
-
-        statusLine[pos++]=(displayedPower.maxValue<0)?'-':' ';
-        unsigned int maxValue = (displayedPower.maxValue<0)?-displayedPower.maxValue:displayedPower.maxValue;
-        statusLine[pos++]=(maxValue / 1000) % 10 + '0';
-        statusLine[pos++]=(maxValue / 100) % 10 + '0';
-        statusLine[pos++]=(maxValue / 10) % 10 + '0';
-        statusLine[pos++]=(maxValue / 1) % 10 + '0';
-        pos++; // 'W'
+        unsigned int nbSamples = 1;
+        PowerHistoryEntry lastMeasurement;
+        powerHistory.getLastPower(nbSamples, &lastMeasurement);
+        if (nbSamples == 1 && lastMeasurement.horodate.isValid) {   /* We have a valid last measurement */
+            const TIC::Horodate& displayedHorodate = lastMeasurement.horodate;
+            unsigned int horodateHour = displayedHorodate.hour;
+            statusLine[pos++]=(horodateHour / 10) % 10 + '0';
+            statusLine[pos++]=(horodateHour / 1) % 10 + '0';
+            pos++;
+            unsigned int horodateMinute = displayedHorodate.minute;
+            statusLine[pos++]=(horodateMinute / 10) % 10 + '0';
+            statusLine[pos++]=(horodateMinute / 1) % 10 + '0';
+            pos++;
+            unsigned int horodateSecond = displayedHorodate.second;
+            statusLine[pos++]=(horodateSecond / 10) % 10 + '0';
+            statusLine[pos++]=(horodateSecond / 1) % 10 + '0';
+            pos++;
+        }
+        else {
+            pos += 9;
+        }
 
         BSP_LCD_SetFont(&Font24);
         lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
@@ -457,10 +452,10 @@ int main(void) {
         
         lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
-        char mainInstPowerText[] = "-[9999;9999]W";
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
-        const TicEvaluatedPower& instantaneousPower = ticParser.lastFrameMeasurements.instPower;
-        if (instantaneousPower.isValid) {
+        if (nbSamples == 1 && lastMeasurement.power.isValid) {   /* We have a valid last measurement */
+            char mainInstPowerText[] = "-[9999;9999]W";
+            const TicEvaluatedPower& instantaneousPower = lastMeasurement.power;
             if (instantaneousPower.isExact && instantaneousPower.minValue>0) {  /* We are withdrawing power */
                 unsigned int withdrawnPower = static_cast<unsigned int>(instantaneousPower.minValue);
                 if (withdrawnPower <= 9999) {

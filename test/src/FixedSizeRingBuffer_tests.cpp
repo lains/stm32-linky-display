@@ -35,11 +35,11 @@ TEST(FixedSizeRingBuffer_tests, reset) {
     rbuf.push(0);
     rbuf.push(0);
 
-    EXPECT_EQ(rbuf.getCount(), 3);
+    EXPECT_EQ(rbuf.getCount(), static_cast<std::size_t>(3));
 
     rbuf.reset();
 
-    EXPECT_EQ(rbuf.getCount(), 0);
+    EXPECT_EQ(rbuf.getCount(), static_cast<std::size_t>(0));
 
     rbuf.push(3);
 
