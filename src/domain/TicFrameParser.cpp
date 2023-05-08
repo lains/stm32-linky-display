@@ -2,6 +2,7 @@
 
 #include <climits>
 #include <string.h>
+#include <sstream>
 #include <utility> // For std::swap()
 
 #ifndef __UNIT_TEST__
@@ -51,6 +52,21 @@ bool operator==(const TicEvaluatedPower& lhs, const TicEvaluatedPower& rhs) {
             lhs.maxValue == rhs.maxValue);
 }
 
+std::string TicEvaluatedPower::toString() const {
+    std::stringstream result;
+    result << "TicEvaluatedPower(";
+    if (!this->isValid) {
+        result << "INVALID";
+    }
+    else {
+        result << this->minValue;
+        result << ";";
+        result << this->maxValue;
+    }
+    result << ")";
+    return result.str();
+}
+
 void TicEvaluatedPower::swapWith(TicEvaluatedPower& other) {
     std::swap(this->isValid, other.isValid);
     std::swap(this->minValue, other.minValue);
@@ -59,6 +75,10 @@ void TicEvaluatedPower::swapWith(TicEvaluatedPower& other) {
 
 void std::swap(TicEvaluatedPower& first, TicEvaluatedPower& second) {
     first.swapWith(second);
+}
+
+std::string std::to_string(const TicEvaluatedPower& power) {
+    return power.toString();
 }
 
 TicMeasurements::TicMeasurements() :

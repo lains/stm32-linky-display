@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "TIC/DatasetExtractor.h"
 #include "TIC/DatasetView.h"
 #include "FixedSizeRingBuffer.h"
@@ -24,6 +26,8 @@ public:
     void set(int value);
 
     void swapWith(TicEvaluatedPower& other);
+
+    std::string toString() const;
 
     friend bool operator==(const TicEvaluatedPower& lhs, const TicEvaluatedPower& rhs);
 
@@ -176,3 +180,9 @@ public:
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
 };
+
+/* std::to_string() for TicEvaluatedPower */
+namespace std {
+    std::string to_string(const TicEvaluatedPower& power);
+}
+
