@@ -57,18 +57,18 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValues) {
     EXPECT_EQ(2, phe.nbSamples);
 }
 
-// TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValuesNegativePositive) {
-//     char sampleHorodate1AsCString[] = "e220502124903";
-// 	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate1AsCString), strlen(sampleHorodate1AsCString));
+TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValuesNegativePositive) {
+    char sampleHorodate1AsCString[] = "e220502124903";
+	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate1AsCString), strlen(sampleHorodate1AsCString));
 
-//     PowerHistoryEntry phe(TicEvaluatedPower(-2000, -2000), horodate1);
+    PowerHistoryEntry phe(TicEvaluatedPower(-2000, -2000), horodate1);
 
-//     char sampleHorodate2AsCString[] = "e230502134903";
-// 	TIC::Horodate horodate2 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate2AsCString), strlen(sampleHorodate2AsCString));
+    char sampleHorodate2AsCString[] = "e230502134903";
+	TIC::Horodate horodate2 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate2AsCString), strlen(sampleHorodate2AsCString));
 
-//     phe.averageWithPowerSample(TicEvaluatedPower(+1000, +1000), horodate2);
+    phe.averageWithPowerSample(TicEvaluatedPower(+1000, +1000), horodate2);
 
-//     EXPECT_EQ(horodate2, phe.horodate);
-//     EXPECT_EQ(TicEvaluatedPower(-500, -500), phe.power);
-//     EXPECT_EQ(2, phe.nbSamples);
-// }
+    EXPECT_EQ(horodate2, phe.horodate);
+    EXPECT_EQ(TicEvaluatedPower(-500, -500), phe.power);
+    EXPECT_EQ(2, phe.nbSamples);
+}
