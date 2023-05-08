@@ -6,8 +6,16 @@ struct PowerHistoryEntry {
     PowerHistoryEntry();
     PowerHistoryEntry(const TicEvaluatedPower& power, const TIC::Horodate& horodate);
 
+private:
+    /**
+     * @brief Convert a signed long int to a signed int, truncating if needed
+     * 
+     * @param input The signed value to convert
+     * @return A truncated value, equal to @p input if that value fits in a signed int, or maximized/minimized value if if overflows/underflows respectively
+     */
     static signed int truncateSignedLongToSignedInt(const signed long input);
 
+public:
     /**
      * @brief Update this object with an average between our current value and a new power measurement sample
      * 
