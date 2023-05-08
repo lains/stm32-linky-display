@@ -45,8 +45,8 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
     if (this->power.isExact && power.isExact) {
         /* Averaging two exact measurements */
         unsigned int totalNbSample = this->nbSamples + 1;
-        unsigned long int averagePower = ((static_cast<unsigned long int>(this->power.minValue) * this->nbSamples) +
-                                            static_cast<unsigned long int>(power.minValue)) / static_cast<unsigned long int>(totalNbSample);
+        signed long int averagePower = ((static_cast<signed long int>(this->power.minValue) * this->nbSamples) +
+                                         static_cast<signed long int>(power.minValue)) / static_cast<signed long int>(totalNbSample);
         this->power.set(truncateSignedLongToSignedInt(averagePower));
         this->nbSamples = totalNbSample;
         return;
