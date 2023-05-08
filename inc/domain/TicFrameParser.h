@@ -25,6 +25,8 @@ public:
 
     void swapWith(TicEvaluatedPower& other);
 
+    friend bool operator==(const TicEvaluatedPower& lhs, const TicEvaluatedPower& rhs);
+
     friend void ::std::swap(TicEvaluatedPower& first, TicEvaluatedPower& second);
 
 /* Attributes */

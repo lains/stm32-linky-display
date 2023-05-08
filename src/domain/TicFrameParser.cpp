@@ -45,6 +45,12 @@ void TicEvaluatedPower::set(int value) {
     this->setMinMax(value, value);
 }
 
+bool operator==(const TicEvaluatedPower& lhs, const TicEvaluatedPower& rhs) {
+    return (lhs.isValid == rhs.isValid &&
+            lhs.minValue == rhs.minValue &&
+            lhs.maxValue == rhs.maxValue);
+}
+
 void TicEvaluatedPower::swapWith(TicEvaluatedPower& other) {
     std::swap(this->isValid, other.isValid);
     std::swap(this->minValue, other.minValue);

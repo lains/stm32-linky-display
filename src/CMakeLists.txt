@@ -4,6 +4,8 @@ project(stm32_linky_display)
 add_library(${PROJECT_NAME} SHARED
         domain/TicFrameParser.cpp
         domain/PowerHistory.cpp
+        ../ticdecodecpp/src/TIC/DatasetExtractor.cpp
+        ../ticdecodecpp/src/TIC/DatasetView.cpp
         )
 
 target_compile_options(${PROJECT_NAME} PUBLIC -Wall -fdiagnostics-color=always -Werror=uninitialized)
