@@ -27,7 +27,9 @@ public:
 
     void swapWith(TicEvaluatedPower& other);
 
+#ifdef __UNIT_TEST__
     std::string toString() const;
+#endif
 
     friend bool operator==(const TicEvaluatedPower& lhs, const TicEvaluatedPower& rhs);
 
@@ -181,8 +183,9 @@ public:
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
 };
 
+#ifdef __UNIT_TEST__
 /* std::to_string() for TicEvaluatedPower */
 namespace std {
     std::string to_string(const TicEvaluatedPower& power);
 }
-
+#endif
