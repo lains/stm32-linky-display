@@ -56,8 +56,8 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
     unsigned int totalNbSample = this->nbSamples + 1;
     long int averageMinPower = ((static_cast<long int>(this->power.minValue) * this->nbSamples) +
                                 static_cast<long int>(power.minValue)) / static_cast<long int>(totalNbSample);
-    long int averageMaxPower = ((static_cast<unsigned long>(this->power.maxValue) * this->nbSamples) +
-                                static_cast<unsigned long>(power.maxValue)) / static_cast<unsigned long>(totalNbSample);
+    long int averageMaxPower = ((static_cast<long int>(this->power.maxValue) * this->nbSamples) +
+                                static_cast<long int>(power.maxValue)) / static_cast<long int>(totalNbSample);
     /* We now get a high and low boundary (a range) for power value */
 
     /* Prior average and/or the new value are estimations, take min and max as they have been calculated */
