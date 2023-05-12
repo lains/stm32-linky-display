@@ -353,8 +353,6 @@ int main(void) {
     /* Initialize the LCD */
     OnError_Handler(!lcd.start());
 
-    //ticSerial.print("Buffers created. Starting...\r\n");
-
     PowerHistory powerHistory(PowerHistory::Per5Seconds);
 
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
@@ -425,7 +423,8 @@ int main(void) {
         */
         /* We can now work on draft buffer */
         uint8_t pos = 0;
-        char statusLine[]="@@@@L @@@@F @@@@@@@@B @@X @@:@@:@@";
+        char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X @@:@@:@@";
+        statusLine[pos++]=(lcdRefreshCount / 10000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 10) % 10 + '0';
@@ -435,6 +434,7 @@ int main(void) {
         pos++;
 
         unsigned int framesCount = ticParser.nbFramesParsed;
+        statusLine[pos++]=(framesCount / 10000) % 10 + '0';
         statusLine[pos++]=(framesCount / 1000) % 10 + '0';
         statusLine[pos++]=(framesCount / 100) % 10 + '0';
         statusLine[pos++]=(framesCount / 10) % 10 + '0';
