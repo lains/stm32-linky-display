@@ -121,11 +121,9 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     uint16_t debugX = UINT16_MAX;
     uint16_t debugYtop = UINT16_MAX;
     uint16_t debugYbottom = UINT16_MAX;
+    int debugMinPower = INT_MIN;
+    int debugMaxPower = INT_MAX;
     int debugValue = INT_MIN;
-
-    if (debugValue == INT_MIN)
-        debugValue = nbSamples;
-
 
     const int maxPower = 3000;
     const int minPower = -1500;
@@ -136,6 +134,21 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         if (debugX == UINT16_MAX) debugX = thisSampleAbsoluteX;
         PowerHistoryEntry& thisSampleEntry = powerMeasurements[measurementAge];
         TicEvaluatedPower& thisSamplePower = thisSampleEntry.power;
+
+        if (debugValue == INT_MIN) {
+            if (nbSamples>0) {
+                debugValue = thisSampleEntry.nbSamples;
+            }
+        }
+        if (debugMinPower == INT_MIN && debugMaxPower == INT_MAX) {
+            debugMinPower = thisSamplePower.minValue;
+            debugMaxPower = thisSamplePower.maxValue;
+            if (!thisSamplePower.isValid) {
+                debugMinPower = 0;
+                debugMaxPower = 0;
+            }
+        }
+
         if (thisSamplePower.isValid) {
             /* Review the code below */
             if (thisSamplePower.maxValue > 0) { /* Positive value, even if range, display the highest value of the range (worst case) */
@@ -249,6 +262,12 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
 
     pos+=4;
     if (debugValue != INT_MIN) {
+        debugValue = 1;
+        int fakeMinValue = -585;
+        signed long int averageMinPower = ((static_cast<signed long int>(fakeMinValue) * debugValue) +
+                                            static_cast<signed long int>(fakeMinValue)) / (debugValue+1);
+        debugValue = static_cast<int>(averageMinPower);
+
         if (debugValue < 0) {
             statusLine[pos++]='-';
             debugValue = -debugValue;
@@ -260,7 +279,29 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         statusLine[pos++]=(debugValue / 10) % 10 + '0';
         statusLine[pos++]=(debugValue / 1) % 10 + '0';
     }
+    pos++;
 
+    pos++;
+    if (debugMinPower != INT_MIN) {
+        if (debugMinPower < -99999 || debugMinPower > 99999) {
+            statusLine[pos++]='*'; /* Overflow/underflow */
+        }
+        else {
+            if (debugMinPower < 0) {
+                statusLine[pos++]='-';
+                debugMinPower = -debugMinPower;
+            }
+            else
+                statusLine[pos++]=' ';
+        }
+        statusLine[pos++]=(debugMinPower / 100000) % 10 + '0';
+        statusLine[pos++]=(debugMinPower / 10000) % 10 + '0';
+        statusLine[pos++]=(debugMinPower / 1000) % 10 + '0';
+        statusLine[pos++]=(debugMinPower / 100) % 10 + '0';
+        statusLine[pos++]=(debugMinPower / 10) % 10 + '0';
+        statusLine[pos++]=(debugMinPower / 1) % 10 + '0';
+    }
+ 
     auto get_font24_ptr = [](const char c) {
         unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
         return &(Font24.table[(c-' ') * bytesPerGlyph]);
