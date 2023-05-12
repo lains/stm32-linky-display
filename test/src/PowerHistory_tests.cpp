@@ -316,3 +316,55 @@ TEST(PowerHistory_tests, PeriodPer10SecondsWithOneThenTwoSamplesInPeriod) {
     EXPECT_EQ(TicEvaluatedPower(100, 100), result[1].power);
     EXPECT_EQ(horodate1, result[1].horodate);
 }
+
+TEST(PowerHistory_tests, PeriodPer5SecondsWith9SuccessiveSamples) {
+    PowerHistoryEntry result[5];
+
+    typedef struct {
+        std::string horodateAsStr;
+        int minPower;
+        int maxPower;
+    } TestPowerData;
+
+    TestPowerData samplePowerData[] = {
+        {.horodateAsStr = "e230510141801", .minPower=-500, .maxPower=-250 }, /* First sampled period */
+        {.horodateAsStr = "e230510141801", .minPower=-500, .maxPower=-250 },
+        {.horodateAsStr = "e230510141802", .minPower=-500, .maxPower=-250 },
+        {.horodateAsStr = "e230510141803", .minPower=-500, .maxPower=-250 },
+
+        {.horodateAsStr = "e230510141805", .minPower=1000, .maxPower=1000 }, /* Second sampled period */
+        {.horodateAsStr = "e230510141806", .minPower=500, .maxPower=500 },
+        {.horodateAsStr = "e230510141807", .minPower=250, .maxPower=250 },
+        {.horodateAsStr = "e230510141807", .minPower=-250, .maxPower=-250 },
+        {.horodateAsStr = "e230510141809", .minPower=-500, .maxPower=-500 },
+
+        {.horodateAsStr = "e230510141810", .minPower=0, .maxPower=0 }, /* Third sampled period */
+    };
+
+    PowerHistory ph(PowerHistory::Per5Seconds);
+
+    for (unsigned int idx = 0; idx < sizeof(samplePowerData)/sizeof(samplePowerData[0]); idx++) {
+        TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<const uint8_t*>(samplePowerData[idx].horodateAsStr.c_str()), samplePowerData[idx].horodateAsStr.length());
+        TicEvaluatedPower evaluatedPower(samplePowerData[idx].minPower, samplePowerData[idx].maxPower);
+        ph.onNewPowerData(evaluatedPower, horodate);
+    }
+
+    unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
+    ph.getLastPower(nb, result);
+    EXPECT_EQ(3, nb);
+    if (result[2].power.minValue != -500) {
+        FAIL() << "Error on power min boundary: got " << result[2].power.minValue << ", expected " << -500;
+    }
+    if (result[2].power.maxValue != -250) {
+        FAIL() << "Error on power max boundary: got " << result[2].power.maxValue << ", expected " << -250;
+    }
+    int expectedAvgMin = 200;
+    int expectedAvgMax = 200;
+    if (result[1].power.minValue < expectedAvgMin - 2 || result[1].power.minValue > expectedAvgMin + 2) { /* We tolereate +/-2 errors due to cumulative rounding */
+        FAIL() << "Error on power min boundary: got " << result[1].power.minValue << ", expected " << expectedAvgMin << "+/-2";
+    }
+    if (result[1].power.maxValue < expectedAvgMax - 2 || result[1].power.maxValue > expectedAvgMax + 2) { /* We tolereate +/-2 errors due to cumulative rounding */
+        FAIL() << "Error on power max boundary: got " << result[1].power.maxValue << ", expected " << expectedAvgMax << "+/-2";
+    }
+    EXPECT_EQ(TicEvaluatedPower(0, 0), result[0].power);
+}
