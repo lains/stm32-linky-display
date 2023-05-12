@@ -47,7 +47,7 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
         /* Averaging two exact measurements */
         unsigned int totalNbSample = this->nbSamples + 1;
         signed long int averagePower = ((static_cast<signed long int>(this->power.minValue) * this->nbSamples) +
-                                         static_cast<signed long int>(power.minValue)) / static_cast<signed long int>(totalNbSample);
+                                        static_cast<signed long int>(power.minValue)) / static_cast<signed long int>(totalNbSample);
         this->power.set(truncateSignedLongToSignedInt(averagePower));
         this->nbSamples = totalNbSample;
         return;
@@ -55,10 +55,10 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
 
     /* Either first, second or both are no exact values but ranges, the calculation is a bit mode complex */
     unsigned int totalNbSample = this->nbSamples + 1;
-    long int averageMinPower = ((static_cast<long int>(this->power.minValue) * this->nbSamples) +
-                                static_cast<long int>(power.minValue)) / static_cast<long int>(totalNbSample);
-    long int averageMaxPower = ((static_cast<long int>(this->power.maxValue) * this->nbSamples) +
-                                static_cast<long int>(power.maxValue)) / static_cast<long int>(totalNbSample);
+    signed long int averageMinPower = ((static_cast<signed long int>(this->power.minValue) * this->nbSamples) +
+                                       static_cast<signed long int>(power.minValue)) / static_cast<signed long int>(totalNbSample);
+    signed long int averageMaxPower = ((static_cast<signed long int>(this->power.maxValue) * this->nbSamples) +
+                                       static_cast<signed long int>(power.maxValue)) / static_cast<signed long int>(totalNbSample);
     /* We now get a high and low boundary (a range) for power value */
 
     /* Prior average and/or the new value are estimations, take min and max as they have been calculated */

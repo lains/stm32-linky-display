@@ -314,7 +314,7 @@ int main(void) {
 
     //ticSerial.print("Buffers created. Starting...\r\n");
 
-    PowerHistory powerHistory(PowerHistory::PerSecond);
+    PowerHistory powerHistory(PowerHistory::Per5Seconds);
 
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
