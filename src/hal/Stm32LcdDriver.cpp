@@ -322,14 +322,20 @@ uint16_t Stm32LcdDriver::getHeight() const {
     return LCDHeight;
 }
 
-void Stm32LcdDriver::drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color) {
+void Stm32LcdDriver::drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color, LCD_Color alternateColor, uint8_t alternateRatio) {
 #if 1
     if (x >= this->getWidth())
         return;
     for (unsigned int yPos = y; yPos < y+yPlus; yPos++) {
         if (yPos >= this->getHeight())
             return;
-        BSP_LCD_DrawPixel(x, yPos, color);
+        LCD_Color pixColor = color;
+        if (alternateColor != LCD_Color::None && alternateRatio != 0) {
+            if ((x + yPos) % (alternateRatio + 1) != 0)
+                pixColor = alternateColor;
+        }
+        if (pixColor != LCD_Color::Transparent)
+            BSP_LCD_DrawPixel(x, yPos, pixColor);
     }
 #else
     uint32_t *topPixelPtr = static_cast<uint32_t*>(this->draftFramebuffer) + (this->getWidth()*y + x); /* Because we are using a uint32_t*, offset will shift the address by 32bits per pixels */
@@ -337,13 +343,19 @@ void Stm32LcdDriver::drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LC
 #endif
 }
 
-void Stm32LcdDriver::drawHorizontalLine(uint16_t x, uint16_t y, uint16_t xPlus, LCD_Color color) {
+void Stm32LcdDriver::drawHorizontalLine(uint16_t x, uint16_t y, uint16_t xPlus, LCD_Color color, LCD_Color alternateColor, uint8_t alternateRatio) {
     if (y >= this->getHeight())
         return;
     for (unsigned int xPos = x; xPos < x+xPlus; xPos++) {
         if (xPos >= this->getWidth())
             return;
-        BSP_LCD_DrawPixel(xPos, y, color);
+        LCD_Color pixColor = color;
+        if (alternateColor != LCD_Color::None && alternateRatio != 0) {
+            if ((xPos + y) % (alternateRatio + 1) != 0)
+                pixColor = alternateColor;
+        }
+        if (pixColor != LCD_Color::Transparent)
+            BSP_LCD_DrawPixel(xPos, y, pixColor);
     }
 }
 

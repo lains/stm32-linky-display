@@ -184,7 +184,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
                 }
                 if (debugYtop == UINT16_MAX) debugYtop = thisSampleTopAbsoluteY;
                 if (debugYbottom == UINT16_MAX) debugYbottom = thisSampleBottomAbsoluteY;
-                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::DarkGreen);
+                lcd.drawVerticalLine(thisSampleAbsoluteX, thisSampleTopAbsoluteY, thisSampleBottomAbsoluteY-thisSampleTopAbsoluteY, Stm32LcdDriver::DarkGreen, Stm32LcdDriver::Green, 1);
             }
         }
     }
@@ -193,17 +193,17 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     uint16_t gridX = width - nbSamples;
     uint16_t gridWidth = nbSamples;
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 3000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
-    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw +3000W) */
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw +3000W) */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 2000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
-    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw +2000W */
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw +2000W */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
-    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw +1000W */
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw +1000W */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
-    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey); /* Draw -1000W */
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw -1000W */
 
     /* FIXME: for debug only - start */
     uint8_t pos = 0;
-    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@";
+    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P @@@@@@@";
     pos+=3; // "DH="
     statusLine[pos++]=(nbSamples / 1000) % 10 + '0';
     statusLine[pos++]=(nbSamples / 100) % 10 + '0';

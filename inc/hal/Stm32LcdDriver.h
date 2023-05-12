@@ -37,7 +37,8 @@ public:
         DarkGreen = LCD_COLOR_DARKGREEN,
         DarkRed = LCD_COLOR_DARKRED,
         DarkBlue = LCD_COLOR_DARKBLUE,
-        Transparent = (uint32_t)(0x00000000)
+        Transparent = static_cast<uint32_t>(0x00000000),
+        None = static_cast<uint32_t>(0x00ffffff)
     } LCD_Color;
 
     typedef void(*FWaitForDisplayRefreshFunc)(void* context);
@@ -82,8 +83,15 @@ public:
      * @param y The top y position of the line on the LCD
      * @param yPlus The length of the line (in pixels), drawn towards the bottom of the screen, starting from (x;y)
      * @param color An optional 32-bit text color to use when drawing
+     * @param alternateColor An optional 32-bit text color that will alternate with @p color when drawing the line (if set to LCD_Color::None, we will draw a solid line)
+     * @param alternateRatio The ratio between the number of pixels drawn with @p color and those drawn with @p alternateColor or 0 to only use color
+     * 
+     * @example Invoking this method with arguments color=Black, alternateColor=None and whatever value in alternateRatio will draw a solid black line
+     *          Invoking this method with arguments color=Blue, alternateColor=Red and alternateRatio=0 will draw a solid blue line
+     *          Invoking this method with arguments color=Blue, alternateColor=Red and alternateRatio=1 will draw a line with alternated blue and red pixels (will lead to a purple line)
+     *          Invoking this method with arguments color=DarkGreen, alternateColor=Transparent and alternateRatio=3 will draw a line with on dark green dot every 4 pixels (*   *   *)
      */
-    void drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color = LCD_Color::Black);
+    void drawVerticalLine(uint16_t x, uint16_t y, uint16_t yPlus, LCD_Color color = LCD_Color::Black, LCD_Color alternateColor = LCD_Color::None, uint8_t alternateRatio = 0);
 
     /**
      * @brief Draw a plain 1-pixel wide vertical line
@@ -92,8 +100,16 @@ public:
      * @param y The y position of the line on the LCD
      * @param xPlus The length of the line (in pixels), drawn towards the right of the screen, starting from (x;y)
      * @param color An optional 32-bit text color to use when drawing
+     * @param alternateColor An optional 32-bit text color that will alternate with @p color when drawing the line (if set to LCD_Color::None, we will draw a solid line)
+     * @param alternateRatio The ratio between the number of pixels drawn with @p color and those drawn with @p alternateColor or 0 to only use color
+     * 
+     * @example Invoking this method with arguments color=Black, alternateColor=None and whatever value in alternateRatio will draw a solid black line
+     *          Invoking this method with arguments color=Blue, alternateColor=Red and alternateRatio=0 will draw a solid blue line
+     *          Invoking this method with arguments color=Blue, alternateColor=Red and alternateRatio=1 will draw a line with alternated blue and red pixels (will lead to a purple line)
+     *          Invoking this method with arguments color=DarkGreen, alternateColor=Transparent and alternateRatio=3 will draw a line with on dark green dot every 4 pixels (*   *   *)
      */
-    void drawHorizontalLine(uint16_t x, uint16_t y, uint16_t xPlus, LCD_Color color = LCD_Color::Black);
+    void drawHorizontalLine(uint16_t x, uint16_t y, uint16_t xPlus, LCD_Color color = LCD_Color::Black, LCD_Color alternateColor = LCD_Color::None, uint8_t alternateRatio = 0);
+
     /**
      * @brief Draw a character (glyph) on the LCD
      * 
