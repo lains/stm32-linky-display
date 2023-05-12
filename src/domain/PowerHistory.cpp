@@ -123,34 +123,28 @@ bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, co
     /* If we fall here, we are averaging over less than 1 minute */
     if (first.minute != second.minute)
         return false; /* Period is different whenever the minute is different between the two horodates */
-    unsigned int maxPeriodDeltaInSeconds = 0;
+    unsigned int periodStepInSeconds = 0;
     switch (this->averagingPeriod) {
         case PerSecond:
-            maxPeriodDeltaInSeconds = 1;
+            periodStepInSeconds = 1;
             break;
         case Per5Seconds:
-            maxPeriodDeltaInSeconds = 5;
+            periodStepInSeconds = 5;
             break;
         case Per10Seconds:
-            maxPeriodDeltaInSeconds = 10;
+            periodStepInSeconds = 10;
             break;
         case Per15Seconds:
-            maxPeriodDeltaInSeconds = 15;
+            periodStepInSeconds = 15;
             break;
         case Per30Seconds:
-            maxPeriodDeltaInSeconds = 30;
+            periodStepInSeconds = 30;
             break;
         default:    /* All other possible periods are over one minute, they have been handled above, this block should never be reached */
             return false;
     }
-    unsigned int delta;
-    if (first.second > second.second) {
-        delta = first.second - second.second;
-    }
-    else {
-        delta = second.second - first.second;
-    }
-    return (delta < maxPeriodDeltaInSeconds);
+    std::cout << "Comparing steps: " << first.second / periodStepInSeconds << " vs " << second.second / periodStepInSeconds << "\n";
+    return ((first.second / periodStepInSeconds) == (second.second / periodStepInSeconds)); /* return true only if we are in the same step, even if remainders (seconds) are different */
 }
 
 void PowerHistory::unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context) {
