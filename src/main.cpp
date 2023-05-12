@@ -357,6 +357,9 @@ int main(void) {
     unsigned int lcdRefreshCount = 0;
     //char sampleHorodateAsCString[] = "e230502000000";
 	//TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+
+    TicEvaluatedPower lastReceivedPower;
+
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
 
@@ -453,9 +456,12 @@ int main(void) {
         lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
-        if (nbSamples == 1 && lastMeasurement.power.isValid) {   /* We have a valid last measurement */
+        if (ticParser.lastFrameMeasurements.instPower.isValid) {
+            lastReceivedPower = ticParser.lastFrameMeasurements.instPower;
+        }
+        if (lastReceivedPower.isValid) {   /* We have a valid last measurement */
             char mainInstPowerText[] = "-[9999;9999]W";
-            const TicEvaluatedPower& instantaneousPower = lastMeasurement.power;
+            const TicEvaluatedPower& instantaneousPower = lastReceivedPower;
             if (instantaneousPower.isExact && instantaneousPower.minValue>0) {  /* We are withdrawing power */
                 unsigned int withdrawnPower = static_cast<unsigned int>(instantaneousPower.minValue);
                 if (withdrawnPower <= 9999) {
