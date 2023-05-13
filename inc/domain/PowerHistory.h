@@ -50,6 +50,13 @@ struct PowerHistory {
     bool horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second);
 
     /**
+     * @brief Get the averaging period value (in seconds)
+     * 
+     * @return The averaging period in seconds (the period that has been provided at construction), or 0 if unknown (error case)
+     */
+    unsigned int getAveragingPeriodInSeconds() const;
+
+    /**
      * @brief Utility function to unwrap a TicFrameParser instance and invoke onDatasetExtracted() on it
      * It is used as a callback provided to TIC::DatasetExtractor
      * 
