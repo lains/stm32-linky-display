@@ -152,6 +152,13 @@ unsigned int PowerHistory::getAveragingPeriodInSeconds() const {
     }
 }
 
+unsigned int PowerHistory::getPowerRecordsPerHour() const {
+    unsigned int averagingPeriodInSeconds = this->getAveragingPeriodInSeconds();
+    if (averagingPeriodInSeconds == 0)
+        return 0;
+    return (60 * 60 / averagingPeriodInSeconds);
+}
+
 void PowerHistory::unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context) {
     if (context == nullptr)
         return; /* Failsafe, discard if no context */

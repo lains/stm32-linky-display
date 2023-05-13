@@ -57,6 +57,13 @@ struct PowerHistory {
     unsigned int getAveragingPeriodInSeconds() const;
 
     /**
+     * @brief Get the number of power history entries (averaging periods) per hour
+     * 
+     * @return The number of entries recorded per hour, or 0 if unknown (error case)
+     */
+    unsigned int getPowerRecordsPerHour() const;
+
+    /**
      * @brief Utility function to unwrap a TicFrameParser instance and invoke onDatasetExtracted() on it
      * It is used as a callback provided to TIC::DatasetExtractor
      * 
