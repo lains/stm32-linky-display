@@ -398,6 +398,9 @@ int main(void) {
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
 
+#ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
+    auto streamTicRxBytesToUnframer = [](void* context) { }; /* Discard any TIC data */
+#else
     auto streamTicRxBytesToUnframer = [](void* context) {
         if (context == nullptr)
             return;
@@ -427,24 +430,31 @@ int main(void) {
             ticContext->serialRxOverflowCount += serialRxOverflowCount;
         }
     };
+#endif
 
     unsigned int lcdRefreshCount = 0;
-    //char sampleHorodateAsCString[] = "e230502000000";
-	//TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+#ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
+    char sampleHorodateAsCString[] = "e230502000000";
+	TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+#endif
 
     TicEvaluatedPower lastReceivedPower;
 
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
+        //debugTerm.send("Display refresh\r\n");
 
         ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
 
-        /*
-        int simulatedPower = 3000 - static_cast<int>(lcdRefreshCount*100);
-        while (simulatedPower < -1200) {
-            simulatedPower+= 4000;
+#ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
+        int fakePowerRefV = static_cast<int>(3000) - (static_cast<int>((lcdRefreshCount*30) % 6000)); /* Results in sweeping from +3000 to -3000W */
+        int fakeMinPower = fakePowerRefV;
+        int fakeMaxPower = fakePowerRefV;
+        if (fakePowerRefV < 0) { /* When reaching negative values, forge a range instead of an exact measurement to be more realistic */
+            fakeMinPower = fakePowerRefV/3;
+            fakeMaxPower = fakePowerRefV/4; /* If negative, corrects to -3000 to [-1000;-750] */
         }
-        TicEvaluatedPower power((simulatedPower<0)?simulatedPower/2:simulatedPower, simulatedPower);
+        TicEvaluatedPower fakePower(fakeMinPower, fakeMaxPower);
         fakeHorodate.second++;
         if (fakeHorodate.second >= 60) {
             fakeHorodate.second = 0;
@@ -454,8 +464,9 @@ int main(void) {
                 fakeHorodate.hour++;
             }
         }
-        //powerHistory.onNewPowerData(power, fakeHorodate);
-        */
+        ticParser.lastFrameMeasurements.instPower = fakePower;
+        powerHistory.onNewPowerData(fakePower, fakeHorodate);
+#endif
         /* We can now work on draft buffer */
         uint8_t pos = 0;
         char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X @@:@@:@@";
