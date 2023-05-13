@@ -12,7 +12,23 @@ extern "C" {
 #define USART6_FORCE_RESET()             __HAL_RCC_USART6_FORCE_RESET()
 #define USART6_RELEASE_RESET()           __HAL_RCC_USART6_RELEASE_RESET()
 
-/* Definition for USARTx Pins */
+#define USART3_CLK_ENABLE()              __HAL_RCC_USART3_CLK_ENABLE()
+#define USART3_CLK_DISABLE()             __HAL_RCC_USART3_CLK_DISABLE()
+#define USART3_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOD_CLK_ENABLE()
+#define USART3_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOD_CLK_ENABLE()
+
+#define USART3_FORCE_RESET()             __HAL_RCC_USART3_FORCE_RESET()
+#define USART3_RELEASE_RESET()           __HAL_RCC_USART3_RELEASE_RESET()
+
+/* Definition for USART3 Pins (forwarded to J-Link's virtual com port) */
+#define USART3_TX_PIN                    GPIO_PIN_8
+#define USART3_TX_GPIO_PORT              GPIOD
+#define USART3_TX_AF                     GPIO_AF7_USART3
+#define USART3_RX_PIN                    GPIO_PIN_9
+#define USART3_RX_GPIO_PORT              GPIOD
+#define USART3_RX_AF                     GPIO_AF7_USART3
+
+/* Definition for USART6 Pins */
 #define USART6_TX_PIN                    GPIO_PIN_6
 #define USART6_TX_GPIO_PORT              GPIOC
 #define USART6_TX_AF                     GPIO_AF8_USART6
@@ -75,10 +91,32 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
         HAL_NVIC_SetPriority(USART6_IRQn, 0, 0);
         HAL_NVIC_EnableIRQ(USART6_IRQn);
     }
+    else if (huart->Instance==USART3) {
+        USART3_TX_GPIO_CLK_ENABLE();
+        USART3_RX_GPIO_CLK_ENABLE();
+
+        /* Peripheral clock enable */
+        USART3_CLK_ENABLE();
+
+        GPIO_InitStruct.Pin       = USART3_TX_PIN;
+        GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull      = GPIO_PULLUP;
+        GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+        GPIO_InitStruct.Alternate = USART3_TX_AF;
+        HAL_GPIO_Init(USART3_TX_GPIO_PORT, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = USART3_RX_PIN;
+        GPIO_InitStruct.Alternate = USART3_RX_AF;
+        HAL_GPIO_Init(USART3_RX_GPIO_PORT, &GPIO_InitStruct);
+    }
 }
 
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     /*##-1- Reset peripherals ##################################################*/
+    if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) {
+        return;
+    }
+
     if (huart->Instance==USART6) {
         /* Peripheral clock disable */
         USART6_FORCE_RESET();
@@ -94,6 +132,20 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
         HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6|GPIO_PIN_7);
         /* USART6 interrupt DeInit */
         HAL_NVIC_DisableIRQ(USART6_IRQn);
+    }
+    else if (huart->Instance==USART3) {
+        /* Peripheral clock disable */
+        USART3_FORCE_RESET();
+        USART3_RELEASE_RESET();
+
+        /*##-2- Disable peripherals and GPIO Clocks #################################*/
+        USART3_CLK_DISABLE();
+        /* De-Initialize USART3 Tx and RX */
+        /**USART6 GPIO Configuration
+        PD8     ------> USART3_TX
+        PD9     ------> USART3_RX
+        */
+        HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8|GPIO_PIN_9);
     }
 }
 

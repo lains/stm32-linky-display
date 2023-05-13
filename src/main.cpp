@@ -311,6 +311,39 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     /* FIXME: end */
 }
 
+class Stm32DebugOutput {
+public:
+    Stm32DebugOutput() : inError(false) {
+        this->handle.Instance = USART3;
+        this->handle.Init.BaudRate = 57600;
+        this->handle.Init.WordLength = UART_WORDLENGTH_8B;
+        this->handle.Init.StopBits = UART_STOPBITS_1;
+        this->handle.Init.Parity = UART_PARITY_NONE;
+        this->handle.Init.Mode = UART_MODE_TX_RX;
+        this->handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+
+        HAL_UART_DeInit(&(this->handle));
+        if (HAL_UART_Init(&handle) != HAL_OK) {
+            this->inError = true;
+        }
+    }
+
+    bool send(const uint8_t* buffer, unsigned int len) {
+        if (this->inError) return false;
+        HAL_StatusTypeDef result = HAL_UART_Transmit(&(this->handle), (uint8_t*)buffer, len, 5000);
+        if (result != HAL_OK)
+            this->inError = true;
+        return this->inError;
+    }
+
+    bool send(const char* text) {
+        return this->send(reinterpret_cast<const uint8_t*>(text), strlen(text));
+    }
+
+    bool inError;
+    UART_HandleTypeDef handle;
+};
+
 /**
  * @brief  Main program
  */
@@ -342,6 +375,8 @@ int main(void) {
     /* Initialize the SDRAM */
     BSP_SDRAM_Init();
     //BSP_SD_Init();
+
+    Stm32DebugOutput debugSerial;
 
     Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
 
