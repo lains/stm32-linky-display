@@ -1,7 +1,6 @@
 #include "PowerHistory.h"
 
 #include <climits>
-// #include <iostream>
 
 PowerHistoryEntry::PowerHistoryEntry() :
     power(),
@@ -91,32 +90,25 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Hor
     if (!power.isValid || !horodate.isValid) {
         return;
     }
-    // std::cout << "Got horodate " << horodate.toString() << ", our last horodate is " << this->lastPowerHorodate.toString() << "\n";
     if (this->horodatesAreInSamePeriodSample(horodate, this->lastPowerHorodate)) {
         PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
         if (lastEntry != nullptr) {
-            // std::cout << "!!! In same period, averaging with previous " << lastEntry->nbSamples << " previous samples\n";
             lastEntry->averageWithPowerSample(power, horodate);
             this->lastPowerHorodate = horodate;
-            // std::cout << "Average has been computed. History has " << this->data.getCount() << " elts\n";
             return;
         }
-        // std::cout << "No history yet, should not occur!\n";
         /* If lastEntry is not valid, create a new entry by falling-through the following code */
     }
     this->data.push(PowerHistoryEntry(power, horodate)); /* First sample in this period */
     this->lastPowerHorodate = horodate;
-    // std::cout << "Recording new entry. History now has " << this->data.getCount() << " elts\n";
 }
 
 bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second) {
-    // std::cout << "Comparing " << first.toString() << " with " << second.toString() << "\n";
     if (first.year != second.year ||
         first.month != second.month ||
         first.day != second.day ||
         first.hour != second.hour)
         return false; /* Period is different whenever anything longer than one hour is different between the two horodates */
-    // std::cout << "All yymmdd and hour are identical\n";
     if (this->averagingPeriod >= AveraginOverMinutesOrMore) { /* We are averaging over at least 1 minute, so only compare minutes */
         switch (this->averagingPeriod) {
             case PerMinute:
@@ -132,7 +124,6 @@ bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, co
                 return false;
         }
     }
-    // std::cout << "Averaging on <1min\n";
     /* If we fall here, we are averaging over less than 1 minute */
     if (first.minute != second.minute)
         return false; /* Period is different whenever the minute is different between the two horodates */
@@ -156,7 +147,6 @@ bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, co
         default:    /* All other possible periods are over one minute, they have been handled above, this block should never be reached */
             return false;
     }
-    // std::cout << "Comparing steps: " << first.second / periodStepInSeconds << " vs " << second.second / periodStepInSeconds << "\n";
     return ((first.second / periodStepInSeconds) == (second.second / periodStepInSeconds)); /* return true only if we are in the same step, even if remainders (seconds) are different */
 }
 
