@@ -111,12 +111,12 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     
     uint16_t xright = x + width - 1;
 
-    unsigned int nbSamples = width; /* Initially try to fill-in the full width of the area */
+    unsigned int nbHistoryEntries = width; /* Initially try to fill-in the full width of the area */
 
-    PowerHistoryEntry powerMeasurements[nbSamples];
-    history.getLastPower(nbSamples, powerMeasurements);
-    if (nbSamples > width) {    /* Sanity, should never occur */
-        nbSamples = width;
+    PowerHistoryEntry powerMeasurements[nbHistoryEntries];
+    history.getLastPower(nbHistoryEntries, powerMeasurements);
+    if (nbHistoryEntries > width) {    /* Sanity, overflow , exclude oldest entries to fit on display */
+        nbHistoryEntries = width;
     }
 
     uint16_t debugX = UINT16_MAX;
@@ -130,14 +130,14 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     const int minPower = -1500;
     uint16_t zeroSampleAbsoluteY = y;
     zeroSampleAbsoluteY += static_cast<uint16_t>(static_cast<unsigned long int>(maxPower) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
-    for (unsigned int measurementAge = 0; measurementAge < nbSamples; measurementAge++) {
+    for (unsigned int measurementAge = 0; measurementAge < nbHistoryEntries; measurementAge++) {
         uint16_t thisSampleAbsoluteX = xright - measurementAge;   /* First measurement sample is at the extreme right of the allocated area, next samples will be placed to the left */
         if (debugX == UINT16_MAX) debugX = thisSampleAbsoluteX;
         PowerHistoryEntry& thisSampleEntry = powerMeasurements[measurementAge];
         TicEvaluatedPower& thisSamplePower = thisSampleEntry.power;
 
         if (debugValue == INT_MIN) {
-            if (nbSamples>0) {
+            if (nbHistoryEntries>0) {
                 debugValue = thisSampleEntry.nbSamples;
             }
         }
@@ -204,8 +204,8 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     }
     lcd.drawHorizontalLine(x, zeroSampleAbsoluteY, width, Stm32LcdDriver::Black); /* Draw 0 */
     uint16_t gridY;
-    uint16_t gridX = width - nbSamples;
-    uint16_t gridWidth = nbSamples;
+    uint16_t gridX = width - nbHistoryEntries;
+    uint16_t gridWidth = nbHistoryEntries;
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 3000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw +3000W) */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 2000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
@@ -219,10 +219,10 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     uint8_t pos = 0;
     char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P=@@@@@@";
     pos+=3; // "DH="
-    statusLine[pos++]=(nbSamples / 1000) % 10 + '0';
-    statusLine[pos++]=(nbSamples / 100) % 10 + '0';
-    statusLine[pos++]=(nbSamples / 10) % 10 + '0';
-    statusLine[pos++]=(nbSamples / 1) % 10 + '0';
+    statusLine[pos++]=(nbHistoryEntries / 1000) % 10 + '0';
+    statusLine[pos++]=(nbHistoryEntries / 100) % 10 + '0';
+    statusLine[pos++]=(nbHistoryEntries / 10) % 10 + '0';
+    statusLine[pos++]=(nbHistoryEntries / 1) % 10 + '0';
     pos++;
 
     pos+=2;
