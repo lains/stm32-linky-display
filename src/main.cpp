@@ -7,6 +7,7 @@
 #include "PowerHistory.h"
 #include "TicFrameParser.h"
 
+//#define SIMULATE_POWER_VALUES_WITHOUT_TIC
 
 extern "C" {
 #include "main.h"
@@ -216,7 +217,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
 
     /* FIXME: for debug only - start */
     uint8_t pos = 0;
-    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P @@@@@@@";
+    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P=@@@@@@";
     pos+=3; // "DH="
     statusLine[pos++]=(nbSamples / 1000) % 10 + '0';
     statusLine[pos++]=(nbSamples / 100) % 10 + '0';
@@ -262,12 +263,6 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
 
     pos+=4;
     if (debugValue != INT_MIN) {
-        debugValue = 1;
-        int fakeMinValue = -585;
-        signed long int averageMinPower = ((static_cast<signed long int>(fakeMinValue) * debugValue) +
-                                            static_cast<signed long int>(fakeMinValue)) / (debugValue+1);
-        debugValue = static_cast<int>(averageMinPower);
-
         if (debugValue < 0) {
             statusLine[pos++]='-';
             debugValue = -debugValue;
@@ -281,7 +276,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     }
     pos++;
 
-    pos++;
+    pos+=2; // "P="
     if (debugMinPower != INT_MIN) {
         if (debugMinPower < -99999 || debugMinPower > 99999) {
             statusLine[pos++]='*'; /* Overflow/underflow */
