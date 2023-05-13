@@ -24,7 +24,12 @@ signed int PowerHistoryEntry::truncateSignedLongToSignedInt(const signed long in
     if (input < INT_MIN) {
         return INT_MIN;
     }
-    return static_cast<signed int>(input);
+    if (input>0) {
+        return static_cast<signed int>(input);
+    }
+    else {
+        return -static_cast<signed int>(static_cast<unsigned int>(-input));
+    }
 }
 
 void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
@@ -46,8 +51,11 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
     if (this->power.isExact && power.isExact) {
         /* Averaging two exact measurements */
         unsigned int totalNbSample = this->nbSamples + 1;
-        signed long int averagePower = ((static_cast<signed long int>(this->power.minValue) * this->nbSamples) +
-                                        static_cast<signed long int>(power.minValue)) / static_cast<signed long int>(totalNbSample);
+        /* Note: in the line below, division should be done in a separate instruction rather than on one calculation line. */
+        /* If we don't do that, on some buggy compilers, the result would overflow to high positive when dividing negative values */
+        signed long int averagePower = static_cast<signed long int>(this->power.minValue) * this->nbSamples;
+        averagePower += static_cast<signed long int>(power.minValue);
+        averagePower /= static_cast<signed long int>(totalNbSample);
         this->power.set(truncateSignedLongToSignedInt(averagePower));
         this->nbSamples = totalNbSample;
         return;
@@ -55,10 +63,15 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
 
     /* Either first, second or both are no exact values but ranges, the calculation is a bit mode complex */
     unsigned int totalNbSample = this->nbSamples + 1;
-    signed long int averageMinPower = ((static_cast<signed long int>(this->power.minValue) * this->nbSamples) +
-                                       static_cast<signed long int>(power.minValue)) / static_cast<signed long int>(totalNbSample);
-    signed long int averageMaxPower = ((static_cast<signed long int>(this->power.maxValue) * this->nbSamples) +
-                                       static_cast<signed long int>(power.maxValue)) / static_cast<signed long int>(totalNbSample);
+
+    /* Note: in the lines below, division should be done in a separate instruction rather than on one calculation line. */
+    /* If we don't do that, on some buggy compilers, the result would overflow to high positive when dividing negative values */
+    signed long int averageMinPower = static_cast<signed long int>(this->power.minValue) * this->nbSamples;
+    averageMinPower += static_cast<signed long int>(power.minValue);
+    averageMinPower /= static_cast<signed long int>(totalNbSample);
+    signed long int averageMaxPower = static_cast<signed long int>(this->power.maxValue) * this->nbSamples;
+    averageMaxPower += static_cast<signed long int>(power.maxValue);
+    averageMaxPower /= static_cast<signed long int>(totalNbSample);
     /* We now get a high and low boundary (a range) for power value */
 
     /* Prior average and/or the new value are estimations, take min and max as they have been calculated */
