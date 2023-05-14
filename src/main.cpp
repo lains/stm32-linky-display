@@ -225,6 +225,18 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw -1000W */
 
+    debugValue = nbHistoryEntries * 4 / history.getPowerRecordsPerHour();
+    for (unsigned int quarter = 1; quarter <= nbHistoryEntries * 4 / history.getPowerRecordsPerHour(); quarter++) {
+        uint16_t gridX = width;
+        if (gridX >= history.getPowerRecordsPerHour() * quarter / 4) {
+            gridX -= history.getPowerRecordsPerHour() * quarter / 4;
+            if (quarter % 4 == 0)  /* One hour */
+                lcd.drawVerticalLine(gridX, y, height, Stm32LcdDriver::Black); /* Draw each hour */
+            else
+                lcd.drawVerticalLine(gridX, y, height, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw each other quarter */
+        }
+    }
+
     /* FIXME: for debug only - start */
     uint8_t pos = 0;
     char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P=@@@@@@";
