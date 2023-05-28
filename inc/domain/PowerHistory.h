@@ -1,5 +1,8 @@
+#pragma once
+
 #include "FixedSizeRingBuffer.h"
 #include "TIC/DatasetView.h" // For TIC::Horodate
+#include "TicProcessingContext.h"
 #include "TicFrameParser.h" // For TicEvaluatedPower
 
 struct PowerHistoryEntry {
@@ -43,10 +46,30 @@ struct PowerHistory {
         Per5Minutes,
     } AveragingMode;
 
-    PowerHistory(AveragingMode averagingPeriod);
+    /**
+     * @brief Construct a new power history storage
+     * 
+     * @param averagingPeriod On which period do we average samples (we will only keep one value per period in the history, this is the step of our internal time resolution)
+     * @param context A TicProcessingContext or null to disable any context update on new power data reception
+     */
+    PowerHistory(AveragingMode averagingPeriod, TicProcessingContext* context = nullptr);
+
+    /**
+     * @brief Set the TicProcessingContext instance we refresh on new power data reception
+     * 
+     * @param context A TicProcessingContext or null to disable any context update 
+     */
+    void setContext(TicProcessingContext* context = nullptr);
 
     void onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate);
 
+    /**
+     * @brief Check if two horodates are part of the same internal time resolution (and will thus be averaged to be stored in the same period history entry)
+     * 
+     * @param first The first horodate
+     * @param second The second horodate
+     * @return true If @p first and @p second end up in the same averaging period, and should thus be averaged to create one signel history entry
+     */
     bool horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second);
 
     /**
@@ -84,5 +107,6 @@ struct PowerHistory {
 /* Attributes */
     FixedSizeRingBuffer<PowerHistoryEntry, 1024> data;    /*!< The last n instantaneous power measurements */
     AveragingMode averagingPeriod; /*!< Which sampling period do we record (we will perform an average on all samples within the period) */
+    TicProcessingContext* ticContext;   /*!< An optional context structure instance that we should refresh on new power data reception */
     TIC::Horodate lastPowerHorodate;    /*!< The horodate of the last received power measurement */
 };

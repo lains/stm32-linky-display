@@ -4,6 +4,7 @@
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "TIC/Unframer.h"
+#include "TicProcessingContext.h"
 #include "PowerHistory.h"
 #include "TicFrameParser.h"
 

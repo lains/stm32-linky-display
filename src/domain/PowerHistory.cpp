@@ -79,12 +79,18 @@ void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, c
     return;
 }
 
-PowerHistory::PowerHistory(AveragingMode averagingPeriod) :
+PowerHistory::PowerHistory(AveragingMode averagingPeriod, TicProcessingContext* context) :
     data(),
     averagingPeriod(averagingPeriod),
+    ticContext(context),
     lastPowerHorodate()
 {
 }
+
+void PowerHistory::setContext(TicProcessingContext* context) {
+    this->ticContext = context;
+}
+
 
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
     if (!power.isValid || !horodate.isValid) {
