@@ -92,7 +92,7 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 }
 
 
-void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
+void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
     if (!power.isValid || !horodate.isValid) {
         return;
     }
@@ -165,12 +165,12 @@ unsigned int PowerHistory::getPowerRecordsPerHour() const {
     return (60 * 60 / averagingPeriodInSeconds);
 }
 
-void PowerHistory::unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context) {
+void PowerHistory::unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb, void* context) {
     if (context == nullptr)
         return; /* Failsafe, discard if no context */
     PowerHistory* powerHistoryInstance = static_cast<PowerHistory*>(context);
     /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
-    powerHistoryInstance->onNewPowerData(power, horodate);
+    powerHistoryInstance->onNewPowerData(power, horodate, frameSequenceNb);
 }
 
 void PowerHistory::getLastPower(unsigned int& nb, PowerHistoryEntry* result) const {

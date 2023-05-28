@@ -402,6 +402,8 @@ int main(void) {
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
 
+    powerHistory.setContext(&ticContext);
+
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
     auto streamTicRxBytesToUnframer = [](void* context) { }; /* Discard any TIC data */
 #else

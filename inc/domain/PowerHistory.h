@@ -61,7 +61,14 @@ struct PowerHistory {
      */
     void setContext(TicProcessingContext* context = nullptr);
 
-    void onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate);
+    /**
+     * @brief Method to invoke when new power data is retrieved
+     * 
+     * @param power The power measurement
+     * @param horodate The horotate associated with the @p power
+     * @param frameSequenceNb The TIC frame sequence number
+     */
+    void onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb);
 
     /**
      * @brief Check if two horodates are part of the same internal time resolution (and will thus be averaged to be stored in the same period history entry)
@@ -90,9 +97,12 @@ struct PowerHistory {
      * @brief Utility function to unwrap a TicFrameParser instance and invoke onDatasetExtracted() on it
      * It is used as a callback provided to TIC::DatasetExtractor
      * 
+     * @param power The power measurement
+     * @param horodate The horotate associated with the @p power
+     * @param frameSequenceNb The TIC frame sequence number
      * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
      */
-    static void unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context);
+    static void unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb, void* context);
 
     /**
      * @brief Get the Last Values object

@@ -235,7 +235,7 @@ void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
 void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
     this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
     if (this->onNewPowerData != nullptr) {
-        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.horodate, this->onNewPowerDataContext);
+        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.horodate, this->nbFramesParsed, onNewPowerDataContext);
     }
 }
 

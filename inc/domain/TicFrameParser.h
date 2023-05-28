@@ -66,7 +66,7 @@ public:
 class TicFrameParser {
 public:
 /* Types */
-    typedef void(*FOnNewPowerData)(const TicEvaluatedPower& power, const TIC::Horodate& horodate, void* context); /*!< The prototype of callbacks invoked on new power data */
+    typedef void(*FOnNewPowerData)(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
 
 /* Methods */
     /**
