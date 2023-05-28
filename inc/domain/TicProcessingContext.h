@@ -2,8 +2,14 @@
 
 #include "TIC/Unframer.h"
 #include "TicFrameParser.h" // For TicEvaluatedPower
-#include "Stm32SerialDriver.h"
+#ifndef __UNIT_TEST__
+#include "../hal/Stm32SerialDriver.h"
+#else
+struct Stm32SerialDriver {
+};
+#endif
 #include <stdint.h>
+
 
 struct TicProcessingContext {
     /**

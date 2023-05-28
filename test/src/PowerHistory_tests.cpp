@@ -221,7 +221,7 @@ TEST(PowerHistory_tests, PeriodPerSecondWithOneSampleInPeriod) {
 
     char sampleHorodateAsCString[] = "e220502124903";
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
@@ -237,9 +237,9 @@ TEST(PowerHistory_tests, PeriodPerSecondWithThreeSamplesInPeriod) {
 
     char sampleHorodateAsCString[] = "e220502124903";
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate);
-    ph.onNewPowerData(TicEvaluatedPower(200, 200), horodate);
-    ph.onNewPowerData(TicEvaluatedPower(300, 300), horodate);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate, 1);
+    ph.onNewPowerData(TicEvaluatedPower(200, 200), horodate, 1);
+    ph.onNewPowerData(TicEvaluatedPower(300, 300), horodate, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
@@ -255,7 +255,7 @@ TEST(PowerHistory_tests, PeriodPer10SecondsWithOneSampleInPeriod) {
 
     char sampleHorodateAsCString[] = "e220502124903";
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
@@ -278,9 +278,9 @@ TEST(PowerHistory_tests, PeriodPer10SecondsWithThreeSamplesInPeriod) {
     char sampleHorodate3AsCString[] = "e230510000009";
 	TIC::Horodate horodate3 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate3AsCString), strlen(sampleHorodate3AsCString));
 
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate1);
-    ph.onNewPowerData(TicEvaluatedPower(200, 200), horodate2);
-    ph.onNewPowerData(TicEvaluatedPower(300, 300), horodate3);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate1, 1);
+    ph.onNewPowerData(TicEvaluatedPower(200, 200), horodate2, 1);
+    ph.onNewPowerData(TicEvaluatedPower(300, 300), horodate3, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
@@ -303,9 +303,9 @@ TEST(PowerHistory_tests, PeriodPer10SecondsWithOneThenTwoSamplesInPeriod) {
     char sampleHorodate3AsCString[] = "e230510000019";
 	TIC::Horodate horodate3 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate3AsCString), strlen(sampleHorodate3AsCString));
 
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate1);
-    ph.onNewPowerData(TicEvaluatedPower(200, 200), horodate2);
-    ph.onNewPowerData(TicEvaluatedPower(300, 300), horodate3);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate1, 1);
+    ph.onNewPowerData(TicEvaluatedPower(200, 200), horodate2, 1);
+    ph.onNewPowerData(TicEvaluatedPower(300, 300), horodate3, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
@@ -346,7 +346,7 @@ TEST(PowerHistory_tests, PeriodPer5SecondsWith9SuccessiveSamples) {
     for (unsigned int idx = 0; idx < sizeof(samplePowerData)/sizeof(samplePowerData[0]); idx++) {
         TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<const uint8_t*>(samplePowerData[idx].horodateAsStr.c_str()), samplePowerData[idx].horodateAsStr.length());
         TicEvaluatedPower evaluatedPower(samplePowerData[idx].minPower, samplePowerData[idx].maxPower);
-        ph.onNewPowerData(evaluatedPower, horodate);
+        ph.onNewPowerData(evaluatedPower, horodate, 1);
     }
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
