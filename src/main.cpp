@@ -116,8 +116,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     uint16_t debugX = UINT16_MAX;
     uint16_t debugYtop = UINT16_MAX;
     uint16_t debugYbottom = UINT16_MAX;
-    int debugMinPower = INT_MIN;
-    int debugMaxPower = INT_MAX;
+    int debugPower = INT_MIN;
     int debugValue = INT_MIN;
 
     const int maxPower = 3000;
@@ -135,13 +134,15 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
                 debugValue = thisSampleEntry.nbSamples;
             }
         }
-        if (debugMinPower == INT_MIN && debugMaxPower == INT_MAX) {
-            debugMinPower = thisSamplePower.minValue;
-            debugMaxPower = thisSamplePower.maxValue;
-            if (!thisSamplePower.isValid) {
-                debugMinPower = 0;
-                debugMaxPower = 0;
+        if (debugPower == INT_MIN) {
+            if (thisSamplePower.isValid) {
+                if (thisSamplePower.maxValue > 0)
+                    debugPower = thisSamplePower.minValue;
+                else
+                    debugPower = thisSamplePower.maxValue;
             }
+            else
+                debugPower = 0;
         }
 
         if (thisSamplePower.isValid) {
@@ -293,24 +294,24 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     pos++;
 
     pos+=2; // "P="
-    if (debugMinPower != INT_MIN) {
-        if (debugMinPower < -99999 || debugMinPower > 99999) {
+    if (debugPower != INT_MIN) {
+        if (debugPower < -99999 || debugPower > 99999) {
             statusLine[pos++]='*'; /* Overflow/underflow */
         }
         else {
-            if (debugMinPower < 0) {
+            if (debugPower < 0) {
                 statusLine[pos++]='-';
-                debugMinPower = -debugMinPower;
+                debugPower = -debugPower;
             }
             else
                 statusLine[pos++]=' ';
         }
-        statusLine[pos++]=(debugMinPower / 100000) % 10 + '0';
-        statusLine[pos++]=(debugMinPower / 10000) % 10 + '0';
-        statusLine[pos++]=(debugMinPower / 1000) % 10 + '0';
-        statusLine[pos++]=(debugMinPower / 100) % 10 + '0';
-        statusLine[pos++]=(debugMinPower / 10) % 10 + '0';
-        statusLine[pos++]=(debugMinPower / 1) % 10 + '0';
+        statusLine[pos++]=(debugPower / 100000) % 10 + '0';
+        statusLine[pos++]=(debugPower / 10000) % 10 + '0';
+        statusLine[pos++]=(debugPower / 1000) % 10 + '0';
+        statusLine[pos++]=(debugPower / 100) % 10 + '0';
+        statusLine[pos++]=(debugPower / 10) % 10 + '0';
+        statusLine[pos++]=(debugPower / 1) % 10 + '0';
     }
      
     lcd.drawText(0, 4*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
@@ -550,11 +551,7 @@ int main(void) {
 
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
         ticContext.lastDisplayedPowerFrameNb = ticContext.lastParsedFrameNb; /* Used to detect a new TIC frame and display it as soon as it appears */
-/* Before storing the instantaneous power in ticContext, we had: */
-/*        if (ticParser.lastFrameMeasurements.instPower.isValid) {
-            lastReceivedPower = ticParser.lastFrameMeasurements.instPower;
-        }
-*/
+
         if (ticContext.instantaneousPower.isValid) {
             lastReceivedPower = ticContext.instantaneousPower;
         }
