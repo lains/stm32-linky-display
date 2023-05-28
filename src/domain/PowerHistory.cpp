@@ -105,8 +105,23 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Hor
         }
         /* If lastEntry is not valid, create a new entry by falling-through the following code */
     }
+    if (false && this->lastPowerHorodate.isValid) { /* If we already store some historical data, make sure last horodate and new horodate are consecutive (in periods), or otherwise pad */
+        TIC::Horodate forwardHorodate = this->lastPowerHorodate;
+        for (unsigned int padding = 0; padding < this->data.getCapacity(); padding++) {
+            forwardHorodate.addSeconds(this->getAveragingPeriodInSeconds());  /* Check what would happen if horodate was in the next averaging period */
+            if (this->horodatesAreInSamePeriodSample(horodate, forwardHorodate))
+                break;
+            /* If that horodate slot does not match the horodate passed as argument, we have a hole in our history entries, pad it */
+            this->data.push(PowerHistoryEntry());   /* Push an invalid power history entry to pad the history */
+        }
+    }
     this->data.push(PowerHistoryEntry(power, horodate)); /* First sample in this period */
     this->lastPowerHorodate = horodate;
+
+    if (this->ticContext != nullptr) {
+        this->ticContext->instantaneousPower = power;
+        this->ticContext->lastParsedFrameNb = frameSequenceNb;
+    }
 }
 
 bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second) {

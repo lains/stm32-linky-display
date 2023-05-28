@@ -60,25 +60,27 @@ void Error_Handler() {
 }
 
 typedef void(*FHalDelayRefreshFunc)(void* context);
+typedef bool(*FHalDelayConditionFunc)(void* context);
 
 /**
- * @brief Wait for a given delay in ms, while running a function in background
+ * @brief Wait for a given delay in ms, while running a function in background. Stop waiting immediately if a condition becomes false
  * 
  * @param toRunWhileWaiting A function to run continously while waiting
- * @param context A context pointer provided to toRunWhileWaiting as argument
- * @param Delay The delay to wait for (in ms)
+ * @param conditionCheck A function returning false to immediately stop the wait period before timer elapses
+ * @param context A context pointer provided to toRunWhileWaiting and/or conditionCheck as argument
+ * @param delay The delay to wait for (in ms)
  * 
  */
-void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) {
+void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, FHalDelayConditionFunc conditionCheck = nullptr, void* context = nullptr) {
     uint32_t tickstart = HAL_GetTick();
-    uint32_t wait = Delay;
+    uint32_t wait = delay;
 
     /* Add a freq to guarantee minimum wait */
     if (wait < HAL_MAX_DELAY) {
         wait += (uint32_t)(uwTickFreq);
     }
 
-    while((HAL_GetTick() - tickstart) < wait) {
+    while((HAL_GetTick() - tickstart) < wait && (conditionCheck != nullptr && conditionCheck(context))) { /* FIXME: add condition logic here */
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }
@@ -437,6 +439,12 @@ int main(void) {
         }
     };
 #endif
+    auto isNoNewPowerReceivedSinceLastDisplay = [](void* context) -> bool {
+        if (context == nullptr)
+            return true;
+        TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
+        return (ticContext->lastParsedFrameNb == ticContext->lastDisplayedPowerFrameNb);
+    };
 
     unsigned int lcdRefreshCount = 0;
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
@@ -450,8 +458,6 @@ int main(void) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
         //debugTerm.send("Display refresh\r\n");
 
-        ticContext.lastParsedFrameNb = ticParser.lastFrameMeasurements.fromFrameNb;
-
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
         int fakePowerRefV = static_cast<int>(3000) - (static_cast<int>((lcdRefreshCount*30) % 6000)); /* Results in sweeping from +3000 to -3000W */
         int fakeMinPower = fakePowerRefV;
@@ -461,17 +467,11 @@ int main(void) {
             fakeMaxPower = fakePowerRefV/4; /* If negative, corrects to -3000 to [-1000;-750] */
         }
         TicEvaluatedPower fakePower(fakeMinPower, fakeMaxPower);
-        fakeHorodate.second++;
-        if (fakeHorodate.second >= 60) {
-            fakeHorodate.second = 0;
-            fakeHorodate.minute++;
-            if (fakeHorodate.minute >= 60) {
-                fakeHorodate.minute = 0;
-                fakeHorodate.hour++;
-            }
-        }
+        fakeHorodate.addSeconds(30); /* Fast forward in time */
         ticParser.lastFrameMeasurements.instPower = fakePower;
-        powerHistory.onNewPowerData(fakePower, fakeHorodate);
+        powerHistory.onNewPowerData(fakePower, fakeHorodate, ticContext.lastParsedFrameNb);
+        ticParser.nbFramesParsed++; /* Introspection for debug */
+        ticContext.lastParsedFrameNb = ticParser.nbFramesParsed;
 #endif
         /* We can now work on draft buffer */
         uint8_t pos = 0;
@@ -549,8 +549,14 @@ int main(void) {
         lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
-        if (ticParser.lastFrameMeasurements.instPower.isValid) {
+        ticContext.lastDisplayedPowerFrameNb = ticContext.lastParsedFrameNb; /* Used to detect a new TIC frame and display it as soon as it appears */
+/* Before storing the instantaneous power in ticContext, we had: */
+/*        if (ticParser.lastFrameMeasurements.instPower.isValid) {
             lastReceivedPower = ticParser.lastFrameMeasurements.instPower;
+        }
+*/
+        if (ticContext.instantaneousPower.isValid) {
+            lastReceivedPower = ticContext.instantaneousPower;
         }
         if (lastReceivedPower.isValid) {   /* We have a valid last measurement */
             char mainInstPowerText[] = "-[9999;9999]W";
@@ -661,7 +667,9 @@ int main(void) {
 
         lcd.requestDisplayFinal(); /* Now we have copied the content to display to final framebuffer, we can perform the switch */
 
-        waitDelay(1000, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
+        /* While waiting, continue forwarding incoming TIC bytes to the unframer */
+        /* But inject a condition to immediately exit the loop to refresh the display if a new power measurement is received from TIC before the expiration of the wait delay */
+        waitDelayAndCondition(1000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
         lcdRefreshCount++;
     }
 }
