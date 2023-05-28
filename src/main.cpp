@@ -85,26 +85,17 @@ void waitDelay(uint32_t Delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr,
     }
 }
 
-struct TicProcessingContext {
-    /* Default constructor */
-    TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Unframer& ticUnframer) :
-        ticSerial(ticSerial),
-        ticUnframer(ticUnframer),
-        lostTicBytes(0),
-        serialRxOverflowCount(0),
-        instantaneousPower(static_cast<uint32_t>(-1)),
-        lastParsedFrameNb(static_cast<unsigned int>(-1)) { }
-
-/* Attributes */
-    Stm32SerialDriver& ticSerial; /*!< The encapsulated TIC serial bytes receive handler */
-    TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
-    unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
-    unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
-    uint32_t instantaneousPower;    /*!< A place to store the instantaneous power measurement */
-    unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
-};
-
-
+/**
+ * @brief Wait for a given delay in ms, while running a function in background
+ * 
+ * @param toRunWhileWaiting A function to run continously while waiting
+ * @param context A context pointer provided to toRunWhileWaiting as argument
+ * @param delay The delay to wait for (in ms)
+ * 
+ */
+void waitDelay(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) {
+    waitDelayAndCondition(delay, toRunWhileWaiting, nullptr, context);
+}
 
 void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
     if (width == 0 || height == 0)
