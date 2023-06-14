@@ -80,7 +80,7 @@ void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaitin
         wait += (uint32_t)(uwTickFreq);
     }
 
-    while((HAL_GetTick() - tickstart) < wait && (conditionCheck != nullptr && conditionCheck(context))) { /* FIXME: add condition logic here */
+    while((HAL_GetTick() - tickstart) < wait && (conditionCheck != nullptr && conditionCheck(context))) {
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }
@@ -93,7 +93,6 @@ void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaitin
  * @param toRunWhileWaiting A function to run continously while waiting
  * @param context A context pointer provided to toRunWhileWaiting as argument
  * @param delay The delay to wait for (in ms)
- * 
  */
 void waitDelay(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) {
     waitDelayAndCondition(delay, toRunWhileWaiting, nullptr, context);
@@ -117,6 +116,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     uint16_t debugYtop = UINT16_MAX;
     uint16_t debugYbottom = UINT16_MAX;
     int debugPower = INT_MIN;
+    bool debugPowerIsExact = false;
     int debugValue = INT_MIN;
 
     const int maxPower = 3000;
@@ -136,13 +136,25 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         }
         if (debugPower == INT_MIN) {
             if (thisSamplePower.isValid) {
-                if (thisSamplePower.maxValue > 0)
+                if (thisSamplePower.isExact) {
                     debugPower = thisSamplePower.minValue;
-                else
-                    debugPower = thisSamplePower.maxValue;
+                    debugPowerIsExact = true;
+                }
+                else {
+                    if (thisSamplePower.maxValue > 0) {
+                        debugPower = thisSamplePower.minValue;
+                        debugPowerIsExact = true;
+                    }
+                    else {  /* For negative value, compute an average */
+                        debugPower = (thisSamplePower.minValue + thisSamplePower.maxValue) / 2;
+                        debugPowerIsExact = false;
+                    }
+                }
             }
-            else
+            else {
                 debugPower = 0;
+                debugPowerIsExact = false;
+            }
         }
 
         if (thisSamplePower.isValid) {
@@ -234,7 +246,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
 
     /* FIXME: for debug only - start */
     uint8_t pos = 0;
-    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P=@@@@@@";
+    char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ Dbg=@@@@@ P=@@@@@@@";
     pos+=3; // "DH="
     statusLine[pos++]=(nbHistoryEntries / 1000) % 10 + '0';
     statusLine[pos++]=(nbHistoryEntries / 100) % 10 + '0';
@@ -295,18 +307,19 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
 
     pos+=2; // "P="
     if (debugPower != INT_MIN) {
-        if (debugPower < -99999 || debugPower > 99999) {
+        if (debugPower < -99999 || debugPower > 99999) { /* Max displayable value +/-99kW */
             statusLine[pos++]='*'; /* Overflow/underflow */
         }
         else {
-            if (debugPower < 0) {
-                statusLine[pos++]='-';
-                debugPower = -debugPower;
-            }
-            else
-                statusLine[pos++]=' ';
+            statusLine[pos++]=debugPowerIsExact?' ':'~';
         }
-        statusLine[pos++]=(debugPower / 100000) % 10 + '0';
+        if (debugPower < 0) {
+            statusLine[pos++]='-';
+            debugPower = -debugPower;
+        }
+        else {
+            statusLine[pos++]=' ';
+        }
         statusLine[pos++]=(debugPower / 10000) % 10 + '0';
         statusLine[pos++]=(debugPower / 1000) % 10 + '0';
         statusLine[pos++]=(debugPower / 100) % 10 + '0';
@@ -654,10 +667,6 @@ int main(void) {
         }
         drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory);
 
-        //BSP_LED_On(LED1);
-        //waitDelay(250, streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)););
-        //BSP_LED_Off(LED1);
-
         lcd.displayDraft(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
 
         lcd.copyDraftToFinal();
@@ -666,7 +675,8 @@ int main(void) {
 
         /* While waiting, continue forwarding incoming TIC bytes to the unframer */
         /* But inject a condition to immediately exit the loop to refresh the display if a new power measurement is received from TIC before the expiration of the wait delay */
-        waitDelayAndCondition(1000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
+        /* The 5s delay should never been reached because TIC data on power comes in more frequently */
+        waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
         lcdRefreshCount++;
     }
 }

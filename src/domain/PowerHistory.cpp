@@ -2,6 +2,14 @@
 
 #include <climits>
 
+#ifndef __UNIT_TEST__
+extern "C" {
+#include "main.h" // FIXME: For BSP_LED_Toogle() and LED1, but these concepts should go away from TIC domain
+}
+#else
+#define BSP_LED_Toggle(x) do { } while (0)
+#endif
+
 PowerHistoryEntry::PowerHistoryEntry() :
     power(),
     horodate(),
@@ -93,9 +101,16 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 
 
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
+    BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
     if (!power.isValid || !horodate.isValid) {
         return;
     }
+
+    if (this->ticContext != nullptr) {
+        this->ticContext->instantaneousPower = power;
+        this->ticContext->lastParsedFrameNb = frameSequenceNb;
+    }
+
     if (this->horodatesAreInSamePeriodSample(horodate, this->lastPowerHorodate)) {
         PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
         if (lastEntry != nullptr) {
@@ -115,13 +130,10 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Hor
             this->data.push(PowerHistoryEntry());   /* Push an invalid power history entry to pad the history */
         }
     }
+    /* Warning: these lines are not reached when the new power is in the same average period as a previously valid entry (see the above return statement) */
+    /* If code needs to be executed systematically, put it at the top of this function, not here... */
     this->data.push(PowerHistoryEntry(power, horodate)); /* First sample in this period */
     this->lastPowerHorodate = horodate;
-
-    if (this->ticContext != nullptr) {
-        this->ticContext->instantaneousPower = power;
-        this->ticContext->lastParsedFrameNb = frameSequenceNb;
-    }
 }
 
 bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second) {

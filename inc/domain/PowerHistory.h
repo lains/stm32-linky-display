@@ -9,7 +9,9 @@ struct PowerHistoryEntry {
     PowerHistoryEntry();
     PowerHistoryEntry(const TicEvaluatedPower& power, const TIC::Horodate& horodate);
 
+#ifndef __UNIT_TEST__
 private:
+#endif
     /**
      * @brief Convert a signed long int to a signed int, truncating if needed
      * 
