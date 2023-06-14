@@ -3,10 +3,11 @@
 #include <iomanip>
 #include <vector>
 #include <stdint.h>
+#include <climits>
 
 #include "PowerHistory.h"
 
-TEST(PowerHistoryEntry_tests, defaultInstanciation) {
+TEST(PowerHistoryEntry_tests, DefaultInstanciation) {
     PowerHistoryEntry phe;
 
     EXPECT_FALSE(phe.power.isValid);
@@ -14,7 +15,7 @@ TEST(PowerHistoryEntry_tests, defaultInstanciation) {
     EXPECT_EQ(0, phe.nbSamples);
 }
 
-TEST(PowerHistoryEntry_tests, instanciationFromPowerHorodate) {
+TEST(PowerHistoryEntry_tests, InstanciationFromPowerHorodate) {
     TicEvaluatedPower power(1000, 1000);
     char sampleHorodateAsCString[] = "e230502124903";
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
@@ -25,7 +26,7 @@ TEST(PowerHistoryEntry_tests, instanciationFromPowerHorodate) {
     EXPECT_EQ(1, phe.nbSamples);
 }
 
-TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoIdenticalValues) {
+TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoIdenticalValues) {
     char sampleHorodate1AsCString[] = "e230502124903";
 	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate1AsCString), strlen(sampleHorodate1AsCString));
 
@@ -41,7 +42,7 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoIdenticalValues) {
     EXPECT_EQ(2, phe.nbSamples);
 }
 
-TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValues) {
+TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoDifferentValues) {
     char sampleHorodate1AsCString[] = "e230502124903";
 	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate1AsCString), strlen(sampleHorodate1AsCString));
 
@@ -57,7 +58,7 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValues) {
     EXPECT_EQ(2, phe.nbSamples);
 }
 
-TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValuesNegativePositive) {
+TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoDifferentValuesNegativePositive) {
     char sampleHorodate1AsCString[] = "e220502124903";
 	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate1AsCString), strlen(sampleHorodate1AsCString));
 
@@ -73,7 +74,7 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSampleTwoDifferentValuesNegativePo
     EXPECT_EQ(2, phe.nbSamples);
 }
 
-TEST(PowerHistoryEntry_tests, averageWithPowerSample2NegativePositiveRangeAverage) {
+TEST(PowerHistoryEntry_tests, AverageWithPowerSample2NegativePositiveRangeAverage) {
     char sampleHorodate1AsCString[] = "e220502124903";
 	TIC::Horodate horodate1 = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodate1AsCString), strlen(sampleHorodate1AsCString));
 
@@ -89,7 +90,7 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSample2NegativePositiveRangeAverag
     EXPECT_EQ(2, phe.nbSamples);
 }
 
-TEST(PowerHistoryEntry_tests, averageWithPowerSample7NegativePositiveRangeAverage) {
+TEST(PowerHistoryEntry_tests, AverageWithPowerSample7NegativePositiveRangeAverage) {
     PowerHistoryEntry phe;
 
     char sampleHorodate1AsCString[] = "e220502124903";
@@ -148,7 +149,7 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSample7NegativePositiveRangeAverag
     }
 }
 
-TEST(PowerHistoryEntry_tests, averageWithPowerSample4NegativePositiveRangeAverage) {
+TEST(PowerHistoryEntry_tests, AverageWithPowerSample4NegativePositiveRangeAverage) {
     PowerHistoryEntry phe;
 
     char sampleHorodate1AsCString[] = "e220502124903";
@@ -189,12 +190,34 @@ TEST(PowerHistoryEntry_tests, averageWithPowerSample4NegativePositiveRangeAverag
     }
 }
 
+TEST(PowerHistoryEntry_tests, truncateSignedLongToSignedInt) {
+    EXPECT_EQ(0, PowerHistoryEntry::truncateSignedLongToSignedInt(0));
+    EXPECT_EQ(1, PowerHistoryEntry::truncateSignedLongToSignedInt(1));
+    EXPECT_EQ(-1, PowerHistoryEntry::truncateSignedLongToSignedInt(-1));
+    EXPECT_EQ(INT_MAX, PowerHistoryEntry::truncateSignedLongToSignedInt(INT_MAX));
+    EXPECT_EQ(INT_MIN, PowerHistoryEntry::truncateSignedLongToSignedInt(INT_MIN));
+    EXPECT_EQ(INT_MAX, PowerHistoryEntry::truncateSignedLongToSignedInt(static_cast<signed long>(INT_MAX)+1));
+    EXPECT_EQ(INT_MIN, PowerHistoryEntry::truncateSignedLongToSignedInt(static_cast<signed long>(INT_MIN)-1));
+    EXPECT_EQ(INT_MAX, PowerHistoryEntry::truncateSignedLongToSignedInt(LONG_MAX));
+    EXPECT_EQ(INT_MIN, PowerHistoryEntry::truncateSignedLongToSignedInt(LONG_MIN));
+}
+
 TEST(PowerHistory_tests, DefaultInstanciationPerSecond) {
     PowerHistory ph(PowerHistory::PerSecond);
 
     EXPECT_EQ(PowerHistory::PerSecond, ph.averagingPeriod);
     EXPECT_EQ(0, ph.data.getCount());
     EXPECT_FALSE(ph.lastPowerHorodate.isValid);
+    EXPECT_EQ(1, ph.getAveragingPeriodInSeconds());
+}
+
+TEST(PowerHistory_tests, DefaultInstanciationPer10Seconds) {
+    PowerHistory ph(PowerHistory::Per10Seconds);
+
+    EXPECT_EQ(PowerHistory::Per10Seconds, ph.averagingPeriod);
+    EXPECT_EQ(0, ph.data.getCount());
+    EXPECT_FALSE(ph.lastPowerHorodate.isValid);
+    EXPECT_EQ(10, ph.getAveragingPeriodInSeconds());
 }
 
 TEST(PowerHistory_tests, DefaultInstanciationPerMinute) {
@@ -203,6 +226,7 @@ TEST(PowerHistory_tests, DefaultInstanciationPerMinute) {
     EXPECT_EQ(PowerHistory::PerMinute, ph.averagingPeriod);
     EXPECT_EQ(0, ph.data.getCount());
     EXPECT_FALSE(ph.lastPowerHorodate.isValid);
+    EXPECT_EQ(60, ph.getAveragingPeriodInSeconds());
 }
 
 TEST(PowerHistory_tests, getLastPowerOnEmptyDatabase) {
@@ -222,6 +246,22 @@ TEST(PowerHistory_tests, PeriodPerSecondWithOneSampleInPeriod) {
     char sampleHorodateAsCString[] = "e220502124903";
 	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
     ph.onNewPowerData(TicEvaluatedPower(100, 100), horodate, 1);
+
+    unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
+    ph.getLastPower(nb, result);
+
+    EXPECT_EQ(1, nb);
+    EXPECT_EQ(TicEvaluatedPower(100, 100), result[0].power);
+    EXPECT_EQ(horodate, result[0].horodate);
+}
+
+TEST(PowerHistory_tests, unWrapOnNewPowerData) {
+    PowerHistory ph(PowerHistory::PerSecond);
+    PowerHistoryEntry result[5];
+
+    char sampleHorodateAsCString[] = "e220502124903";
+	TIC::Horodate horodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+    PowerHistory::unWrapOnNewPowerData(TicEvaluatedPower(100, 100), horodate, 1, static_cast<void *>(&ph));
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
@@ -367,4 +407,29 @@ TEST(PowerHistory_tests, PeriodPer5SecondsWith9SuccessiveSamples) {
         FAIL() << "Error on power max boundary: got " << result[1].power.maxValue << ", expected " << expectedAvgMax << "+/-2";
     }
     EXPECT_EQ(TicEvaluatedPower(0, 0), result[0].power);
+}
+
+TEST(PowerHistory_tests, getPowerRecordsPerHour) {
+    EXPECT_EQ(60 * 60, PowerHistory(PowerHistory::PerSecond).getPowerRecordsPerHour());
+    EXPECT_EQ(6 * 60, PowerHistory(PowerHistory::Per10Seconds).getPowerRecordsPerHour());
+    EXPECT_EQ(60, PowerHistory(PowerHistory::PerMinute).getPowerRecordsPerHour());
+    EXPECT_EQ(60 / 5, PowerHistory(PowerHistory::Per5Minutes).getPowerRecordsPerHour());
+}
+
+TEST(PowerHistory_tests, AveragingPeriodPer10Seconds) {
+    PowerHistory ph(PowerHistory::Per10Seconds);
+
+    EXPECT_EQ(PowerHistory::Per10Seconds, ph.averagingPeriod);
+    EXPECT_EQ(0, ph.data.getCount());
+    EXPECT_FALSE(ph.lastPowerHorodate.isValid);
+    EXPECT_EQ(10, ph.getAveragingPeriodInSeconds());
+}
+
+TEST(PowerHistory_tests, AveragingPeriodPerMinute) {
+    PowerHistory ph(PowerHistory::PerMinute);
+
+    EXPECT_EQ(PowerHistory::PerMinute, ph.averagingPeriod);
+    EXPECT_EQ(0, ph.data.getCount());
+    EXPECT_FALSE(ph.lastPowerHorodate.isValid);
+    EXPECT_EQ(60, ph.getAveragingPeriodInSeconds());
 }

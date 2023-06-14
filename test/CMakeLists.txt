@@ -40,6 +40,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         tools/Tools.cpp
         src/FixedSizeRingBuffer_tests.cpp
         src/PowerHistory_tests.cpp
+        src/TicFrameParser_test.cpp
         )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${cmock_SOURCE_DIR}/include)
