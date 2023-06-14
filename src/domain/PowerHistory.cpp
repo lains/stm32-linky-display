@@ -2,14 +2,6 @@
 
 #include <climits>
 
-#ifndef __UNIT_TEST__
-extern "C" {
-#include "main.h" // FIXME: For BSP_LED_Toogle() and LED1, but these concepts should go away from TIC domain
-}
-#else
-#define BSP_LED_Toggle(x) do { } while (0)
-#endif
-
 PowerHistoryEntry::PowerHistoryEntry() :
     power(),
     horodate(),
@@ -101,7 +93,6 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 
 
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
-    BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been received
     if (!power.isValid || !horodate.isValid) {
         return;
     }

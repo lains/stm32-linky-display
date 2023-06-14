@@ -412,8 +412,13 @@ int main(void) {
 
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
+    auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
+        BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been completely received
+        TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
+    };
+
     TIC::Unframer ticUnframer(TicFrameParser::unwrapInvokeOnFrameNewBytes,
-                              TicFrameParser::unwrapInvokeOnFrameComplete,
+                              onFrameCompleteBlinkGreenLedAndInvokeHandler,
                               (void *)(&ticParser));
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
@@ -663,7 +668,6 @@ int main(void) {
                 }
             }
             lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
-            //drawHistory(lcd, 0, lcd.getHeight()/2 + 120, lcd.getWidth(), lcd.getHeight(), powerHistory);
         }
         drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory);
 
