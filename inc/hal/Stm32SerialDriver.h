@@ -1,5 +1,5 @@
-#ifndef _UARTDRIVER_H_
-#define _UARTDRIVER_H_
+#ifndef _STM32SERIALDRIVER_H_
+#define _STM32SERIALDRIVER_H_
 
 #include "stm32f4xx_hal.h"
 #include <cstdint>
@@ -112,4 +112,4 @@ private:
     UART_HandleTypeDef huart;  /*!< Internal STM32 low level UART handle */
 };
 
-#endif
+#endif // _STM32SERIALDRIVER_H_

@@ -170,4 +170,4 @@ public:
     DSI_HandleTypeDef& hdsi; /*!< Handle on the Dsiplay Serial Interface (DSI) controller, it is unfortunately external to us, defined in stm32469i_discovery_lcd.c */
 };
 
-#endif
+#endif // _STM32LCDDRIVER_H_

@@ -52,8 +52,6 @@ extern "C" {
   * @brief  End of Refresh DSI callback.
   * @param  hdsi: pointer to a DSI_HandleTypeDef structure that contains
   *               the configuration information for the DSI.
-  * @retval None
-  *
   * The blue LED is On when we are displaying the displayed fb, and Off when where are temporarily switching to the pending buffer while copying to the displayed
   */
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {

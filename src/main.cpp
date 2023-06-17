@@ -1,6 +1,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
+#include "Stm32TimerDriver.h"
 #include "TIC/Unframer.h"
 #include "TicProcessingContext.h"
 #include "PowerHistory.h"
@@ -56,45 +57,6 @@ void OnError_Handler(uint32_t condition)
 
 void Error_Handler() {
 	  OnError_Handler(1);
-}
-
-typedef void(*FHalDelayRefreshFunc)(void* context);
-typedef bool(*FHalDelayConditionFunc)(void* context);
-
-/**
- * @brief Wait for a given delay in ms, while running a function in background. Stop waiting immediately if a condition becomes false
- * 
- * @param toRunWhileWaiting A function to run continously while waiting
- * @param conditionCheck A function returning false to immediately stop the wait period before timer elapses
- * @param context A context pointer provided to toRunWhileWaiting and/or conditionCheck as argument
- * @param delay The delay to wait for (in ms)
- * 
- */
-void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, FHalDelayConditionFunc conditionCheck = nullptr, void* context = nullptr) {
-    uint32_t tickstart = HAL_GetTick();
-    uint32_t wait = delay;
-
-    /* Add a freq to guarantee minimum wait */
-    if (wait < HAL_MAX_DELAY) {
-        wait += (uint32_t)(uwTickFreq);
-    }
-
-    while((HAL_GetTick() - tickstart) < wait && (conditionCheck != nullptr && conditionCheck(context))) {
-        if (toRunWhileWaiting != nullptr) {
-            toRunWhileWaiting(context);
-        }
-    }
-}
-
-/**
- * @brief Wait for a given delay in ms, while running a function in background
- * 
- * @param toRunWhileWaiting A function to run continously while waiting
- * @param context A context pointer provided to toRunWhileWaiting as argument
- * @param delay The delay to wait for (in ms)
- */
-void waitDelay(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr) {
-    waitDelayAndCondition(delay, toRunWhileWaiting, nullptr, context);
 }
 
 class Stm32DebugOutput {
