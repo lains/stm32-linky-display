@@ -205,6 +205,8 @@ int main(void) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
         //debugTerm.send("Display refresh\r\n");
 
+        Stm32MeasurementTimer fullDisplayCycleTimeMs(true);
+
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
         int fakePowerRefV = static_cast<int>(3000) - (static_cast<int>((lcdRefreshCount*30) % 6000)); /* Results in sweeping from +3000 to -3000W */
         int fakeMinPower = fakePowerRefV;
@@ -399,16 +401,28 @@ int main(void) {
         }
         drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory);
 
-        lcd.displayDraft(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
+        //ticContext.displayTimeMs = fullDisplayCycleTimeMs.get(); /* Counts to 124-155ms depending on the number of columns drawn */
 
-        lcd.copyDraftToFinal();
+        {
+            Stm32MeasurementTimer displayTimer(true);
+            lcd.displayDraft(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
+            ticContext.displayTimeMs = displayTimer.get(); /* Counts to 9-10ms */
+        }
+
+        {
+            Stm32MeasurementTimer fbCopyTimer(true);
+            lcd.copyDraftToFinal();
+            ticContext.fbCopyTimeMs = fbCopyTimer.get(); /* Counts to 16-17ms */
+        }
 
         lcd.requestDisplayFinal(); /* Now we have copied the content to display to final framebuffer, we can perform the switch */
 
         /* While waiting, continue forwarding incoming TIC bytes to the unframer */
         /* But inject a condition to immediately exit the loop to refresh the display if a new power measurement is received from TIC before the expiration of the wait delay */
         /* The 5s delay should never been reached because TIC data on power comes in more frequently */
+#ifndef SIMULATE_POWER_VALUES_WITHOUT_TIC
         waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
+#endif
         lcdRefreshCount++;
     }
 }

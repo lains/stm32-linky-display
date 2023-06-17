@@ -28,4 +28,6 @@ struct TicProcessingContext {
     TicEvaluatedPower instantaneousPower;    /*!< A place to store the instantaneous power measurement */
     unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
     unsigned int lastDisplayedPowerFrameNb; /*!< The ID of the last TIC frame for which the instantanous power was displayed on the screen */
+    uint32_t displayTimeMs; /*!< The last duration it took (in ms) to switch display from one frame to another, for statistics */
+    uint32_t fbCopyTimeMs; /*!< The last duration it took (in ms) to copy a full framebuffer content, for statistics */
 };

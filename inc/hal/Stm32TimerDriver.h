@@ -26,4 +26,22 @@ void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaitin
  */
 void waitDelay(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr);
 
+/**
+ * @brief Time measurement class
+ */
+class Stm32MeasurementTimer {
+public:
+    Stm32MeasurementTimer(bool start = false);
+
+    void reset();
+
+    void start();
+
+    uint32_t get() const;
+
+private:
+    bool running;   /*!< Timer starting point has been set, we can measure a duration */
+    uint32_t startTick; /*!< The machine-specific tick that we recorded when starting the timer */
+};
+
 #endif // _STM32TIMERDRIVER_H_

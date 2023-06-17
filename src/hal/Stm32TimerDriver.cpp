@@ -22,3 +22,30 @@ void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaitin
 void waitDelay(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting, void* context) {
     waitDelayAndCondition(delay, toRunWhileWaiting, nullptr, context);
 }
+
+Stm32MeasurementTimer::Stm32MeasurementTimer(bool start) :
+    running(false),
+    startTick(0)
+{
+    if (start)
+        this->start();
+}
+
+void Stm32MeasurementTimer::reset() {
+    this->running = false;
+    this->startTick = 0;
+}
+
+void Stm32MeasurementTimer::start() {
+    this->startTick = HAL_GetTick();
+    this->running = true;
+}
+
+uint32_t Stm32MeasurementTimer::get() const {
+    if (this->running) {
+        uint32_t currentTick = HAL_GetTick();
+        return (uint32_t)(currentTick - this->startTick);
+    }
+    else
+        return 0; /* No measurement was performed */
+}
