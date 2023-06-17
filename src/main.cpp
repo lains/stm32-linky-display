@@ -399,7 +399,8 @@ int main(void) {
             }
             lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
         }
-        drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory);
+        uint32_t debugContext[2] = { ticContext.displayTimeMs, ticContext.fbCopyTimeMs };
+        drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory, static_cast<void*>(debugContext));
 
         //ticContext.displayTimeMs = fullDisplayCycleTimeMs.get(); /* Counts to 124-155ms depending on the number of columns drawn */
 

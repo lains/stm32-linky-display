@@ -2,8 +2,11 @@
 
 #include <climits>
 
-void drawDebugLine(Stm32LcdDriver& lcd, uint16_t y, const PowerHistory& history, unsigned int nbHistoryEntries, uint16_t debugX, uint16_t debugYtop, uint16_t debugYbottom, int debugPower, bool debugPowerIsExact, int debugValue=INT_MIN) {
-    /* FIXME: for debug only - start */
+void drawDebugLine(Stm32LcdDriver& lcd, uint16_t y, const PowerHistory& history, unsigned int nbHistoryEntries, uint16_t debugX, uint16_t debugYtop, uint16_t debugYbottom, int debugPower, bool debugPowerIsExact, int debugValue=INT_MIN, void* debugContext=nullptr) {
+    if (debugContext != nullptr && debugContext != (void*)(-1)) {
+        uint32_t debugUint32 = (static_cast<uint32_t*>(debugContext))[0]; // Take the first uint32_t in the provided pointed array
+        debugValue = static_cast<int>(debugUint32);
+    }
     uint8_t pos = 0;
     char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ P=@@@@@@@          "; /* Dbg is not always displayed but should be allocated in the buffer (see following line) */
     //                "DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ P=@@@@@@@ Dbg=@@@@@";
@@ -95,7 +98,7 @@ void drawDebugLine(Stm32LcdDriver& lcd, uint16_t y, const PowerHistory& history,
     lcd.drawText(0, y, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 }
 
-void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history) {
+void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, uint16_t height, const PowerHistory& history, void* debugContext) {
     if (width == 0 || height == 0)
         return;
     
@@ -240,5 +243,6 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
                 lcd.drawVerticalLine(gridX, y, height, Stm32LcdDriver::Grey, Stm32LcdDriver::Transparent, 2); /* Draw each other quarter */
         }
     }
-    drawDebugLine(lcd, 4*24, history, nbHistoryEntries, debugX, debugYtop, debugYbottom, debugPower, debugPowerIsExact);
+    if (debugContext)
+        drawDebugLine(lcd, 4*24, history, nbHistoryEntries, debugX, debugYtop, debugYbottom, debugPower, debugPowerIsExact, debugValue, debugContext);
 }
