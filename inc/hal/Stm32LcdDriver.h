@@ -73,7 +73,7 @@ public:
 
     void displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting = nullptr, void* context = nullptr); /* Combined requestDisplayDraft()+waitForDraftDisplayed() */
 
-    void copyDraftToFinal(uint32_t* loop_count);
+    void copyDraftToFinal();
 
     uint16_t getWidth() const;
 
@@ -152,7 +152,7 @@ public:
     friend void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi); /* This interrupt hanlder accesses our display state */
 
 private:
-    void hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize, uint32_t* loop_count);
+    void hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize);
     void LL_FillBuffer(uint32_t LayerIndex, void *pDst, uint32_t xSize, uint32_t ySize, uint32_t OffLine, uint32_t ColorIndex);
 
 private:

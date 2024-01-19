@@ -78,23 +78,23 @@ void drawDebugLine(Stm32LcdDriver& lcd, uint16_t y, const PowerHistory& history,
         pos+=7; /* Skip all digits related to P= */
 
     pos++;
-    statusLine[pos++]='D';
-    statusLine[pos++]='=';
-    if (debugValue != INT_MIN) {
-        if (debugValue < 0) {
-            statusLine[pos++]='-';
-            debugValue = -debugValue;
-        }
-        else
-            statusLine[pos++]=(debugValue / 1000000) % 10 + '0';
-        statusLine[pos++]=(debugValue / 100000) % 10 + '0';
-        statusLine[pos++]=(debugValue / 10000) % 10 + '0';
-        statusLine[pos++]=(debugValue / 1000) % 10 + '0';
-        statusLine[pos++]=(debugValue / 100) % 10 + '0';
-        statusLine[pos++]=(debugValue / 10) % 10 + '0';
-        statusLine[pos++]=(debugValue / 1) % 10 + '0';
-    }
-    pos++;
+    // statusLine[pos++]='D';
+    // statusLine[pos++]='=';
+    // if (debugValue != INT_MIN) {
+    //     if (debugValue < 0) {
+    //         statusLine[pos++]='-';
+    //         debugValue = -debugValue;
+    //     }
+    //     else
+    //         statusLine[pos++]=(debugValue / 1000000) % 10 + '0';
+    //     statusLine[pos++]=(debugValue / 100000) % 10 + '0';
+    //     statusLine[pos++]=(debugValue / 10000) % 10 + '0';
+    //     statusLine[pos++]=(debugValue / 1000) % 10 + '0';
+    //     statusLine[pos++]=(debugValue / 100) % 10 + '0';
+    //     statusLine[pos++]=(debugValue / 10) % 10 + '0';
+    //     statusLine[pos++]=(debugValue / 1) % 10 + '0';
+    // }
+    // pos++;
 
     auto get_font24_ptr = [](const char c) {
         unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);

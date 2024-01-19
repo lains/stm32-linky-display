@@ -415,8 +415,7 @@ int main(void) {
 
         {
             Stm32MeasurementTimer fbCopyTimer(true);
-            uint32_t loop_count = 0;
-            lcd.copyDraftToFinal(&loop_count); /* 25643 loops without any forced read/write, or 20691 (read+write) loops in the HAL_DMA2D_PollForTransfer() subroutine */
+            lcd.copyDraftToFinal(); /* 25643 loops without any forced read/write, or 20691 (read+write) loops in the HAL_DMA2D_PollForTransfer() subroutine */
             //debugContext = fbCopyTimer.get(); /* Counts to 16-17ms */
         }
 
