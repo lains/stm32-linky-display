@@ -5,10 +5,12 @@
 #include "stm32469i_discovery_lcd.h"
 
 extern "C" {
-LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
 DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi);
 }
+
+LTDC_HandleTypeDef* getLcdLtdcHandle();
+DSI_HandleTypeDef* getLcdDsiHandle();
 
 /**
  * @brief Serial link communication class (singleton)

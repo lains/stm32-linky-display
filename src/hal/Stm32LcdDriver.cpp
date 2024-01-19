@@ -33,18 +33,18 @@ void* const Stm32LcdDriver::finalFramebuffer = (void *)((uint8_t*)Stm32LcdDriver
 /**
  * @brief Set the currently active (displayed) framebuffer
  * 
- * @note When returing from this function, the framebuffer is not yet displayed on the LCD
+ * @note When returning from this function, the framebuffer is not yet displayed on the LCD
  *       When the display is efefctive, callback HAL_DSI_EndOfRefreshCallback() will be invoked
  * @param fb A pointer to the framebuffer to display
  */
 void set_active_fb(void* fb) {
     /* Disable DSI Wrapper */
-    __HAL_DSI_WRAPPER_DISABLE(get_hdsi());
+    __HAL_DSI_WRAPPER_DISABLE(getLcdDsiHandle());
     /* Update LTDC configuration */
-    LTDC_LAYER(get_hltdc(), 0)->CFBAR = (uint32_t)(fb);
-    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(get_hltdc());
+    LTDC_LAYER(getLcdLtdcHandle(), 0)->CFBAR = (uint32_t)(fb);
+    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(getLcdLtdcHandle());
     /* Enable DSI Wrapper */
-    __HAL_DSI_WRAPPER_ENABLE(get_hdsi());
+    __HAL_DSI_WRAPPER_ENABLE(getLcdDsiHandle());
 }
 
 extern "C" {
@@ -550,7 +550,7 @@ DSI_HandleTypeDef* getLcdDsiHandle() {
     return &(Stm32LcdDriver::get().hdsi);
 }
 
-/* FIXME: remove before flight... only for debug */
+/* C-linkage version for interrupt driver code of the above functions (written in C) */
 extern "C" {
 LTDC_HandleTypeDef* get_hltdc() {
     return getLcdLtdcHandle();
