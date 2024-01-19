@@ -36,6 +36,7 @@ public:
         Red = LCD_COLOR_RED,
         Blue = LCD_COLOR_BLUE,
         Grey = LCD_COLOR_GRAY,
+        LightGrey = LCD_COLOR_LIGHTGRAY,
         DarkGreen = LCD_COLOR_DARKGREEN,
         DarkRed = LCD_COLOR_DARKRED,
         DarkBlue = LCD_COLOR_DARKBLUE,
