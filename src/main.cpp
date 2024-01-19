@@ -201,6 +201,7 @@ int main(void) {
 
     TicEvaluatedPower lastReceivedPower;
 
+    uint32_t debugContext = 0;
     while (1) {
         lcd.waitForFinalDisplayed(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* Wait until the LCD displays the final framebuffer */
         //debugTerm.send("Display refresh\r\n");
@@ -399,21 +400,24 @@ int main(void) {
             }
             lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
         }
-        uint32_t debugContext[2] = { ticContext.displayTimeMs, ticContext.fbCopyTimeMs };
-        drawHistory(lcd, 0, lcd.getHeight()/2, lcd.getWidth(), lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory, static_cast<void*>(debugContext));
+        drawHistory(lcd, 1, lcd.getHeight()/2, lcd.getWidth()-2, lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory, static_cast<void*>(&debugContext));
 
-        //ticContext.displayTimeMs = fullDisplayCycleTimeMs.get(); /* Counts to 124-155ms depending on the number of columns drawn */
+        debugContext = fullDisplayCycleTimeMs.get();
+        /* Counts to 121-157ms depending on the number of columns drawn */
+        /* Or without main power display, reduces to 39-75ms */
+        /* When using DMA2D (rectangle) to draw solid lines, counts to 118-131ms but a few columns are not drawn properly*/
 
         {
             Stm32MeasurementTimer displayTimer(true);
             lcd.displayDraft(streamTicRxBytesToUnframer, static_cast<void*>(&ticContext)); /* While waiting, continue forwarding incoming TIC bytes to the unframer */
-            ticContext.displayTimeMs = displayTimer.get(); /* Counts to 9-10ms */
+            //debugContext = displayTimer.get(); /* Counts to 9-10ms */
         }
 
         {
             Stm32MeasurementTimer fbCopyTimer(true);
-            lcd.copyDraftToFinal();
-            ticContext.fbCopyTimeMs = fbCopyTimer.get(); /* Counts to 16-17ms */
+            uint32_t loop_count = 0;
+            lcd.copyDraftToFinal(&loop_count); /* 25643 loops without any forced read/write, or 20691 (read+write) loops in the HAL_DMA2D_PollForTransfer() subroutine */
+            //debugContext = fbCopyTimer.get(); /* Counts to 16-17ms */
         }
 
         lcd.requestDisplayFinal(); /* Now we have copied the content to display to final framebuffer, we can perform the switch */

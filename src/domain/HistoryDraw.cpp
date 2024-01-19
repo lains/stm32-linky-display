@@ -4,12 +4,12 @@
 
 void drawDebugLine(Stm32LcdDriver& lcd, uint16_t y, const PowerHistory& history, unsigned int nbHistoryEntries, uint16_t debugX, uint16_t debugYtop, uint16_t debugYbottom, int debugPower, bool debugPowerIsExact, int debugValue=INT_MIN, void* debugContext=nullptr) {
     if (debugContext != nullptr && debugContext != (void*)(-1)) {
-        uint32_t debugUint32 = (static_cast<uint32_t*>(debugContext))[0]; // Take the first uint32_t in the provided pointed array
+        uint32_t debugUint32 = *(static_cast<uint32_t*>(debugContext)); // Grab the uint32_t entry in the provided pointed context to display it
         debugValue = static_cast<int>(debugUint32);
     }
     uint8_t pos = 0;
     char statusLine[]="DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ P=@@@@@@@          "; /* Dbg is not always displayed but should be allocated in the buffer (see following line) */
-    //                "DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ P=@@@@@@@ Dbg=@@@@@";
+    //                "DH=@@@@ X=@@@ Yt=@@@ Yb=@@@ P=@@@@@@@ D=@@@@@@@";
     pos+=3; // "DH="
     statusLine[pos++]=(nbHistoryEntries / 1000) % 10 + '0';
     statusLine[pos++]=(nbHistoryEntries / 100) % 10 + '0';
@@ -74,15 +74,21 @@ void drawDebugLine(Stm32LcdDriver& lcd, uint16_t y, const PowerHistory& history,
         statusLine[pos++]=(debugPower / 10) % 10 + '0';
         statusLine[pos++]=(debugPower / 1) % 10 + '0';
     }
+    else
+        pos+=7; /* Skip all digits related to P= */
 
-    pos+=4; // "Dbg="
+    pos++;
+    statusLine[pos++]='D';
+    statusLine[pos++]='=';
     if (debugValue != INT_MIN) {
         if (debugValue < 0) {
             statusLine[pos++]='-';
             debugValue = -debugValue;
         }
         else
-            statusLine[pos++]=' ';
+            statusLine[pos++]=(debugValue / 1000000) % 10 + '0';
+        statusLine[pos++]=(debugValue / 100000) % 10 + '0';
+        statusLine[pos++]=(debugValue / 10000) % 10 + '0';
         statusLine[pos++]=(debugValue / 1000) % 10 + '0';
         statusLine[pos++]=(debugValue / 100) % 10 + '0';
         statusLine[pos++]=(debugValue / 10) % 10 + '0';

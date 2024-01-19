@@ -268,7 +268,7 @@ bool Stm32LcdDriver::start() {
 
     while (this->displayState == SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
-    this->copyDraftToFinal();
+    this->copyDraftToFinal(nullptr);
 
     this->requestDisplayFinal();
 
@@ -308,8 +308,8 @@ void Stm32LcdDriver::displayDraft(FWaitForDisplayRefreshFunc toRunWhileWaiting, 
     this->waitForDraftDisplayed(toRunWhileWaiting);
 }
 
-void Stm32LcdDriver::copyDraftToFinal() {
-    this->hdma2dCopyFramebuffer(this->draftFramebuffer, this->finalFramebuffer, 0, 0, LCDWidth, LCDHeight);
+void Stm32LcdDriver::copyDraftToFinal(uint32_t* loop_count) {
+    this->hdma2dCopyFramebuffer(this->draftFramebuffer, this->finalFramebuffer, 0, 0, LCDWidth, LCDHeight, loop_count);
 }
 
 uint16_t Stm32LcdDriver::getWidth() const {
@@ -436,7 +436,7 @@ void Stm32LcdDriver::fillRect(uint16_t x, uint16_t y, uint16_t width, uint16_t h
     // }
 }
 
-void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize) {
+void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t x, uint16_t y, uint16_t xsize, uint16_t ysize, uint32_t* loop_count) {
     uint32_t destination_addr = (uint32_t)dst + (y * LCDWidth + x) * 4;
     uint32_t source_addr      = (uint32_t)src;
 
@@ -461,7 +461,7 @@ void Stm32LcdDriver::hdma2dCopyFramebuffer(const void* src, void* dst, uint16_t 
         if (HAL_DMA2D_ConfigLayer(&(this->hdma2d), 1) == HAL_OK) {
             if (HAL_DMA2D_Start(&(this->hdma2d), source_addr, destination_addr, xsize, ysize) == HAL_OK) {
                 /* Polling For DMA transfer */
-                HAL_DMA2D_PollForTransfer(&(this->hdma2d), 100);
+                HAL_DMA2D_PollForTransfer(&(this->hdma2d), 100, 3, loop_count);
 #if 0
     /* STM32's instructions could allow us to switch to interrupt mode and continue forwarding incoming bytes to the tic unframer even during DMA2D transfers
     *** Polling mode IO operation ***
@@ -536,7 +536,7 @@ void Stm32LcdDriver::LL_FillBuffer(uint32_t LayerIndex, void *pDst, uint32_t xSi
         if (HAL_DMA2D_ConfigLayer(&(this->hdma2d), LayerIndex) == HAL_OK) {
             if (HAL_DMA2D_Start(&(this->hdma2d), ColorIndex, (uint32_t)pDst, xSize, ySize) == HAL_OK) {
                 /* Polling For DMA transfer */
-                HAL_DMA2D_PollForTransfer(&(this->hdma2d), 10);
+                HAL_DMA2D_PollForTransfer(&(this->hdma2d), 10, 3, nullptr);
             }
         }
     }
