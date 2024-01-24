@@ -367,8 +367,15 @@ bool Stm32LcdDriver::start() {
     this->displayState = SwitchToDraftIsPending;
 
     HAL_DSI_Refresh(&(this->hdsi));
+    BSP_LED_On(LED_RED);
 
+    // Currently hanging here...
     while (this->displayState == SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
+    HAL_Delay(250);
+    BSP_LED_Off(LED_RED);
+    BSP_LED_On(LED_GREEN);
+    HAL_Delay(250);
+    BSP_LED_Off(LED_GREEN);
 
     this->copyDraftToFinal();
 
