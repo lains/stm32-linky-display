@@ -171,6 +171,7 @@ void EXTI15_10_IRQHandler(void)
   */
 void DMA2_Stream0_IRQHandler(void)
 {
+  /*
   if(SdmmcTest == 1)
   {
     HAL_DMA_IRQHandler(uSdHandle.hdmarx);
@@ -182,7 +183,7 @@ void DMA2_Stream0_IRQHandler(void)
   else
   {
     HAL_DMA_IRQHandler(hAudioInTopLeftFilter.hdmaReg);
-  }
+  }*/
 }
 
 /**
@@ -192,6 +193,7 @@ void DMA2_Stream0_IRQHandler(void)
   */
 void DMA2_Stream5_IRQHandler(void)
 {
+  /*
   if(SdmmcTest == 1)
   {
   HAL_DMA_IRQHandler(uSdHandle.hdmatx);
@@ -200,6 +202,7 @@ void DMA2_Stream5_IRQHandler(void)
   {
    HAL_DMA_IRQHandler(hAudioInTopRightFilter.hdmaReg); 
   }
+  */
 }
 
 /**

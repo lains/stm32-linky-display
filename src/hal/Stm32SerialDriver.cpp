@@ -42,6 +42,7 @@ static void onTicUartRx(uint8_t incomingByte);
 extern "C" {
 
 static void MX_USART6_UART_Init(UART_HandleTypeDef* huart) {
+#if 0
     huart->Instance = USART6;
     huart->Init.BaudRate = 9600;
     huart->Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
@@ -55,8 +56,10 @@ static void MX_USART6_UART_Init(UART_HandleTypeDef* huart) {
     if (HAL_UART_Init(huart) != HAL_OK) {
 	      OnError_Handler(1);
     }
+#endif
 }
 
+#if 0 // FIXME: move the correct init code from stm32f7xx_hal_msp.c into here
 void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
@@ -110,7 +113,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
         HAL_GPIO_Init(USART3_RX_GPIO_PORT, &GPIO_InitStruct);
     }
 }
+#endif
 
+#if 0 // FIXME: move the correct init code from stm32f7xx_hal_msp.c into here
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     /*##-1- Reset peripherals ##################################################*/
     if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) {
@@ -148,19 +153,24 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
         HAL_GPIO_DeInit(GPIOD, GPIO_PIN_8|GPIO_PIN_9);
     }
 }
+#endif
 
 inline void UART6_Enable_interrupt_callback(UART_HandleTypeDef* huart) {
+#if 0
     HAL_UART_Receive_IT(huart, UART6_rxBuffer, 1);
+#endif
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
+#if 0
     if (huart->Instance==USART6) {
         unsigned char Received_Data = UART6_rxBuffer[0];
         onTicUartRx((uint8_t)Received_Data);
         BSP_LED_Toggle(LED3); // Toggle the orange LED when new serial data is received on the TIC UART
         UART6_Enable_interrupt_callback(huart);
     }
+#endif
 }
 } // extern "C"
 

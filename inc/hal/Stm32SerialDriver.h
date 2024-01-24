@@ -1,7 +1,7 @@
 #ifndef _STM32SERIALDRIVER_H_
 #define _STM32SERIALDRIVER_H_
 
-#include "stm32f4xx_hal.h"
+#include "stm32f7xx_hal.h"
 #include <cstdint>
 #ifdef USE_ALLOCATION
 #include <string>

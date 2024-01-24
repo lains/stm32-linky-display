@@ -1,6 +1,6 @@
 #include "Stm32TimerDriver.h"
 extern "C" {
-#include "stm32f4xx_hal.h"
+#include "stm32f7xx_hal.h"
 }
 
 void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting, FHalDelayConditionFunc conditionCheck, void* context) {

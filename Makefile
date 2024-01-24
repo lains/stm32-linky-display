@@ -53,9 +53,9 @@ LDSCRIPT = $(SRC_DIR)/device/STM32F769NIHx_FLASH.ld
 
 # Project includes
 PROJECT_INCLUDE_DIRS   = $(INC_DIR)
-#PROJECT_INCLUDE_DIRS  += $(INC_DIR)/domain
+PROJECT_INCLUDE_DIRS  += $(INC_DIR)/domain
 PROJECT_INCLUDE_DIRS  += $(INC_DIR)/hal
-#PROJECT_INCLUDE_DIRS  += $(TICDECODECPP)/include
+PROJECT_INCLUDE_DIRS  += $(TICDECODECPP)/include
 
 # Vendor sources: Note that files in "Templates" are normally copied into project for customization,
 # but we direclty use provided source files whenever possible.
@@ -97,9 +97,9 @@ BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/ft6x06/ft6x06.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Utilities/Log/lcd_log.c
 
 #libticdecodecpp related source files
-#PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/Unframer.cpp
-#PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetExtractor.cpp
-#PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetView.cpp
+PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/Unframer.cpp
+PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetExtractor.cpp
+PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetView.cpp
 
 # Vendor includes
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Core/Include
