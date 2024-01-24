@@ -12,7 +12,7 @@ void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaitin
         wait += (uint32_t)(uwTickFreq);
     }
 
-    while((HAL_GetTick() - tickstart) < wait && (conditionCheck != nullptr && conditionCheck(context))) {
+    while((HAL_GetTick() - tickstart) < wait && (conditionCheck == nullptr || conditionCheck(context))) {
         if (toRunWhileWaiting != nullptr) {
             toRunWhileWaiting(context);
         }

@@ -5,10 +5,12 @@
 #include "stm32469i_discovery_lcd.h"
 
 extern "C" {
-LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
 DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
 void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi);
 }
+
+LTDC_HandleTypeDef* getLcdLtdcHandle();
+DSI_HandleTypeDef* getLcdDsiHandle();
 
 /**
  * @brief Serial link communication class (singleton)
@@ -34,6 +36,7 @@ public:
         Red = LCD_COLOR_RED,
         Blue = LCD_COLOR_BLUE,
         Grey = LCD_COLOR_GRAY,
+        LightGrey = LCD_COLOR_LIGHTGRAY,
         DarkGreen = LCD_COLOR_DARKGREEN,
         DarkRed = LCD_COLOR_DARKRED,
         DarkBlue = LCD_COLOR_DARKBLUE,

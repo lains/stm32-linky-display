@@ -1,0 +1,79 @@
+diff --git a/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c b/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
+index 31684af0a..c2efab7b7 100644
+--- a/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
++++ b/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
+@@ -1590,7 +1590,7 @@ static void LL_FillBuffer(uint32_t LayerIndex, void *pDst, uint32_t xSize, uint3
+       if (HAL_DMA2D_Start(&hdma2d_eval, ColorIndex, (uint32_t)pDst, xSize, ySize) == HAL_OK)
+       {
+         /* Polling For DMA transfer */
+-        HAL_DMA2D_PollForTransfer(&hdma2d_eval, 10);
++        HAL_DMA2D_PollForTransfer(&hdma2d_eval, 10, 3, NULL);
+       }
+     }
+   }
+@@ -1626,7 +1626,7 @@ static void LL_ConvertLineToARGB8888(void *pSrc, void *pDst, uint32_t xSize, uin
+       if (HAL_DMA2D_Start(&hdma2d_eval, (uint32_t)pSrc, (uint32_t)pDst, xSize, 1) == HAL_OK)
+       {
+         /* Polling For DMA transfer */
+-        HAL_DMA2D_PollForTransfer(&hdma2d_eval, 10);
++        HAL_DMA2D_PollForTransfer(&hdma2d_eval, 10, 3, NULL);
+       }
+     }
+   }
+diff --git a/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma2d.h b/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma2d.h
+index 896714137..65cffd861 100644
+--- a/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma2d.h
++++ b/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma2d.h
+@@ -457,7 +457,7 @@ HAL_StatusTypeDef HAL_DMA2D_CLUTLoad_IT(DMA2D_HandleTypeDef *hdma2d, DMA2D_CLUTC
+ HAL_StatusTypeDef HAL_DMA2D_CLUTLoading_Abort(DMA2D_HandleTypeDef *hdma2d, uint32_t LayerIdx);
+ HAL_StatusTypeDef HAL_DMA2D_CLUTLoading_Suspend(DMA2D_HandleTypeDef *hdma2d, uint32_t LayerIdx);
+ HAL_StatusTypeDef HAL_DMA2D_CLUTLoading_Resume(DMA2D_HandleTypeDef *hdma2d, uint32_t LayerIdx);
+-HAL_StatusTypeDef HAL_DMA2D_PollForTransfer(DMA2D_HandleTypeDef *hdma2d, uint32_t Timeout);
++HAL_StatusTypeDef HAL_DMA2D_PollForTransfer(DMA2D_HandleTypeDef *hdma2d, uint32_t Timeout, uint8_t mult, uint32_t* loop_count);
+ void              HAL_DMA2D_IRQHandler(DMA2D_HandleTypeDef *hdma2d);
+ void              HAL_DMA2D_LineEventCallback(DMA2D_HandleTypeDef *hdma2d);
+ void              HAL_DMA2D_CLUTLoadingCpltCallback(DMA2D_HandleTypeDef *hdma2d);
+diff --git a/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c b/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c
+index 4cfac4061..277b71119 100644
+--- a/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c
++++ b/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c
+@@ -1369,8 +1369,10 @@ HAL_StatusTypeDef HAL_DMA2D_CLUTLoading_Resume(DMA2D_HandleTypeDef *hdma2d, uint
+   * @param  Timeout Timeout duration
+   * @retval HAL status
+   */
+-HAL_StatusTypeDef HAL_DMA2D_PollForTransfer(DMA2D_HandleTypeDef *hdma2d, uint32_t Timeout)
++HAL_StatusTypeDef HAL_DMA2D_PollForTransfer(DMA2D_HandleTypeDef *hdma2d, uint32_t Timeout, uint8_t mult, uint32_t* loop_count)
+ {
++  volatile uint8_t ra_table_array[256];
++  uint8_t ra_table_idx = 0;
+   uint32_t tickstart;
+   uint32_t layer_start;
+   __IO uint32_t isrflags = 0x0U;
+@@ -1383,6 +1385,27 @@ HAL_StatusTypeDef HAL_DMA2D_PollForTransfer(DMA2D_HandleTypeDef *hdma2d, uint32_
+ 
+     while (__HAL_DMA2D_GET_FLAG(hdma2d, DMA2D_FLAG_TC) == 0U)
+     {
++      if (loop_count != NULL) (*loop_count)++;
++      ra_table_array[ra_table_idx++] *= mult;
++      ra_table_array[ra_table_idx++] *= (mult + 1);
++      ra_table_array[ra_table_idx++] *= (mult + 2);
++      ra_table_array[ra_table_idx++] *= (mult + 3);
++      ra_table_array[ra_table_idx++] *= (mult + 4);
++      ra_table_array[ra_table_idx++] *= (mult + 5);
++      ra_table_array[ra_table_idx++] *= (mult + 6);
++      ra_table_array[ra_table_idx++] *= (mult + 7);
++      ra_table_array[ra_table_idx++] *= (mult + 8);
++      ra_table_array[ra_table_idx++] *= (mult + 9);
++      ra_table_array[ra_table_idx++] *= mult;
++      ra_table_array[ra_table_idx++] *= (mult + 1);
++      ra_table_array[ra_table_idx++] *= (mult + 2);
++      ra_table_array[ra_table_idx++] *= (mult + 3);
++      ra_table_array[ra_table_idx++] *= (mult + 4);
++      ra_table_array[ra_table_idx++] *= (mult + 5);
++      ra_table_array[ra_table_idx++] *= (mult + 6);
++      ra_table_array[ra_table_idx++] *= (mult + 7);
++      ra_table_array[ra_table_idx++] *= (mult + 8);
++      ra_table_array[ra_table_idx++] *= (mult + 9);
+       isrflags = READ_REG(hdma2d->Instance->ISR);
+       if ((isrflags & (DMA2D_FLAG_CE | DMA2D_FLAG_TE)) != 0U)
+       {
