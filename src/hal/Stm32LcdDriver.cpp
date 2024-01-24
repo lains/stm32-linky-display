@@ -120,6 +120,9 @@ static uint16_t LCD_IO_GetID(void)
   * @retval LCD state
   */
 static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
+    OnError_Handler(BSP_LCD_Init() != LCD_OK);
+
+    return LCD_OK; /* Delegated to original BSP code for now */
   LCD_OrientationTypeDef orientation = LCD_ORIENTATION_LANDSCAPE;
   DSI_PLLInitTypeDef dsiPllInit;
   static RCC_PeriphCLKInitTypeDef  PeriphClkInitStruct;
