@@ -52,7 +52,7 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 void OnError_Handler(uint32_t condition)
 {
     if(condition) {
-        BSP_LED_On(LED2);
+        BSP_LED_On(LED1);
         while(1) { ; } /* Blocking on error */
     }
 }
