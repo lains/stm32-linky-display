@@ -13,7 +13,13 @@ const unsigned int LCDWidth = 800;
 const unsigned int LCDHeight = 480;
 const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 
+#define VSYNC               1 
+#define VBP                 1 
+#define VFP                 1
 #define VACT                LCDHeight
+#define HSYNC               1
+#define HBP                 1
+#define HFP                 1
 #define HACT                LCDWidth
 
 void* const Stm32LcdDriver::draftFramebuffer = (void *)LCD_FB_START_ADDRESS;
@@ -38,7 +44,7 @@ void set_active_fb(void* fb) {
     __HAL_DSI_WRAPPER_DISABLE(getLcdDsiHandle());
     /* Update LTDC configuration */
     LTDC_LAYER(getLcdLtdcHandle(), 0)->CFBAR = (uint32_t)(fb);
-    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(getLcdLtdcHandle());
+    __HAL_LTDC_RELOAD_CONFIG(getLcdLtdcHandle());
     /* Enable DSI Wrapper */
     __HAL_DSI_WRAPPER_ENABLE(getLcdDsiHandle());
 }
@@ -69,44 +75,33 @@ void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
   * @retval None
   */
 void LTDC_Init(LTDC_HandleTypeDef* hltdc) {
-    // FIXME move LTDC-related code from LCD_Init into this function
-}
+    /* DeInit */
+    HAL_LTDC_DeInit(hltdc);
+    
+    /* LTDC Config */
+    /* Timing and polarity */
+    hltdc_discovery.Init.HorizontalSync = HSYNC;
+    hltdc_discovery.Init.VerticalSync = VSYNC;
+    hltdc_discovery.Init.AccumulatedHBP = HSYNC+HBP;
+    hltdc_discovery.Init.AccumulatedVBP = VSYNC+VBP;
+    hltdc_discovery.Init.AccumulatedActiveH = VSYNC+VBP+VACT;
+    hltdc_discovery.Init.AccumulatedActiveW = HSYNC+HBP+HACT;
+    hltdc_discovery.Init.TotalHeigh = VSYNC+VBP+VACT+VFP;
+    hltdc_discovery.Init.TotalWidth = HSYNC+HBP+HACT+HFP;
+    
+    /* background value */
+    hltdc_discovery.Init.Backcolor.Blue = 0;
+    hltdc_discovery.Init.Backcolor.Green = 0;
+    hltdc_discovery.Init.Backcolor.Red = 0;
+    
+    /* Polarity */
+    hltdc_discovery.Init.HSPolarity = LTDC_HSPOLARITY_AL;
+    hltdc_discovery.Init.VSPolarity = LTDC_VSPOLARITY_AL;
+    hltdc_discovery.Init.DEPolarity = LTDC_DEPOLARITY_AL;
+    hltdc_discovery.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
+    hltdc_discovery.Instance = LTDC;
 
-#if defined(USE_LCD_HDMI)
-#define HDMI_ASPECT_RATIO_16_9  ADV7533_ASPECT_RATIO_16_9
-#define HDMI_ASPECT_RATIO_4_3   ADV7533_ASPECT_RATIO_4_3
-#endif /* USE_LCD_HDMI */    
-#define LCD_DSI_ID              0x11
-#define LCD_DSI_ID_REG          0xA8
-
-/**
-  * @brief  Returns the ID of connected screen by checking the HDMI
-  *        (adv7533 component) ID or LCD DSI (via TS ID) ID.
-  * @retval LCD ID
-  */
-static uint16_t LCD_IO_GetID(void)
-{ 
-#if defined(USE_LCD_HDMI)  
-  HDMI_IO_Init();
-  
-  HDMI_IO_Delay(120);
-  
-  if(ADV7533_ID == adv7533_drv.ReadID(ADV7533_CEC_DSI_I2C_ADDR))
-  {
-    return ADV7533_ID;
-  }  
-  else if(((HDMI_IO_Read(LCD_DSI_ADDRESS, LCD_DSI_ID_REG) == LCD_DSI_ID)) || \
-           (HDMI_IO_Read(LCD_DSI_ADDRESS_A02, LCD_DSI_ID_REG) == LCD_DSI_ID))
-  {
-    return LCD_DSI_ID;
-  }
-  else
-  {
-    return 0;
-  }
-#else 
-  return LCD_DSI_ID; 
-#endif /* USE_LCD_HDMI */
+    HAL_LTDC_Init(hltdc);
 }
 
 /**
@@ -120,217 +115,121 @@ static uint16_t LCD_IO_GetID(void)
   * @retval LCD state
   */
 static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
-    OnError_Handler(BSP_LCD_Init() != LCD_OK);
+    static DSI_PHY_TimerTypeDef  PhyTimings;
+    static DSI_CmdCfgTypeDef CmdCfg;
+    static DSI_LPCmdTypeDef LPCmd;
+    static DSI_PLLInitTypeDef dsiPllInit;
+    static RCC_PeriphCLKInitTypeDef  PeriphClkInitStruct;
 
-    return LCD_OK; /* Delegated to original BSP code for now */
-  LCD_OrientationTypeDef orientation = LCD_ORIENTATION_LANDSCAPE;
-  DSI_PLLInitTypeDef dsiPllInit;
-  static RCC_PeriphCLKInitTypeDef  PeriphClkInitStruct;
-  uint32_t LcdClock  = 27429; /*!< LcdClk = 27429 kHz */
-  uint16_t read_id = 0;
-
-  uint32_t laneByteClk_kHz = 0;
-  uint32_t                   VSA; /*!< Vertical start active time in units of lines */
-  uint32_t                   VBP; /*!< Vertical Back Porch time in units of lines */
-  uint32_t                   VFP; /*!< Vertical Front Porch time in units of lines */
-  uint32_t                   VACT; /*!< Vertical Active time in units of lines = imageSize Y in pixels to display */
-  uint32_t                   HSA; /*!< Horizontal start active time in units of lcdClk */
-  uint32_t                   HBP; /*!< Horizontal Back Porch time in units of lcdClk */
-  uint32_t                   HFP; /*!< Horizontal Front Porch time in units of lcdClk */
-  uint32_t                   HACT; /*!< Horizontal Active time in units of lcdClk = imageSize X in pixels to display */
-
-  /* Toggle Hardware Reset of the DSI LCD using
-  * its XRES signal (active low) */
-  BSP_LCD_Reset();
-
-  /* Check the connected monitor */
-  read_id = LCD_IO_GetID();
-
-#if defined(USE_LCD_HDMI)   
-  if(read_id == ADV7533_ID)
-  {
-    return BSP_LCD_HDMIInitEx(HDMI_FORMAT_720_576); 
-  }  
-  else if(read_id != LCD_DSI_ID)
-  {
-    return LCD_ERROR;  
-  }
-#else
-  if(read_id != LCD_DSI_ID)
-  {
-    return LCD_ERROR;  
-  }  
-#endif /* USE_LCD_HDMI */ 
-
-  /* Call first MSP Initialize only in case of first initialization
-  * This will set IP blocks LTDC, DSI and DMA2D
-  * - out of reset
-  * - clocked
-  * - NVIC IRQ related to IP blocks enabled
-  */
-  BSP_LCD_MspInit();
-
-/*************************DSI Initialization***********************************/  
-
-  /* Base address of DSI Host/Wrapper registers to be set before calling De-Init */
-  hdsi->Instance = DSI;
-
-  HAL_DSI_DeInit(hdsi);
-
-  dsiPllInit.PLLNDIV  = 100;
-  dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV5;
-  dsiPllInit.PLLODF  = DSI_PLL_OUT_DIV1;
-  laneByteClk_kHz = 62500; /* 500 MHz / 8 = 62.5 MHz = 62500 kHz */
-
-  /* Set number of Lanes */
-  hdsi->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
-
-  /* TXEscapeCkdiv = f(LaneByteClk)/15.62 = 4 */
-  hdsi->Init.TXEscapeCkdiv = laneByteClk_kHz/15620; 
-
-  HAL_DSI_Init(hdsi, &(dsiPllInit));
-
-  /* Timing parameters for all Video modes
-  * Set Timing parameters of LTDC depending on its chosen orientation
-  */
-
-  /* The following values are same for portrait and landscape orientations */
-#if defined (USE_STM32F769I_DISCO_REVB03)
-  VSA  = NT35510_480X800_VSYNC;
-  VBP  = NT35510_480X800_VBP;
-  VFP  = NT35510_480X800_VFP;
-  HSA  = NT35510_480X800_HSYNC;
-  HBP  = NT35510_480X800_HBP;
-  HFP  = NT35510_480X800_HFP;  
-#else
-  VSA  = OTM8009A_480X800_VSYNC;
-  VBP  = OTM8009A_480X800_VBP;
-  VFP  = OTM8009A_480X800_VFP;
-  HSA  = OTM8009A_480X800_HSYNC;
-  HBP  = OTM8009A_480X800_HBP;
-  HFP  = OTM8009A_480X800_HFP;
-#endif /* USE_STM32F769I_DISCO_REVB03 */
-
-  hdsivideo_handle.VirtualChannelID = LCD_OTM8009A_ID;
-  hdsivideo_handle.ColorCoding = LCD_DSI_PIXEL_DATA_FMT_RBG888;
-  hdsivideo_handle.VSPolarity = DSI_VSYNC_ACTIVE_HIGH;
-  hdsivideo_handle.HSPolarity = DSI_HSYNC_ACTIVE_HIGH;
-  hdsivideo_handle.DEPolarity = DSI_DATA_ENABLE_ACTIVE_HIGH;  
-  hdsivideo_handle.Mode = DSI_VID_MODE_BURST; /* Mode Video burst ie : one LgP per line */
-  hdsivideo_handle.NullPacketSize = 0xFFF;
-  hdsivideo_handle.NumberOfChunks = 0;
-  hdsivideo_handle.PacketSize                = HACT; /* Value depending on display orientation choice portrait/landscape */ 
-  hdsivideo_handle.HorizontalSyncActive      = (HSA * laneByteClk_kHz)/LcdClock;
-  hdsivideo_handle.HorizontalBackPorch       = (HBP * laneByteClk_kHz)/LcdClock;
-  hdsivideo_handle.HorizontalLine            = ((HACT + HSA + HBP + HFP) * laneByteClk_kHz)/LcdClock; /* Value depending on display orientation choice portrait/landscape */
-  hdsivideo_handle.VerticalSyncActive        = VSA;
-  hdsivideo_handle.VerticalBackPorch         = VBP;
-  hdsivideo_handle.VerticalFrontPorch        = VFP;
-  hdsivideo_handle.VerticalActive            = VACT; /* Value depending on display orientation choice portrait/landscape */
-
-  /* Enable or disable sending LP command while streaming is active in video mode */
-  hdsivideo_handle.LPCommandEnable = DSI_LP_COMMAND_ENABLE; /* Enable sending commands in mode LP (Low Power) */
-
-  /* Largest packet size possible to transmit in LP mode in VSA, VBP, VFP regions */
-  /* Only useful when sending LP packets is allowed while streaming is active in video mode */
-  hdsivideo_handle.LPLargestPacketSize = 16;
-
-  /* Largest packet size possible to transmit in LP mode in HFP region during VACT period */
-  /* Only useful when sending LP packets is allowed while streaming is active in video mode */
-  hdsivideo_handle.LPVACTLargestPacketSize = 0;
-
-  /* Specify for each region of the video frame, if the transmission of command in LP mode is allowed in this region */
-  /* while streaming is active in video mode                                                                         */
-  hdsivideo_handle.LPHorizontalFrontPorchEnable = DSI_LP_HFP_ENABLE;   /* Allow sending LP commands during HFP period */
-  hdsivideo_handle.LPHorizontalBackPorchEnable  = DSI_LP_HBP_ENABLE;   /* Allow sending LP commands during HBP period */
-  hdsivideo_handle.LPVerticalActiveEnable = DSI_LP_VACT_ENABLE;  /* Allow sending LP commands during VACT period */
-  hdsivideo_handle.LPVerticalFrontPorchEnable = DSI_LP_VFP_ENABLE;   /* Allow sending LP commands during VFP period */
-  hdsivideo_handle.LPVerticalBackPorchEnable = DSI_LP_VBP_ENABLE;   /* Allow sending LP commands during VBP period */
-  hdsivideo_handle.LPVerticalSyncActiveEnable = DSI_LP_VSYNC_ENABLE; /* Allow sending LP commands during VSync = VSA period */
-
-  /* Configure DSI Video mode timings with settings set above */
-  HAL_DSI_ConfigVideoMode(hdsi, &(hdsivideo_handle));
-
-/*************************End DSI Initialization*******************************/ 
+    /* Toggle Hardware Reset of the DSI LCD using
+    * its XRES signal (active low) */
+    BSP_LCD_Reset();
   
-    /* Initialize LTDC */
-    //LTDC_Init(hltdc); //FIXME: we should call our own LTDC_Init() above here instead of directly using the code inserted below
-
-/************************LTDC Initialization***********************************/  
-
-  /* Timing Configuration */    
-  hltdc->Init.HorizontalSync = (HSA - 1);
-  hltdc->Init.AccumulatedHBP = (HSA + HBP - 1);
-  hltdc->Init.AccumulatedActiveW = (LCDWidth+ HSA + HBP - 1);
-  hltdc->Init.TotalWidth = (LCDWidth + HSA + HBP + HFP - 1);
-
-  /* Initialize the LCD pixel width and pixel height */
-  hltdc->LayerCfg->ImageWidth  = LCDWidth;
-  hltdc->LayerCfg->ImageHeight = LCDHeight;   
-
-  /** LCD clock configuration
-    * Note: The following values should not be changed as the PLLSAI is also used 
-    *      to clock the USB FS
-    * PLLSAI_VCO Input = HSE_VALUE/PLL_M = 1 Mhz 
-    * PLLSAI_VCO Output = PLLSAI_VCO Input * PLLSAIN = 384 Mhz 
-    * PLLLCDCLK = PLLSAI_VCO Output/PLLSAIR = 384 MHz / 7 = 54.85 MHz 
-    * LTDC clock frequency = PLLLCDCLK / LTDC_PLLSAI_DIVR_2 = 54.85 MHz / 2 = 27.429 MHz 
+    /* Call first MSP Initialize only in case of first initialization
+    * This will set IP blocks LTDC, DSI and DMA2D
+    * - out of reset
+    * - clocked
+    * - NVIC IRQ related to IP blocks enabled
     */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
-  PeriphClkInitStruct.PLLSAI.PLLSAIN = 384;
-  PeriphClkInitStruct.PLLSAI.PLLSAIR = 7;
-  PeriphClkInitStruct.PLLSAIDivR = RCC_PLLSAIDIVR_2;
-  HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-
-  /* Background value */
-  hltdc->Init.Backcolor.Blue = 0;
-  hltdc->Init.Backcolor.Green = 0;
-  hltdc->Init.Backcolor.Red = 0;
-  hltdc->Init.PCPolarity = LTDC_PCPOLARITY_IPC;
-  hltdc->Instance = LTDC;
-
-  /* Get LTDC Configuration from DSI Configuration */
-  HAL_LTDC_StructInitFromVideoConfig(hltdc, &(hdsivideo_handle));
-
-  /* Initialize the LTDC */  
-  HAL_LTDC_Init(hltdc);
-
-  /* Enable the DSI host and wrapper after the LTDC initialization
-     To avoid any synchronization issue, the DSI shall be started after enabling the LTDC */
-  HAL_DSI_Start(hdsi);
-
-#if !defined(DATA_IN_ExtSDRAM)
-  /* Initialize the SDRAM */
-  BSP_SDRAM_Init();
-#endif /* DATA_IN_ExtSDRAM */
-
-  /* Initialize the font */
-  BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
-
-/************************End LTDC Initialization*******************************/
+    BSP_LCD_MspInit();
+    
+    /* LCD clock configuration */
+    /* PLLSAI_VCO Input = HSE_VALUE/PLL_M = 1 Mhz */
+    /* PLLSAI_VCO Output = PLLSAI_VCO Input * PLLSAIN = 417 Mhz */
+    /* PLLLCDCLK = PLLSAI_VCO Output/PLLSAIR = 417 MHz / 5 = 83.4 MHz */
+    /* LTDC clock frequency = PLLLCDCLK / LTDC_PLLSAI_DIVR_2 = 83.4 / 2 = 41.7 MHz */
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
+    PeriphClkInitStruct.PLLSAI.PLLSAIN = 417;
+    PeriphClkInitStruct.PLLSAI.PLLSAIR = 5;
+    PeriphClkInitStruct.PLLSAIDivR = RCC_PLLSAIDIVR_2;
+    HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+    
+    /* Base address of DSI Host/Wrapper registers to be set before calling De-Init */
+    hdsi->Instance = DSI;
+    
+    HAL_DSI_DeInit(hdsi);
   
-#if defined(USE_STM32F769I_DISCO_REVB03)
-/***********************NT35510 Initialization********************************/  
+    dsiPllInit.PLLNDIV  = 100;
+    dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV5;
+    dsiPllInit.PLLODF   = DSI_PLL_OUT_DIV1;  
+
+    hdsi->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
+    hdsi->Init.TXEscapeCkdiv = 0x4;
+    HAL_DSI_Init(hdsi, &(dsiPllInit));
+    
+    /* Configure the DSI for Command mode */
+    CmdCfg.VirtualChannelID      = 0;
+    CmdCfg.HSPolarity            = DSI_HSYNC_ACTIVE_HIGH;
+    CmdCfg.VSPolarity            = DSI_VSYNC_ACTIVE_HIGH;
+    CmdCfg.DEPolarity            = DSI_DATA_ENABLE_ACTIVE_HIGH;
+    CmdCfg.ColorCoding           = DSI_RGB888;
+    CmdCfg.CommandSize           = HACT;
+    CmdCfg.TearingEffectSource   = DSI_TE_DSILINK;
+    CmdCfg.TearingEffectPolarity = DSI_TE_RISING_EDGE;
+    CmdCfg.VSyncPol              = DSI_VSYNC_FALLING;
+    CmdCfg.AutomaticRefresh      = DSI_AR_DISABLE;
+    CmdCfg.TEAcknowledgeRequest  = DSI_TE_ACKNOWLEDGE_ENABLE;
+    HAL_DSI_ConfigAdaptedCommandMode(hdsi, &CmdCfg);
   
-  /* Initialize the NT35510 LCD Display IC Driver (TechShine LCD IC Driver)
-   * depending on configuration set in 'hdsivideo_handle'.
-   */
-  NT35510_Init(NT35510_FORMAT_RGB888, orientation);
-/***********************End NT35510 Initialization****************************/
-#else
+    LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_ENABLE;
+    LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_ENABLE;
+    LPCmd.LPGenShortWriteTwoP   = DSI_LP_GSW2P_ENABLE;
+    LPCmd.LPGenShortReadNoP     = DSI_LP_GSR0P_ENABLE;
+    LPCmd.LPGenShortReadOneP    = DSI_LP_GSR1P_ENABLE;
+    LPCmd.LPGenShortReadTwoP    = DSI_LP_GSR2P_ENABLE;
+    LPCmd.LPGenLongWrite        = DSI_LP_GLW_ENABLE;
+    LPCmd.LPDcsShortWriteNoP    = DSI_LP_DSW0P_ENABLE;
+    LPCmd.LPDcsShortWriteOneP   = DSI_LP_DSW1P_ENABLE;
+    LPCmd.LPDcsShortReadNoP     = DSI_LP_DSR0P_ENABLE;
+    LPCmd.LPDcsLongWrite        = DSI_LP_DLW_ENABLE;
+    HAL_DSI_ConfigCommand(hdsi, &LPCmd);
+
+    /* Initialize LTDC */
+    LTDC_Init(hltdc);
+    
+    /* Start DSI */
+    HAL_DSI_Start(hdsi);
+
+    /* Configure DSI PHY HS2LP and LP2HS timings */
+    PhyTimings.ClockLaneHS2LPTime = 35;
+    PhyTimings.ClockLaneLP2HSTime = 35;
+    PhyTimings.DataLaneHS2LPTime = 35;
+    PhyTimings.DataLaneLP2HSTime = 35;
+    PhyTimings.DataLaneMaxReadTime = 0;
+    PhyTimings.StopWaitTime = 10;
+    HAL_DSI_ConfigPhyTimer(hdsi, &PhyTimings);  
+    
+    /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver)
+    *  depending on configuration set in 'hdsivideo_handle'.
+    */
+    OTM8009A_Init(OTM8009A_COLMOD_RGB888, LCD_ORIENTATION_LANDSCAPE);
+    
+    LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_DISABLE;
+    LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_DISABLE;
+    LPCmd.LPGenShortWriteTwoP   = DSI_LP_GSW2P_DISABLE;
+    LPCmd.LPGenShortReadNoP     = DSI_LP_GSR0P_DISABLE;
+    LPCmd.LPGenShortReadOneP    = DSI_LP_GSR1P_DISABLE;
+    LPCmd.LPGenShortReadTwoP    = DSI_LP_GSR2P_DISABLE;
+    LPCmd.LPGenLongWrite        = DSI_LP_GLW_DISABLE;
+    LPCmd.LPDcsShortWriteNoP    = DSI_LP_DSW0P_DISABLE;
+    LPCmd.LPDcsShortWriteOneP   = DSI_LP_DSW1P_DISABLE;
+    LPCmd.LPDcsShortReadNoP     = DSI_LP_DSR0P_DISABLE;
+    LPCmd.LPDcsLongWrite        = DSI_LP_DLW_DISABLE;
+    HAL_DSI_ConfigCommand(hdsi, &LPCmd);
   
-/***********************OTM8009A Initialization********************************/ 
+    HAL_DSI_ConfigFlowControl(hdsi, DSI_FLOW_CONTROL_BTA);
 
-  /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver)
-  *  depending on configuration set in 'hdsivideo_handle'.
-  */
-  OTM8009A_Init(OTM8009A_FORMAT_RGB888, LCD_ORIENTATION_LANDSCAPE);
-
-/***********************End OTM8009A Initialization****************************/ 
-#endif /* USE_STM32F769I_DISCO_REVB03 */
-
-
-  return LCD_OK; 
+    /* Send Display Off DCS Command to display */
+    HAL_DSI_ShortWrite(hdsi,
+                       0,
+                       DSI_DCS_SHORT_PKT_WRITE_P1,
+                       OTM8009A_CMD_DISPOFF,
+                       0x00);
+    
+    /* Refresh the display */
+    HAL_DSI_Refresh(hdsi);
+    
+    return LCD_OK; 
 }
 
 } // extern "C"
@@ -376,6 +275,12 @@ bool Stm32LcdDriver::start() {
     BSP_LED_On(LED_GREEN);
     HAL_Delay(250);
     BSP_LED_Off(LED_GREEN);
+
+    HAL_DSI_ShortWrite(&(this->hdsi),
+                       0,
+                       DSI_DCS_SHORT_PKT_WRITE_P1,
+                       OTM8009A_CMD_DISPON,
+                       0x00);
 
     this->copyDraftToFinal();
 

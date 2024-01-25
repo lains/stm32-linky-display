@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    BSP/BSP/Src/stm32f7xx_it.c
+  * @file    LCD_DSI/LCD_DSI_CmdMode_DoubleBuffering/Src/stm32f7xx_it.c 
   * @author  MCD Application Team
   * @brief   Main Interrupt Service Routines.
   *          This file provides template for all exceptions handler and
@@ -8,13 +8,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2016 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -27,21 +26,14 @@
   * @{
   */
 
-/** @addtogroup BSP
+/** @addtogroup LCD_DSI_CmdMode_DoubleBuffering
   * @{
   */
 
 /* Private typedef -----------------------------------------------------------*/
-extern SAI_HandleTypeDef haudio_out_sai;
-extern DFSDM_Filter_HandleTypeDef       hAudioInTopLeftFilter;
-extern DFSDM_Filter_HandleTypeDef       hAudioInTopRightFilter;
-extern DFSDM_Filter_HandleTypeDef       hAudioInButtomLeftFilter;
-extern DFSDM_Filter_HandleTypeDef       hAudioInButtomRightFilter;
-extern SDRAM_HandleTypeDef sdramHandle;
-extern SD_HandleTypeDef uSdHandle;
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/ 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -154,95 +146,13 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f7xx.s).                                               */
 /******************************************************************************/
 /**
-  * @brief  This function handles External lines 15 to 10 interrupt request.
+  * @brief  This function handles DSI Handler.
   * @param  None
   * @retval None
   */
-void EXTI15_10_IRQHandler(void)
+void DSI_IRQHandler(void)
 {
-  HAL_GPIO_EXTI_IRQHandler(WAKEUP_BUTTON_PIN);
-  HAL_GPIO_EXTI_IRQHandler(TS_INT_PIN);
-}
-
-/**
-  * @brief  This function handles DMA2 Stream 0 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void DMA2_Stream0_IRQHandler(void)
-{
-  /*
-  if(SdmmcTest == 1)
-  {
-    HAL_DMA_IRQHandler(uSdHandle.hdmarx);
-  }
-  else if(SdramTest == 1)
-  {
-    HAL_DMA_IRQHandler(sdramHandle.hdma);
-  }
-  else
-  {
-    HAL_DMA_IRQHandler(hAudioInTopLeftFilter.hdmaReg);
-  }*/
-}
-
-/**
-  * @brief  This function handles DMA2 Stream 5 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void DMA2_Stream5_IRQHandler(void)
-{
-  /*
-  if(SdmmcTest == 1)
-  {
-  HAL_DMA_IRQHandler(uSdHandle.hdmatx);
-  }
-  else
-  {
-   HAL_DMA_IRQHandler(hAudioInTopRightFilter.hdmaReg); 
-  }
-  */
-}
-
-/**
-  * @brief  This function handles DMA2 Stream 1 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void AUDIO_OUT_SAIx_DMAx_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler(haudio_out_sai.hdmatx);
-}
-
-/**
-  * @brief  This function handles DMA2 Stream 6 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void AUDIO_DFSDMx_DMAx_BUTTOM_LEFT_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler(hAudioInButtomLeftFilter.hdmaReg);
-}
-
-/**
-  * @brief  This function handles DMA2 Stream 7 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void AUDIO_DFSDMx_DMAx_BUTTOM_RIGHT_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler(hAudioInButtomRightFilter.hdmaReg);
-}
-
-/**
-  * @brief  This function handles SDMMC2 interrupt request.
-  * @param  None
-  * @retval None
-  */
-void BSP_SDMMC_IRQHandler(void)
-{
-  HAL_SD_IRQHandler(&uSdHandle);
+  HAL_DSI_IRQHandler(get_hdsi());
 }
 
 /**
@@ -253,4 +163,3 @@ void BSP_SDMMC_IRQHandler(void)
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

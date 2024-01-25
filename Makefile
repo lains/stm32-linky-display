@@ -94,7 +94,6 @@ BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_s
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/wm8994/wm8994.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/otm8009a/otm8009a.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/ft6x06/ft6x06.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Utilities/Log/lcd_log.c
 
 #libticdecodecpp related source files
 PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/Unframer.cpp
@@ -106,7 +105,6 @@ BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Core/Include
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Inc
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery
-BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Utilities/Log
 INCLUDE_DIRS_TO_SIMPLIFY = $(PROJECT_INCLUDE_DIRS) $(BSP_INCLUDE_DIRS)
 INCLUDE_DIRS_SIMPLIFIED = $(shell realpath --relative-to $(TOPDIR) $(INCLUDE_DIRS_TO_SIMPLIFY))
 INCLUDES += $(INCLUDE_DIRS_SIMPLIFIED:%=-I%)
