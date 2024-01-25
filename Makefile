@@ -62,7 +62,6 @@ PROJECT_INCLUDE_DIRS  += $(TICDECODECPP)/include
 BSP_ASM_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/startup_stm32f769xx.s
 #BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c # We already have a (different) copy in src/
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_audio.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_lcd.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_ts.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_sd.c

@@ -76,8 +76,9 @@ void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
   */
 void LTDC_Init(LTDC_HandleTypeDef* hltdc) {
     /* DeInit */
+    hltdc->Instance = LTDC;
     HAL_LTDC_DeInit(hltdc);
-    
+
     /* LTDC Config */
     /* Timing and polarity */
     hltdc->Init.HorizontalSync = HSYNC;
@@ -88,12 +89,12 @@ void LTDC_Init(LTDC_HandleTypeDef* hltdc) {
     hltdc->Init.AccumulatedActiveW = HSYNC+HBP+HACT;
     hltdc->Init.TotalHeigh = VSYNC+VBP+VACT+VFP;
     hltdc->Init.TotalWidth = HSYNC+HBP+HACT+HFP;
-    
+
     /* background value */
     hltdc->Init.Backcolor.Blue = 0;
     hltdc->Init.Backcolor.Green = 0;
     hltdc->Init.Backcolor.Red = 0;
-    
+
     /* Polarity */
     hltdc->Init.HSPolarity = LTDC_HSPOLARITY_AL;
     hltdc->Init.VSPolarity = LTDC_VSPOLARITY_AL;
@@ -115,7 +116,7 @@ void LTDC_Init(LTDC_HandleTypeDef* hltdc) {
   * @retval LCD state
   */
 static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
-    static DSI_PHY_TimerTypeDef  PhyTimings;
+    static DSI_PHY_TimerTypeDef PhyTimings;
     static DSI_CmdCfgTypeDef CmdCfg;
     static DSI_LPCmdTypeDef LPCmd;
     static DSI_PLLInitTypeDef dsiPllInit;
@@ -124,7 +125,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     /* Toggle Hardware Reset of the DSI LCD using
     * its XRES signal (active low) */
     BSP_LCD_Reset();
-  
+
     /* Call first MSP Initialize only in case of first initialization
     * This will set IP blocks LTDC, DSI and DMA2D
     * - out of reset
@@ -132,7 +133,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     * - NVIC IRQ related to IP blocks enabled
     */
     BSP_LCD_MspInit();
-    
+
     /* LCD clock configuration */
     /* PLLSAI_VCO Input = HSE_VALUE/PLL_M = 1 Mhz */
     /* PLLSAI_VCO Output = PLLSAI_VCO Input * PLLSAIN = 417 Mhz */
@@ -143,12 +144,12 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     PeriphClkInitStruct.PLLSAI.PLLSAIR = 5;
     PeriphClkInitStruct.PLLSAIDivR = RCC_PLLSAIDIVR_2;
     HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-    
+
     /* Base address of DSI Host/Wrapper registers to be set before calling De-Init */
     hdsi->Instance = DSI;
-    
+
     HAL_DSI_DeInit(hdsi);
-  
+
     dsiPllInit.PLLNDIV  = 100;
     dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV5;
     dsiPllInit.PLLODF   = DSI_PLL_OUT_DIV1;  
@@ -156,7 +157,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     hdsi->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
     hdsi->Init.TXEscapeCkdiv = 0x4;
     HAL_DSI_Init(hdsi, &(dsiPllInit));
-    
+
     /* Configure the DSI for Command mode */
     CmdCfg.VirtualChannelID      = 0;
     CmdCfg.HSPolarity            = DSI_HSYNC_ACTIVE_HIGH;
@@ -170,7 +171,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     CmdCfg.AutomaticRefresh      = DSI_AR_DISABLE;
     CmdCfg.TEAcknowledgeRequest  = DSI_TE_ACKNOWLEDGE_ENABLE;
     HAL_DSI_ConfigAdaptedCommandMode(hdsi, &CmdCfg);
-  
+
     LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_ENABLE;
     LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_ENABLE;
     LPCmd.LPGenShortWriteTwoP   = DSI_LP_GSW2P_ENABLE;
@@ -198,12 +199,12 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     PhyTimings.DataLaneMaxReadTime = 0;
     PhyTimings.StopWaitTime = 10;
     HAL_DSI_ConfigPhyTimer(hdsi, &PhyTimings);  
-    
+
     /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver)
     *  depending on configuration set in 'hdsivideo_handle'.
     */
     OTM8009A_Init(OTM8009A_COLMOD_RGB888, LCD_ORIENTATION_LANDSCAPE);
-    
+
     LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_DISABLE;
     LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_DISABLE;
     LPCmd.LPGenShortWriteTwoP   = DSI_LP_GSW2P_DISABLE;
@@ -216,7 +217,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     LPCmd.LPDcsShortReadNoP     = DSI_LP_DSR0P_DISABLE;
     LPCmd.LPDcsLongWrite        = DSI_LP_DLW_DISABLE;
     HAL_DSI_ConfigCommand(hdsi, &LPCmd);
-  
+
     HAL_DSI_ConfigFlowControl(hdsi, DSI_FLOW_CONTROL_BTA);
 
     /* Send Display Off DCS Command to display */
@@ -225,11 +226,11 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
                        DSI_DCS_SHORT_PKT_WRITE_P1,
                        OTM8009A_CMD_DISPOFF,
                        0x00);
-    
+
     /* Refresh the display */
     HAL_DSI_Refresh(hdsi);
-    
-    return LCD_OK; 
+
+    return LCD_OK;
 }
 
 } // extern "C"
@@ -266,16 +267,10 @@ bool Stm32LcdDriver::start() {
     this->displayState = SwitchToDraftIsPending;
 
     HAL_DSI_Refresh(&(this->hdsi));
-    BSP_LED_On(LED_RED);
 
-    // Currently hanging here...
     while (this->displayState == SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
-    HAL_Delay(250);
-    BSP_LED_Off(LED_RED);
-    BSP_LED_On(LED_GREEN);
-    HAL_Delay(250);
-    BSP_LED_Off(LED_GREEN);
 
+    /* Send Display On DCS Command to display */
     HAL_DSI_ShortWrite(&(this->hdsi),
                        0,
                        DSI_DCS_SHORT_PKT_WRITE_P1,
