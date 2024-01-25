@@ -80,26 +80,26 @@ void LTDC_Init(LTDC_HandleTypeDef* hltdc) {
     
     /* LTDC Config */
     /* Timing and polarity */
-    hltdc_discovery.Init.HorizontalSync = HSYNC;
-    hltdc_discovery.Init.VerticalSync = VSYNC;
-    hltdc_discovery.Init.AccumulatedHBP = HSYNC+HBP;
-    hltdc_discovery.Init.AccumulatedVBP = VSYNC+VBP;
-    hltdc_discovery.Init.AccumulatedActiveH = VSYNC+VBP+VACT;
-    hltdc_discovery.Init.AccumulatedActiveW = HSYNC+HBP+HACT;
-    hltdc_discovery.Init.TotalHeigh = VSYNC+VBP+VACT+VFP;
-    hltdc_discovery.Init.TotalWidth = HSYNC+HBP+HACT+HFP;
+    hltdc->Init.HorizontalSync = HSYNC;
+    hltdc->Init.VerticalSync = VSYNC;
+    hltdc->Init.AccumulatedHBP = HSYNC+HBP;
+    hltdc->Init.AccumulatedVBP = VSYNC+VBP;
+    hltdc->Init.AccumulatedActiveH = VSYNC+VBP+VACT;
+    hltdc->Init.AccumulatedActiveW = HSYNC+HBP+HACT;
+    hltdc->Init.TotalHeigh = VSYNC+VBP+VACT+VFP;
+    hltdc->Init.TotalWidth = HSYNC+HBP+HACT+HFP;
     
     /* background value */
-    hltdc_discovery.Init.Backcolor.Blue = 0;
-    hltdc_discovery.Init.Backcolor.Green = 0;
-    hltdc_discovery.Init.Backcolor.Red = 0;
+    hltdc->Init.Backcolor.Blue = 0;
+    hltdc->Init.Backcolor.Green = 0;
+    hltdc->Init.Backcolor.Red = 0;
     
     /* Polarity */
-    hltdc_discovery.Init.HSPolarity = LTDC_HSPOLARITY_AL;
-    hltdc_discovery.Init.VSPolarity = LTDC_VSPOLARITY_AL;
-    hltdc_discovery.Init.DEPolarity = LTDC_DEPOLARITY_AL;
-    hltdc_discovery.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
-    hltdc_discovery.Instance = LTDC;
+    hltdc->Init.HSPolarity = LTDC_HSPOLARITY_AL;
+    hltdc->Init.VSPolarity = LTDC_VSPOLARITY_AL;
+    hltdc->Init.DEPolarity = LTDC_DEPOLARITY_AL;
+    hltdc->Init.PCPolarity = LTDC_PCPOLARITY_IPC;
+    hltdc->Instance = LTDC;
 
     HAL_LTDC_Init(hltdc);
 }
