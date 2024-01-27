@@ -271,9 +271,21 @@ void SystemInit_ExtMemCtl(void)
   register uint32_t tmpreg = 0, timeout = 0xFFFF;
   register __IO uint32_t index;
 
-  /* Enable GPIOD, GPIOE, GPIOF, GPIOG, GPIOH and GPIOI interface 
+  /* Enable GPIOC, GPIOD, GPIOE, GPIOF, GPIOG and GPIOH interface 
   clock */
-  RCC->AHB1ENR |= 0x000001F8;
+  RCC->AHB1ENR |= 0x000000FC;
+  
+  /* Connect PCx pins to FMC Alternate function */
+  GPIOC->AFR[0]  = 0x0000C000;
+  GPIOC->AFR[1]  = 0x00000000;
+  /* Configure PCx pins in Alternate function mode */ 
+  GPIOC->MODER   = 0x00000080;
+  /* Configure PCx pins speed to 50 MHz */
+  GPIOC->OSPEEDR = 0x00000080;
+  /* Configure PCx pins Output type to push-pull */
+  GPIOC->OTYPER  = 0x00000000;
+  /* No pull-up, pull-down for PCx pins */
+  GPIOC->PUPDR   = 0x00000040;
   
   /* Connect PDx pins to FMC Alternate function */
   GPIOD->AFR[0]  = 0x000000CC;

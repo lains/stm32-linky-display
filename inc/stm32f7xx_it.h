@@ -42,6 +42,7 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void EXTI15_10_IRQHandler(void);
 void BSP_SDMMC_IRQHandler(void);
+void USARTx_IRQHandler(void);
 
 #ifdef __cplusplus
 }

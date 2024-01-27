@@ -35,6 +35,9 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/ 
 /* Private function prototypes -----------------------------------------------*/
+LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
+DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
+extern UART_HandleTypeDef* get_huart6(void);
 /* Private functions ---------------------------------------------------------*/
 
 /******************************************************************************/
@@ -145,6 +148,16 @@ void SysTick_Handler(void)
 /*  available peripheral interrupt handler's name please refer to the startup */
 /*  file (startup_stm32f7xx.s).                                               */
 /******************************************************************************/
+
+/**
+  * @brief This function handles USART1 global interrupt.
+  */
+void USART6_IRQHandler(void)
+{
+  UART_HandleTypeDef* huart6_ptr = get_huart6();
+  HAL_UART_IRQHandler(huart6_ptr);
+}
+
 /**
   * @brief  This function handles DSI Handler.
   * @param  None
