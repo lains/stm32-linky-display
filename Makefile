@@ -64,7 +64,6 @@ BSP_ASM_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F7xx/Source/Templat
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_lcd.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_ts.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_sd.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_qspi.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_sdram.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_sdmmc.c
