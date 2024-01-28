@@ -25,8 +25,19 @@ INC_DIR = $(TOPDIR)/inc
 TEST_SUBDIR = test
 TEST_DIR = $(TOPDIR)/$(TEST_SUBDIR)
 
+TARGET_BOARD?=STM32F769I_DISCO
+
 # Path to the STM32 codebase, make sure to fetch submodules to populate this directory
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
+VENDOR_ROOT = $(TOPDIR)/bsp/STM32CubeF4
+HAL_DRIVER_DIR=$(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver
+HAL_DRIVER_PREFIX=stm32f4xx
+endif
+ifeq ($(TARGET_BOARD),STM32F769I_DISCO)
 VENDOR_ROOT = $(TOPDIR)/bsp/STM32CubeF7
+HAL_DRIVER_DIR=$(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver
+HAL_DRIVER_PREFIX=stm32f7xx
+endif
 
 # Path to the ticdecodecpp library, make sure to fetch submodules to populate this directory
 TICDECODECPP = $(TOPDIR)/ticdecodecpp
@@ -49,7 +60,12 @@ SRC_BUILD_PREFIX = build
 # Own project sources
 PROJECT_SRC_FILES = $(shell find $(SRC_DIR)/ -name '*.c' -o -name '*.cpp')
 PROJECT_ASM_FILES = $(shell find $(SRC_DIR)/ -name '*.s')
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
+LDSCRIPT = $(SRC_DIR)/device/STM32F469NIHx_FLASH.ld
+endif
+ifeq ($(TARGET_BOARD),STM32F769I_DISCO)
 LDSCRIPT = $(SRC_DIR)/device/STM32F769NIHx_FLASH.ld
+endif
 
 # Project includes
 PROJECT_INCLUDE_DIRS   = $(INC_DIR)
@@ -66,13 +82,12 @@ BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_disc
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_ts.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_qspi.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_sdram.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_sdmmc.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_fmc.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_cortex.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dfsdm.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma2d.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_ll_sdmmc.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_ll_fmc.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_cortex.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_dma.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_dma2d.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dsi.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_ltdc.c
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_ltdc_ex.c
@@ -100,9 +115,19 @@ PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/DatasetView.cpp
 
 # Vendor includes
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Core/Include
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
+BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+endif
+ifeq ($(TARGET_BOARD),STM32F769I_DISCO)
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F7xx/Include
-BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/STM32F7xx_HAL_Driver/Inc
+endif
+BSP_INCLUDE_DIRS += $(HAL_DRIVER_DIR)/Inc
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
+BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery
+endif
+ifeq ($(TARGET_BOARD),STM32F769I_DISCO)
 BSP_INCLUDE_DIRS += $(VENDOR_ROOT)/Drivers/BSP/STM32F769I-Discovery
+endif
 INCLUDE_DIRS_TO_SIMPLIFY = $(PROJECT_INCLUDE_DIRS) $(BSP_INCLUDE_DIRS)
 INCLUDE_DIRS_SIMPLIFIED = $(shell realpath --relative-to $(TOPDIR) $(INCLUDE_DIRS_TO_SIMPLIFY))
 INCLUDES += $(INCLUDE_DIRS_SIMPLIFIED:%=-I%)
@@ -111,12 +136,20 @@ INCLUDES += $(INCLUDE_DIRS_SIMPLIFIED:%=-I%)
 CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter -fno-exceptions
 CXXFLAGS += -mcpu=cortex-m7 -mthumb -mlittle-endian -mthumb-interwork
 CXXFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
+CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
+endif
+ifeq ($(TARGET_BOARD),STM32F769I_DISCO)
 CXXFLAGS += -DSTM32F769xx -DUSE_STM32F769I_DISCO -DUSE_HAL_DRIVER -DTS_MULTI_TOUCH_SUPPORTED # Board specific defines
+endif
 CXXFLAGS += $(INCLUDES)
 
 # Linker Flags
 LDFLAGS   = -Wl,--gc-sections -Wl,-T$(LDSCRIPT) --specs=rdimon.specs
 LDLIBS   += -Wl,--start-group -lc -lgcc -Wl,--end-group
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
+LDLIBS   += -lnosys
+endif
 
 ###############################################################################
 
