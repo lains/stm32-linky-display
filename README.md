@@ -65,3 +65,53 @@ The instantaneous power consumption will be displayed in real-time.
 * Run `make gdb-client` to download the code and start debugging.
 * Optionally, open a serial terminal to view the `printf` function calls.
   * For example, run `pyserial`: `python -m serial - 115200` and then select the port labeled "STM32 STLink".
+
+## Developper guide
+
+### Porting
+
+There are abstraction layers in place to ease porting of this code to another board.
+
+Porting to another STM32 microcontroller will be easier than porting to another manufacturer.
+
+#### Display support
+
+First, LCD should be taken care of (after all, this whole code is about displaying power usage to a screen).
+For this, you can first compile and execute `LCD_DSi_CmdMode_DoubleBuffer` example projects for your specific board and use this as a starting point.
+
+Once this example is running properly on your board, you will have to make the same code compile with the build system provided in my repository. This should be as easy as importing a submodule pointing to the correct STM32CubeXX HAL library (under [bsp/](./bsp)).
+
+Most often, file `stm32xxx_hal_msp.c` from the example project will be irrelevant, and you can skip it.
+
+File `stm32xxx_it.c` should however be used almost as is (it has a `DSI_IRQHandler()` and may also have a `LTDC_IRQHandler()` defined).
+You should try to replace arguments `&hdsi` and `&hltdc` in the above function by `get_hdsi()` and `get_hltdc()` provided by my code.
+Probably the example's file `system_stm32fxxx.c` can be copied over as is.
+
+Most of the initialisation for double-buffering happens in the example project's `main.c`.
+All LCD-related initialisation should thus be moved inside my `main.cpp`.
+
+The content of function `LCD_Init()`, which in turns calls `LTDC_Init()` will both have to be transferred into `Stm32LcdDriver.cpp`'s `LCD_Init()` and `LTDC_Init()`. Note that in my version, `hdsi` and `hltdc` pointers are passed as arguments.
+
+The content of function `HAL_DSI_EndOfRefreshCallback()` will end up into `Stm32LcdDriver.cpp`'s `HAL_DSI_EndOfRefreshCallback()` and `set_active_fb()`
+
+
+Once the LDC initialisation has been moved to `main.cpp` and `Stm32LcdDriver.cpp`, you can compile and flash the firmware. It should display a blank page and refresh it properly on the screen.
+
+#### Serial port support
+
+Two usages are made from the serial ports on the code:
+* reading the TIC stream from the Linky meter
+* outputting debug information
+
+In order to read the TIC stream from the meter, you will need to get an available USART RX pin on your board.
+Once this is done, you will have to check which STM32 pin it is connected to and find out the corresponding alternate fonction on the datasheet
+
+For this, you can first compile and execute on of the `UART_TwoBoards*` example projects for your specific board and use this as a starting point.
+
+With this information, you will be able to update `Stm32SerialDriver.cpp` with the correct settings (mainly the correct USART to use for both incoming TIC serial bytes and optionally also a debug UART output).
+
+The content of function `HAL_UART_MspInit()` should be moved from `stm32f7xx_hal_msp.c` into  `Stm32SerialDriver.cpp`'s `HAL_UART_MspInit()`.
+
+Also remember to redirect USART interruptions to the proper handler. (in `stm32fxxx_it.c`, `USARTx_IRQHandler(void)` should grab an external reference to the uart pointer via `get_huartx()` and call `HAL_UART_IRQHandler()`.
+File `stm32xxx_it.c` should however be used almost as is (it has a `USARTx_IRQHandler()` defined).
+You should try to replace arguments `&huartx` in the above function by `get_huartx()`` provided by my code.
