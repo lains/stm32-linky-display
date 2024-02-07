@@ -50,7 +50,9 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 void OnError_Handler(uint32_t condition)
 {
     if(condition) {
-        BSP_LED_On(LED2);
+#ifdef LED_ERROR
+        BSP_LED_On(LED_ERROR);
+#endif
         while(1) { ; } /* Blocking on error */
     }
 }
@@ -111,16 +113,16 @@ int main(void) {
     /* Configure the system clock to 180 MHz */
     SystemClock_Config();
 
-    /* Configure LED1, LED2, LED3 and LED4 on USE_STM32469I_DISCOVERY */
+    /* Configure the 4 available LEDs on USE_STM32469I_DISCOVERY */
 #ifdef USE_STM32469I_DISCOVERY
-    BSP_LED_Init(LED1);
-    BSP_LED_Init(LED2);
-    BSP_LED_Init(LED3);
-    BSP_LED_Init(LED4);
+    BSP_LED_Init(LED_GREEN);
+    BSP_LED_Init(LED_RED);
+    BSP_LED_Init(LED_ORANGE);
+    BSP_LED_Init(LED_BLUE);
 #endif
-    BSP_LED_On(LED2);
+    BSP_LED_On(LED_ORANGE);
     waitDelay(250);
-    BSP_LED_Off(LED2);
+    BSP_LED_Off(LED_ORANGE);
 
     /* Initialize the SDRAM */
     BSP_SDRAM_Init();
@@ -143,7 +145,9 @@ int main(void) {
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
-        BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been completely received
+#ifdef LED_TIC_FRAME_RX
+        BSP_LED_Toggle(LED_TIC_FRAME_RX); // Toggle the green LED when a frame has been completely received
+#endif
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
     };
 

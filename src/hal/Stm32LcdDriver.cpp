@@ -63,12 +63,16 @@ void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
     if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToDraftIsPending) {
         set_active_fb(Stm32LcdDriver::get().draftFramebuffer);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingDraft;
-        BSP_LED_Off(LED4);
+#ifdef LED_LCD_REFRESH
+        BSP_LED_Off(LED_LCD_REFRESH);
+#endif
     }
     else if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToFinalIsPending) {
         set_active_fb(Stm32LcdDriver::get().finalFramebuffer);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingFinal;
-        BSP_LED_On(LED4);
+#ifdef LED_LCD_REFRESH
+        BSP_LED_On(LED_LCD_REFRESH);
+#endif
     }
 }
 

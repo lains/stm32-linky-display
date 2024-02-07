@@ -158,7 +158,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
     if (huart->Instance==USART6) {
         unsigned char Received_Data = UART6_rxBuffer[0];
         onTicUartRx((uint8_t)Received_Data);
-        BSP_LED_Toggle(LED3); // Toggle the orange LED when new serial data is received on the TIC UART
+#ifdef LED_SERIAL_RX
+        BSP_LED_Toggle(LED_SERIAL_RX); // Toggle the orange LED when new serial data is received on the TIC UART
+#endif
         UART6_Enable_interrupt_callback(huart);
     }
 }
