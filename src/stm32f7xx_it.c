@@ -150,7 +150,7 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles USART1 global interrupt.
+  * @brief This function handles USART6 global interrupt.
   */
 void USART6_IRQHandler(void)
 {
