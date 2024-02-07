@@ -1,10 +1,15 @@
 #include "Stm32LcdDriver.h"
 extern "C" {
 #include "main.h"
+#ifdef USE_STM32469I_DISCOVERY
 #include "stm32469i_discovery_lcd.h"
 
-extern LTDC_HandleTypeDef hltdc_eval; // Imported definition from stm32469i_discovery_lcd.c
-extern DSI_HandleTypeDef hdsi_eval; // Imported definition from stm32469i_discovery_lcd.c
+// Imported definition from stm32469i_discovery_lcd.c
+extern LTDC_HandleTypeDef hltdc_eval;
+extern DSI_HandleTypeDef hdsi_eval;
+#define board_hltdc hltdc_eval
+#define board_hdsi hdsi_eval
+#endif
 }
 
 const unsigned int LCDWidth = 800;
@@ -148,6 +153,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
 
     HAL_DSI_DeInit(hdsi);
 
+#ifdef USE_STM32469I_DISCOVERY
 #if defined(USE_STM32469I_DISCO_REVA)  
     dsiPllInit.PLLNDIV  = 100;
     dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV5;
@@ -155,6 +161,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     dsiPllInit.PLLNDIV  = 125;
     dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV2;
 #endif  /* USE_STM32469I_DISCO_REVA */
+#endif // USE_STM32469I_DISCOVERY
     dsiPllInit.PLLODF  = DSI_PLL_OUT_DIV1;
 
     hdsi->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
@@ -197,18 +204,22 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     PhyTimings.StopWaitTime = 10;
     HAL_DSI_ConfigPhyTimer(hdsi, &PhyTimings);
 
+#ifdef USE_STM32469I_DISCOVERY
     /* Initialize LTDC */
     LTDC_Init(hltdc);
     
     /* Start DSI */
     HAL_DSI_Start(hdsi);
+#endif
 
+#ifdef USE_STM32469I_DISCOVERY
 #if defined (USE_STM32469I_DISCO_REVC)
     /* Initialize the NT35510 LCD Display IC Driver (3K138 LCD IC Driver) */
     NT35510_Init(NT35510_FORMAT_RGB888, LCD_ORIENTATION_LANDSCAPE);
 #else
     /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver) */
     OTM8009A_Init(OTM8009A_COLMOD_RGB888, LCD_ORIENTATION_LANDSCAPE);
+#endif
 #endif
   
     LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_DISABLE;
@@ -236,8 +247,8 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
 
 Stm32LcdDriver::Stm32LcdDriver() :
 displayState(SwitchToDraftIsPending),
-hltdc(hltdc_eval),
-hdsi(hdsi_eval)
+hltdc(board_hltdc),
+hdsi(board_hdsi)
 {
 }
 

@@ -1,8 +1,12 @@
 #ifndef _STM32LCDDRIVER_H_
 #define _STM32LCDDRIVER_H_
 
+#ifdef STM32F469xx
 #include "stm32f4xx_hal.h"
+#endif
+#ifdef USE_STM32469I_DISCOVERY
 #include "stm32469i_discovery_lcd.h"
+#endif
 
 extern "C" {
 DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler

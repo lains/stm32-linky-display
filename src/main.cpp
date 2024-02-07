@@ -111,11 +111,13 @@ int main(void) {
     /* Configure the system clock to 180 MHz */
     SystemClock_Config();
 
-    /* Configure LED1, LED2, LED3 and LED4 */
+    /* Configure LED1, LED2, LED3 and LED4 on USE_STM32469I_DISCOVERY */
+#ifdef USE_STM32469I_DISCOVERY
     BSP_LED_Init(LED1);
     BSP_LED_Init(LED2);
     BSP_LED_Init(LED3);
     BSP_LED_Init(LED4);
+#endif
     BSP_LED_On(LED2);
     waitDelay(250);
     BSP_LED_Off(LED2);
@@ -459,6 +461,7 @@ static void SystemClock_Config(void)
     RCC_OscInitTypeDef RCC_OscInitStruct;
     HAL_StatusTypeDef ret = HAL_OK;
 
+#ifdef USE_STM32469I_DISCOVERY
     /* Enable Power Control clock */
     __HAL_RCC_PWR_CLK_ENABLE();
 
@@ -466,28 +469,34 @@ static void SystemClock_Config(void)
       clocked below the maximum system frequency, to update the voltage scaling value 
       regarding system frequency refer to product datasheet.  */
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+#endif
 
     /* Enable HSE Oscillator and activate PLL with HSE as source */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+#ifdef USE_STM32469I_DISCOVERY
 #if defined(USE_STM32469I_DISCO_REVA)
     RCC_OscInitStruct.PLL.PLLM = 25;
 #else
     RCC_OscInitStruct.PLL.PLLM = 8;
 #endif /* USE_STM32469I_DISCO_REVA */
+
     RCC_OscInitStruct.PLL.PLLN = 360;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 7;
     RCC_OscInitStruct.PLL.PLLR = 6;
+#endif
 
     ret = HAL_RCC_OscConfig(&RCC_OscInitStruct);
     if (ret != HAL_OK) {
         while(1) { ; }
     }
   
-    /* Activate the OverDrive to reach the 180 MHz Frequency */
+    /* Activate the OverDrive to reach:
+       - the 180 MHz Frequency on STM32F469I DISCOVERY
+    */
     ret = HAL_PWREx_EnableOverDrive();
     if (ret != HAL_OK) {
        while(1) { ; }
@@ -500,7 +509,11 @@ static void SystemClock_Config(void)
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-    ret = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5);
+#ifdef USE_STM32469I_DISCOVERY
+#define BOARD_FLASH_LATENCY FLASH_LATENCY_5
+#endif
+    ret = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, BOARD_FLASH_LATENCY);
+
     if (ret != HAL_OK) {
         while(1) { ; }
     }

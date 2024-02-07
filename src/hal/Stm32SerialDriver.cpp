@@ -20,7 +20,7 @@ extern "C" {
 #define USART3_FORCE_RESET()             __HAL_RCC_USART3_FORCE_RESET()
 #define USART3_RELEASE_RESET()           __HAL_RCC_USART3_RELEASE_RESET()
 
-/* Definition for USART3 Pins (forwarded to J-Link's virtual com port) */
+/* Definition for USART3 Pins (forwarded to ST-Link's virtual com port) */
 #define USART3_TX_PIN                    GPIO_PIN_8
 #define USART3_TX_GPIO_PORT              GPIOD
 #define USART3_TX_AF                     GPIO_AF7_USART3
@@ -61,7 +61,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
-    if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) {
+    if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) { /* Initializing USART3 leads to a pinkish display, there is a probably a conflict on PINs */
         return;
     }
 
