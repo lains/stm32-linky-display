@@ -53,7 +53,9 @@ const unsigned int BytesPerPixel = 4; /* For ARGB8888 mode */
 void OnError_Handler(uint32_t condition)
 {
     if(condition) {
-        BSP_LED_On(LED1);
+#ifdef LED_ERROR
+        BSP_LED_On(LED_ERROR);
+#endif
         while(1) { ; } /* Blocking on error */
     }
 }
@@ -120,16 +122,21 @@ int main(void) {
     /* Configure the system clock to 180 MHz */
     SystemClock_Config();
 
-    /* Configure LED1 (red, left most) and LED2 (green, second left) */
-    // FIXME: can we also use a third and fourth LED?
-    /* On STMF7, we have at least LED_GREEN, LED_RED */
+    /* Configure the 4 available LEDs on USE_STM32469I_DISCOVERY */
+#ifdef USE_STM32469I_DISCOVERY
+    BSP_LED_Init(LED_GREEN);
+    BSP_LED_Init(LED_RED);
+    BSP_LED_Init(LED_ORANGE);
+    BSP_LED_Init(LED_BLUE);
+#endif
+    /* Configure the 2 available LEDs on STM32F769I DISCOVERY */
+#ifdef USE_STM32F769I_DISCO
     BSP_LED_Init(LED1);
     BSP_LED_Init(LED2);
-    //BSP_LED_Init(LED3);
-    //BSP_LED_Init(LED4);
-    BSP_LED_On(LED2);
+#endif
+    BSP_LED_On(LED_STARTUP_BLINK);
     waitDelay(250);
-    BSP_LED_Off(LED2);
+    BSP_LED_Off(LED_STARTUP_BLINK);
 
     /* Configure the Tamper push-button in GPIO Mode */
     BSP_PB_Init(BUTTON_WAKEUP, BUTTON_MODE_GPIO);
@@ -154,7 +161,9 @@ int main(void) {
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
-        BSP_LED_Toggle(LED1); // Toggle the green LED when a frame has been completely received
+#ifdef LED_TIC_FRAME_RX
+        BSP_LED_Toggle(LED_TIC_FRAME_RX); // Toggle the green LED when a frame has been completely received
+#endif
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
     };
 
@@ -472,39 +481,73 @@ static void SystemClock_Config(void)
     RCC_OscInitTypeDef RCC_OscInitStruct;
     HAL_StatusTypeDef ret = HAL_OK;
 
+#ifdef USE_STM32469I_DISCOVERY
+    /* Enable Power Control clock */
+    __HAL_RCC_PWR_CLK_ENABLE();
+
+    /* The voltage scaling allows optimizing the power consumption when the device is 
+      clocked below the maximum system frequency, to update the voltage scaling value 
+      regarding system frequency refer to product datasheet.  */
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+#endif
+
     /* Enable HSE Oscillator and activate PLL with HSE as source */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+#ifdef USE_STM32469I_DISCOVERY
+#if defined(USE_STM32469I_DISCO_REVA)
     RCC_OscInitStruct.PLL.PLLM = 25;
-    RCC_OscInitStruct.PLL.PLLN = 400;  
+#else
+    RCC_OscInitStruct.PLL.PLLM = 8;
+#endif /* USE_STM32469I_DISCO_REVA */
+
+    RCC_OscInitStruct.PLL.PLLN = 360;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 7;
+    RCC_OscInitStruct.PLL.PLLR = 6;
+#endif
+#ifdef USE_STM32F769I_DISCO
+    RCC_OscInitStruct.PLL.PLLM = 25;
+    RCC_OscInitStruct.PLL.PLLN = 400;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 8;
     RCC_OscInitStruct.PLL.PLLR = 7;
-    
-    ret = HAL_RCC_OscConfig(&RCC_OscInitStruct);
-    if(ret != HAL_OK) {
-        while(1) { ; }
-    }
-    
-    /* Activate the OverDrive to reach the 200 MHz Frequency */  
-    ret = HAL_PWREx_EnableOverDrive();
-    if(ret != HAL_OK) {
-        while(1) { ; }
-    }
+#endif
 
+    ret = HAL_RCC_OscConfig(&RCC_OscInitStruct);
+    if (ret != HAL_OK) {
+        while(1) { ; }
+    }
+  
+    /* Activate the OverDrive to reach:
+       - the 180 MHz Frequency on STM32F469I DISCOVERY
+       - the 200 MHz Frequency on STM32F769I DISCOVERY
+    */
+    ret = HAL_PWREx_EnableOverDrive();
+    if (ret != HAL_OK) {
+       while(1) { ; }
+    }
+  
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 clocks dividers */
     RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;  
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2; 
-    
-    ret = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6);
-    if(ret != HAL_OK) {
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+#ifdef USE_STM32469I_DISCOVERY
+#define BOARD_FLASH_LATENCY FLASH_LATENCY_5
+#endif
+#ifdef USE_STM32F769I_DISCO
+#define BOARD_FLASH_LATENCY FLASH_LATENCY_6
+#endif
+    ret = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, BOARD_FLASH_LATENCY);
+
+    if (ret != HAL_OK) {
         while(1) { ; }
-    }  
+    }
 }
 } // extern "C"
 

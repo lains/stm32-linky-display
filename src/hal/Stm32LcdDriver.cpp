@@ -1,12 +1,27 @@
 #include "Stm32LcdDriver.h"
 extern "C" {
 #include "main.h"
+#ifdef USE_STM32469I_DISCOVERY
+#include "stm32469i_discovery_lcd.h"
+
+// Imported definition from stm32469i_discovery_lcd.c
+extern LTDC_HandleTypeDef hltdc_eval;
+extern DSI_HandleTypeDef hdsi_eval;
+#define board_hltdc hltdc_eval
+#define board_hdsi hdsi_eval
+#endif
+
+#ifdef USE_STM32F769I_DISCO
 #include "stm32f769i_discovery.h"
 #include "stm32f769i_discovery_lcd.h"
 
-extern LTDC_HandleTypeDef hltdc_discovery; // Imported definition from stm32f769i_discovery_lcd.c
-extern DSI_HandleTypeDef hdsi_discovery; // Imported definition from stm32f769i_discovery_lcd.c
+// Imported definition from stm32f769i_discovery_lcd.c
+extern LTDC_HandleTypeDef hltdc_discovery;
+extern DSI_HandleTypeDef hdsi_discovery;
 static DSI_VidCfgTypeDef hdsivideo_handle;
+#define board_hltdc hltdc_discovery
+#define board_hdsi hdsi_discovery
+#endif
 }
 
 const unsigned int LCDWidth = 800;
@@ -44,7 +59,12 @@ void set_active_fb(void* fb) {
     __HAL_DSI_WRAPPER_DISABLE(getLcdDsiHandle());
     /* Update LTDC configuration */
     LTDC_LAYER(getLcdLtdcHandle(), 0)->CFBAR = (uint32_t)(fb);
+#ifdef USE_STM32469I_DISCOVERY
+    __HAL_LTDC_RELOAD_IMMEDIATE_CONFIG(getLcdLtdcHandle());
+#endif
+#ifdef USE_STM32F769I_DISCO
     __HAL_LTDC_RELOAD_CONFIG(getLcdLtdcHandle());
+#endif
     /* Enable DSI Wrapper */
     __HAL_DSI_WRAPPER_ENABLE(getLcdDsiHandle());
 }
@@ -60,12 +80,16 @@ void HAL_DSI_EndOfRefreshCallback(DSI_HandleTypeDef *hdsi) {
     if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToDraftIsPending) {
         set_active_fb(Stm32LcdDriver::get().draftFramebuffer);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingDraft;
-        BSP_LED_Off(LED1);
+#ifdef LED_LCD_REFRESH
+        BSP_LED_Off(LED_LCD_REFRESH);
+#endif
     }
     else if (Stm32LcdDriver::get().displayState == Stm32LcdDriver::SwitchToFinalIsPending) {
         set_active_fb(Stm32LcdDriver::get().finalFramebuffer);
         Stm32LcdDriver::get().displayState = Stm32LcdDriver::DisplayingFinal;
-        BSP_LED_On(LED1);
+#ifdef LED_LCD_REFRESH
+        BSP_LED_On(LED_LCD_REFRESH);
+#endif
     }
 }
 
@@ -150,9 +174,20 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
 
     HAL_DSI_DeInit(hdsi);
 
+#ifdef USE_STM32469I_DISCOVERY
+#if defined(USE_STM32469I_DISCO_REVA)  
     dsiPllInit.PLLNDIV  = 100;
     dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV5;
-    dsiPllInit.PLLODF   = DSI_PLL_OUT_DIV1;  
+#else
+    dsiPllInit.PLLNDIV  = 125;
+    dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV2;
+#endif  /* USE_STM32469I_DISCO_REVA */
+#endif // USE_STM32469I_DISCOVERY
+#ifdef USE_STM32F769I_DISCO
+    dsiPllInit.PLLNDIV  = 100;
+    dsiPllInit.PLLIDF   = DSI_PLL_IN_DIV5;
+#endif
+    dsiPllInit.PLLODF  = DSI_PLL_OUT_DIV1;
 
     hdsi->Init.NumberOfLanes = DSI_TWO_DATA_LANES;
     hdsi->Init.TXEscapeCkdiv = 0x4;
@@ -171,7 +206,7 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     CmdCfg.AutomaticRefresh      = DSI_AR_DISABLE;
     CmdCfg.TEAcknowledgeRequest  = DSI_TE_ACKNOWLEDGE_ENABLE;
     HAL_DSI_ConfigAdaptedCommandMode(hdsi, &CmdCfg);
-
+    
     LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_ENABLE;
     LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_ENABLE;
     LPCmd.LPGenShortWriteTwoP   = DSI_LP_GSW2P_ENABLE;
@@ -185,11 +220,13 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     LPCmd.LPDcsLongWrite        = DSI_LP_DLW_ENABLE;
     HAL_DSI_ConfigCommand(hdsi, &LPCmd);
 
+#ifdef USE_STM32F769I_DISCO
     /* Initialize LTDC */
     LTDC_Init(hltdc);
     
     /* Start DSI */
     HAL_DSI_Start(hdsi);
+#endif
 
     /* Configure DSI PHY HS2LP and LP2HS timings */
     PhyTimings.ClockLaneHS2LPTime = 35;
@@ -198,13 +235,28 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
     PhyTimings.DataLaneLP2HSTime = 35;
     PhyTimings.DataLaneMaxReadTime = 0;
     PhyTimings.StopWaitTime = 10;
-    HAL_DSI_ConfigPhyTimer(hdsi, &PhyTimings);  
+    HAL_DSI_ConfigPhyTimer(hdsi, &PhyTimings);
 
-    /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver)
-    *  depending on configuration set in 'hdsivideo_handle'.
-    */
+    /* Initialize LTDC */
+    LTDC_Init(hltdc);
+    
+    /* Start DSI */
+    HAL_DSI_Start(hdsi);
+
+#ifdef USE_STM32469I_DISCOVERY
+#if defined (USE_STM32469I_DISCO_REVC)
+    /* Initialize the NT35510 LCD Display IC Driver (3K138 LCD IC Driver) */
+    NT35510_Init(NT35510_FORMAT_RGB888, LCD_ORIENTATION_LANDSCAPE);
+#else
+    /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver) */
     OTM8009A_Init(OTM8009A_COLMOD_RGB888, LCD_ORIENTATION_LANDSCAPE);
-
+#endif
+#endif
+#ifdef USE_STM32F769I_DISCO
+    /* Initialize the OTM8009A LCD Display IC Driver (KoD LCD IC Driver) */
+    OTM8009A_Init(OTM8009A_COLMOD_RGB888, LCD_ORIENTATION_LANDSCAPE);
+#endif
+  
     LPCmd.LPGenShortWriteNoP    = DSI_LP_GSW0P_DISABLE;
     LPCmd.LPGenShortWriteOneP   = DSI_LP_GSW1P_DISABLE;
     LPCmd.LPGenShortWriteTwoP   = DSI_LP_GSW2P_DISABLE;
@@ -220,12 +272,14 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
 
     HAL_DSI_ConfigFlowControl(hdsi, DSI_FLOW_CONTROL_BTA);
 
+#ifdef USE_STM32F769I_DISCO
     /* Send Display Off DCS Command to display */
     HAL_DSI_ShortWrite(hdsi,
                        0,
                        DSI_DCS_SHORT_PKT_WRITE_P1,
                        OTM8009A_CMD_DISPOFF,
                        0x00);
+#endif
 
     /* Refresh the display */
     HAL_DSI_Refresh(hdsi);
@@ -238,8 +292,8 @@ static uint8_t LCD_Init(DSI_HandleTypeDef* hdsi, LTDC_HandleTypeDef* hltdc) {
 
 Stm32LcdDriver::Stm32LcdDriver() :
 displayState(SwitchToDraftIsPending),
-hltdc(hltdc_discovery),
-hdsi(hdsi_discovery)
+hltdc(board_hltdc),
+hdsi(board_hdsi)
 {
 }
 
@@ -270,12 +324,14 @@ bool Stm32LcdDriver::start() {
 
     while (this->displayState == SwitchToDraftIsPending);	/* Wait until the LCD displays the draft framebuffer */
 
+#ifdef USE_STM32F769I_DISCO
     /* Send Display On DCS Command to display */
     HAL_DSI_ShortWrite(&(this->hdsi),
                        0,
                        DSI_DCS_SHORT_PKT_WRITE_P1,
                        OTM8009A_CMD_DISPON,
                        0x00);
+#endif
 
     this->copyDraftToFinal();
 
