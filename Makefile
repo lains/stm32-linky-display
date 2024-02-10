@@ -67,15 +67,20 @@ PROJECT_INCLUDE_DIRS  += $(TICDECODECPP)/include
 
 # Vendor sources: Note that files in "Templates" are normally copied into project for customization,
 # but we direclty use provided source files whenever possible.
+ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
 BSP_ASM_FILES += $(VENDOR_ROOT)/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f469xx.s
 BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_sdram.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_qspi.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/nt35510/nt35510.c
+BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/otm8009a/otm8009a.c
+endif
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_ll_fmc.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_i2c.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_cortex.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_dma.c
-#BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_exti.c
-#BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_flash.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_gpio.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_pwr.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_pwr_ex.c
@@ -87,13 +92,6 @@ BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_dma2d.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_ltdc.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_ltdc_ex.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_sdram.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/nt35510/nt35510.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/Components/otm8009a/otm8009a.c
-ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_sdram.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c
-BSP_SRC_FILES += $(VENDOR_ROOT)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_qspi.c
-endif
 
 #libticdecodecpp related source files
 PROJECT_SRC_FILES += $(TICDECODECPP)/src/TIC/Unframer.cpp
