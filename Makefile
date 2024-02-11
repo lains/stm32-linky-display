@@ -28,8 +28,10 @@ TEST_DIR = $(TOPDIR)/$(TEST_SUBDIR)
 TARGET_BOARD?=STM32F469I_DISCO
 
 # Path to the STM32 codebase, make sure to fetch submodules to populate this directory
+BSP_DIR ?= bsp
 ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
-VENDOR_ROOT = $(TOPDIR)/bsp/STM32CubeF4
+TARGET_BOARD_BSP_DIR ?= $(BSP_DIR)/STM32CubeF4
+VENDOR_ROOT = $(TOPDIR)/$(TARGET_BOARD_BSP_DIR)
 HAL_DRIVER_DIR=$(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver
 HAL_DRIVER_PREFIX=stm32f4xx
 endif
@@ -165,11 +167,25 @@ GENERATED_BINARIES=$(SRC_BUILD_PREFIX)/$(BINARY).elf \
 
 sanity:
 
+$(TARGET_BOARD_BSP_DIR):
+	@echo "  GIT     $(<)"
+	@git submodule init $(TARGET_BOARD_BSP_DIR) && git submodule update
+	
 # Cross-compilation targets
 $(SRC_BUILD_PREFIX)/%.o: %.s
 	@echo "  CC      $(<)"
 	@mkdir -p $(dir $@)
 	$(Q)$(CROSS_CC) $(CFLAGS) -o $@ -c $<
+
+$(SRC_BUIL_PREFIX)/$(TARGET_BOARD_BSP_DIR)/%.o: %s $(TARGET_BOARD_BSP_DIR)
+	@echo "  CC      $(<)"
+	@mkdir -p $(dir $@)
+	$(Q)$(CROSS_CC) $(CFLAGS) -o $@ -c $<
+
+$(SRC_BUILD_PREFIX)/$(TARGET_BOARD_BSP_DIR)/%.o: %.c $(TARGET_BOARD_BSP_DIR)
+	@echo "  CC      $(<)"
+	@mkdir -p $(dir $@)
+	$(Q)$(CROSS_CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(@) -c $<
 
 $(SRC_BUILD_PREFIX)/%.o: %.c
 	@echo "  CC      $(<)"
