@@ -45,11 +45,11 @@ The STM32-compatible makefile structure has been adapted from [a project develop
 
 In order to clone this repository, you may use `git clone --recursive`, this will allow to pull all supported STM32Cube firmware package and the ticdecodecpp library, however, this might take unnecessary time because it will pull firmwares for platforms you don't want to support.
 
-Instead, you can directly pull only the necessary bsp by running `make all` (which is turn invokes `make fetch_bsp`) as indicated below.
+Instead, you can directly pull only the necessary bsp by running `make fetch_bsp fetch_libticdecode`.
 
 ### Build & flash
 
-* Simply run `make all` to build the project.
+* Simply run `make all` to build the project (if you see missing files error, make sure you have run `make fetch_bsp fetch_libticdecode` as a precondition).
 * To program to a board via a ST-Link proble, just type: `make flash`. The target board will be flashed with the binary thas has been built.
 
 ### Executing
