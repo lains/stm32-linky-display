@@ -149,7 +149,7 @@ ALL_OBJS = $(ALL_OBJS_SIMPLIFIED)
 
 .PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
 
-all: sanity elf
+all: sanity fetch_bsp fetch_libticdecode elf
 
 elf: $(SRC_BUILD_PREFIX)/$(BINARY).elf
 bin: $(SRC_BUILD_PREFIX)/$(BINARY).bin
@@ -167,25 +167,19 @@ GENERATED_BINARIES=$(SRC_BUILD_PREFIX)/$(BINARY).elf \
 
 sanity:
 
-$(TARGET_BOARD_BSP_DIR):
+fetch_bsp: $(TARGET_BOARD_BSP_DIR) $(TOPDIR)/.gitmodules
 	@echo "  GIT     $(<)"
-	@git submodule init $(TARGET_BOARD_BSP_DIR) && git submodule update
-	
+	@git submodule init $(<) && git submodule update
+
+fetch_libticdecode: ticdecodecpp $(TOPDIR)/.gitmodules
+	@echo "  GIT     $(<)"
+	@git submodule init $(<) && git submodule update
+
 # Cross-compilation targets
 $(SRC_BUILD_PREFIX)/%.o: %.s
 	@echo "  CC      $(<)"
 	@mkdir -p $(dir $@)
 	$(Q)$(CROSS_CC) $(CFLAGS) -o $@ -c $<
-
-$(SRC_BUIL_PREFIX)/$(TARGET_BOARD_BSP_DIR)/%.o: %s $(TARGET_BOARD_BSP_DIR)
-	@echo "  CC      $(<)"
-	@mkdir -p $(dir $@)
-	$(Q)$(CROSS_CC) $(CFLAGS) -o $@ -c $<
-
-$(SRC_BUILD_PREFIX)/$(TARGET_BOARD_BSP_DIR)/%.o: %.c $(TARGET_BOARD_BSP_DIR)
-	@echo "  CC      $(<)"
-	@mkdir -p $(dir $@)
-	$(Q)$(CROSS_CC) $(INCLUDES) $(CXXFLAGS) $(CFLAGS) -o $(@) -c $<
 
 $(SRC_BUILD_PREFIX)/%.o: %.c
 	@echo "  CC      $(<)"

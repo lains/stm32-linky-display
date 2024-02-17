@@ -43,11 +43,13 @@ The STM32-compatible makefile structure has been adapted from [a project develop
 * The appropriate _STM32Cube MCU Firmware Package_ will be directly cloned as a submodule of this repository
 * _ST-Link or OpenOCD_ - For debugging, you will need software that knows how to talk to your debug hardware over USB. On the Nucleo-144 board, there is an ST-Link debugger. You can talk to it using [ST-Link tools](https://github.com/stlink-org/stlink) or [OpenOCD](https://sourceforge.net/p/openocd/code/ci/master/tree/). On Linux I was able to build both of these packages from source easily following the instructions. On macOS both packages were downloadable in binary form using `brew install stlink openocd`.
 
-In order to clone this repository, use `git clone --recursive`, this will allow to pull both the STM32Cube firmware package and the ticdecodecpp library.
+In order to clone this repository, you may use `git clone --recursive`, this will allow to pull all supported STM32Cube firmware package and the ticdecodecpp library, however, this might take unnecessary time because it will pull firmwares for platforms you don't want to support.
+
+Instead, you can directly pull only the necessary bsp by running `make all` (which is turn invokes `make fetch_bsp`) as indicated below.
 
 ### Build & flash
 
-* Simply run `make` to build the project.
+* Simply run `make all` to build the project.
 * To program to a board via a ST-Link proble, just type: `make flash`. The target board will be flashed with the binary thas has been built.
 
 ### Executing
