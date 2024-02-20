@@ -15,11 +15,13 @@ extern "C" {
 #include <stdio.h>
 #include "font58.h"
 
-static void MPU_Config(void);
 static void SystemClock_Config(void); /* Defined below */
 }
 
+#ifdef USE_STM32F769I_DISCO
+static void MPU_Config(void);
 static void CPU_CACHE_Enable(void);
+#endif
 
 /* Private define ------------------------------------------------------------*/
 const unsigned int LCDWidth = 800;
@@ -101,21 +103,14 @@ public:
  * @brief  Main program
  */
 int main(void) {
-    /* STM32F7xx HAL library initialization:
-         - Configure the Flash ART accelerator on ITCM interface
-         - Systick timer is configured by default as source of time base, but user 
-             can eventually implement his proper time base source (a general purpose 
-             timer for example or other time source), keeping in mind that Time base 
-             duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and 
-             handled in milliseconds basis.
-         - Set NVIC Group Priority to 4
-         - Low Level Initialization
-     */
+    /* STM32Fxxx HAL library initialization */
+#ifdef USE_STM32F769I_DISCO
     /* Configure the MPU attributes */
     MPU_Config();
 
     /* Enable the CPU Cache */
     CPU_CACHE_Enable();
+#endif
 
     HAL_Init();
   
@@ -131,15 +126,17 @@ int main(void) {
 #endif
     /* Configure the 2 available LEDs on STM32F769I DISCOVERY */
 #ifdef USE_STM32F769I_DISCO
-    BSP_LED_Init(LED1);
-    BSP_LED_Init(LED2);
+    BSP_LED_Init(LED_RED);
+    BSP_LED_Init(LED_GREEN);
 #endif
     BSP_LED_On(LED_STARTUP_BLINK);
     waitDelay(250);
     BSP_LED_Off(LED_STARTUP_BLINK);
 
+#ifdef USE_STM32F769I_DISCO
     /* Configure the Tamper push-button in GPIO Mode */
     BSP_PB_Init(BUTTON_WAKEUP, BUTTON_MODE_GPIO);
+#endif
 
     /* Initialize the SDRAM */
     BSP_SDRAM_Init();
@@ -153,6 +150,7 @@ int main(void) {
 
     Stm32LcdDriver& lcd = Stm32LcdDriver::get();
 
+    //BSP_TS_Init(800,480);
     /* Initialize the LCD */
     OnError_Handler(!lcd.start());
 
@@ -551,6 +549,8 @@ static void SystemClock_Config(void)
 }
 } // extern "C"
 
+
+#ifdef USE_STM32F769I_DISCO
 /**
   * @brief  CPU L1-Cache enable.
   * @param  None
@@ -623,6 +623,7 @@ static void MPU_Config(void) {
     /* Enable the MPU */
     HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 }
+#endif
 
 #ifdef  USE_FULL_ASSERT
 /**
