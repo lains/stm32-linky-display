@@ -28,8 +28,10 @@ TEST_DIR = $(TOPDIR)/$(TEST_SUBDIR)
 TARGET_BOARD?=STM32F769I_DISCO
 
 # Path to the STM32 codebase, make sure to fetch submodules to populate this directory
+BSP_DIR ?= bsp
 ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
-VENDOR_ROOT = $(TOPDIR)/bsp/STM32CubeF4
+TARGET_BOARD_BSP_DIR ?= $(BSP_DIR)/STM32CubeF4
+VENDOR_ROOT = $(TOPDIR)/$(TARGET_BOARD_BSP_DIR)
 HAL_DRIVER_DIR=$(VENDOR_ROOT)/Drivers/STM32F4xx_HAL_Driver
 HAL_DRIVER_PREFIX=stm32f4xx
 endif
@@ -179,7 +181,7 @@ ALL_OBJS = $(ALL_OBJS_SIMPLIFIED)
 
 .PHONY: clean gdb-server_stlink gdb-server_openocd gdb-client
 
-all: sanity elf
+all: sanity fetch_bsp fetch_libticdecode elf
 
 elf: $(SRC_BUILD_PREFIX)/$(BINARY).elf
 bin: $(SRC_BUILD_PREFIX)/$(BINARY).bin
@@ -196,6 +198,14 @@ GENERATED_BINARIES=$(SRC_BUILD_PREFIX)/$(BINARY).elf \
 	$(SRC_BUILD_PREFIX)/$(BINARY).map
 
 sanity:
+
+fetch_bsp: $(TARGET_BOARD_BSP_DIR) $(TOPDIR)/.gitmodules
+	@echo "  GIT     $(<)"
+	@git submodule init $(<) && git submodule update
+
+fetch_libticdecode: ticdecodecpp $(TOPDIR)/.gitmodules
+	@echo "  GIT     $(<)"
+	@git submodule init $(<) && git submodule update
 
 # Cross-compilation targets
 $(SRC_BUILD_PREFIX)/%.o: %.s
