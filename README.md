@@ -4,7 +4,7 @@
 
 ## Overview
 
-This repository contains a energy meter decoder and display project for french meters using the [STM32F469-IDISCO development board](https://www.st.com/en/evaluation-tools/32f469idiscovery.htmL) (STM32F469NI microcontroller).
+This repository contains a energy meter decoder and display project for french meters using the [STM32F469-IDISCO development board](https://www.st.com/en/evaluation-tools/32f469idiscovery.html) (STM32F469NI microcontroller) or [STM32F769-IDISCO development board](https://www.st.com/en/evaluation-tools/32f769idiscovery.html) (STM32F769NI microcontroller).
 French energy meters (like the Linky meter) continuously output metering information on a user-accessible connector on the meter (on most meters, two pins (I1, I2) are available for this).
 This data is called "TIC" and this project aims to decode that data and display real-time power consumption on the LCD display embedded with the STM32 discovery board.
 
@@ -17,7 +17,7 @@ On the STM32F469I-DISCO, I use USART6, the above pins are all available on conne
 * Vcc is on CN12, pin 1
 * USART6 RX is on CN12, pin 8
 
-I am also planning to run this software on the STM32F769I-DISCO. In that case, I would use USART6, the above pins are all available on the ARDUINO Uno V3-compatible connectors (CN11, CN14, CN13, and CN9):
+On the STM32F769I-DISCO., I use USART6, the above pins are all available on the ARDUINO Uno V3-compatible connectors (CN11, CN14, CN13, and CN9):
 * GND is on CN11, pin 7
 * Vcc is on CN11, pin 2
 * USART6 RX is on CN13, pin 1 (maps to PC7)
@@ -49,7 +49,9 @@ Instead, you can directly pull only the necessary bsp by running `make fetch_bsp
 
 ### Build & flash
 
-* Simply run `make all` to build the project (if you see missing files error, make sure you have run `make fetch_bsp fetch_libticdecode` as a precondition).
+* Run `make TARGET_BOARD=STM32F469I_DISCO all` to build the project for the STM32F469I_DISCO board or
+* Run `make TARGET_BOARD=STM32F769I_DISCO all` to build the project for the STM32F769I_DISCO board
+  (if you see missing files error, make sure you have run `make fetch_bsp fetch_libticdecode` as a precondition).
 * To program to a board via a ST-Link proble, just type: `make flash`. The target board will be flashed with the binary thas has been built.
 
 ### Executing
