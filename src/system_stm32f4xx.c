@@ -1,5 +1,5 @@
 #ifdef STM32F469xx
-/* This file is only used on STM32F4 board
+/* This file is only used on STM32F469 boards */
 /**
   ******************************************************************************
   * @file    system_stm32f4xx.c
