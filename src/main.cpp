@@ -69,7 +69,7 @@ void Error_Handler() {
 class Stm32DebugOutput {
 public:
     Stm32DebugOutput() : inError(false) {
-        this->handle.Instance = USART3;
+        this->handle.Instance = USART_DBG;
         this->handle.Init.BaudRate = 57600;
         this->handle.Init.WordLength = UART_WORDLENGTH_8B;
         this->handle.Init.StopBits = UART_STOPBITS_1;

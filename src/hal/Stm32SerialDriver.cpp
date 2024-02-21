@@ -3,46 +3,13 @@ extern "C" {
 #include "main.h"
 }
 
-/* Definition for USARTx HAL functions */
-#define USART6_CLK_ENABLE()              __HAL_RCC_USART6_CLK_ENABLE()
-#define USART6_CLK_DISABLE()             __HAL_RCC_USART6_CLK_DISABLE()
-#define USART6_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOC_CLK_ENABLE()
-#define USART6_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOC_CLK_ENABLE()
-
-#define USART6_FORCE_RESET()             __HAL_RCC_USART6_FORCE_RESET()
-#define USART6_RELEASE_RESET()           __HAL_RCC_USART6_RELEASE_RESET()
-
-#define USART1_CLK_ENABLE()              __HAL_RCC_USART1_CLK_ENABLE()
-#define USART1_CLK_DISABLE()             __HAL_RCC_USART1_CLK_DISABLE()
-#define USART1_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOA_CLK_ENABLE()
-#define USART1_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOA_CLK_ENABLE()
-
-#define USART1_FORCE_RESET()             __HAL_RCC_USART1_FORCE_RESET()
-#define USART1_RELEASE_RESET()           __HAL_RCC_USART1_RELEASE_RESET()
-
-/* Definition for USART1 Pins (forwarded to ST-Link's virtual com port) */
-#define USART1_TX_PIN                    GPIO_PIN_9
-#define USART1_TX_GPIO_PORT              GPIOA
-#define USART1_TX_AF                     GPIO_AF7_USART1
-#define USART1_RX_PIN                    GPIO_PIN_10
-#define USART1_RX_GPIO_PORT              GPIOA
-#define USART1_RX_AF                     GPIO_AF7_USART1
-
-/* Definition for USART6 Pins */
-#define USART6_TX_PIN                    GPIO_PIN_6
-#define USART6_TX_GPIO_PORT              GPIOC
-#define USART6_TX_AF                     GPIO_AF8_USART6
-#define USART6_RX_PIN                    GPIO_PIN_7
-#define USART6_RX_GPIO_PORT              GPIOC
-#define USART6_RX_AF                     GPIO_AF8_USART6
-
-static uint8_t UART6_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
+static uint8_t UART_TIC_rxBuffer[1] = {0};   /* Our incoming serial buffer, filled-in by the receive interrupt handler */
 static void onTicUartRx(uint8_t incomingByte);
 
 extern "C" {
 
-static void MX_USART6_UART_Init(UART_HandleTypeDef* huart) {
-    huart->Instance = USART6;
+static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart) {
+    huart->Instance = USART_TIC;
     huart->Init.BaudRate = 9600;
     huart->Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
     huart->Init.StopBits = UART_STOPBITS_1;
@@ -61,107 +28,97 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
-    if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) { /* Initializing USART3 leads to a pinkish display, there is a probably a conflict on PINs */
+    if (huart->Instance!=USART_TIC /*&& huart->Instance!=USART_DBG*/) { /* Initializing USART3 leads to a pinkish display, there is a probably a conflict on PINs */
         return;
     }
 
-    if (huart->Instance==USART6) {
-        USART6_TX_GPIO_CLK_ENABLE();
-        USART6_RX_GPIO_CLK_ENABLE();
+    if (huart->Instance==USART_TIC) {
+        USART_TIC_TX_GPIO_CLK_ENABLE();
+        USART_TIC_RX_GPIO_CLK_ENABLE();
 
         /* Peripheral clock enable */
-        USART6_CLK_ENABLE();
+        USART_TIC_CLK_ENABLE();
 
-        /**USART6 GPIO Configuration
-        PC6     ------> USART6_TX
-        PC7     ------> USART6_RX
-        */
-        GPIO_InitStruct.Pin = USART6_TX_PIN;
+        GPIO_InitStruct.Pin = USART_TIC_TX_PIN;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_PULLUP;
         GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
-        GPIO_InitStruct.Alternate = USART6_TX_AF;
-        HAL_GPIO_Init(USART6_TX_GPIO_PORT, &GPIO_InitStruct);
+        GPIO_InitStruct.Alternate = USART_TIC_TX_AF;
+        HAL_GPIO_Init(USART_TIC_TX_GPIO_PORT, &GPIO_InitStruct);
 
-        GPIO_InitStruct.Pin = USART6_RX_PIN;
-        GPIO_InitStruct.Alternate = USART6_RX_AF;
-        HAL_GPIO_Init(USART6_RX_GPIO_PORT, &GPIO_InitStruct);
+        GPIO_InitStruct.Pin = USART_TIC_RX_PIN;
+        GPIO_InitStruct.Alternate = USART_TIC_RX_AF;
+        HAL_GPIO_Init(USART_TIC_RX_GPIO_PORT, &GPIO_InitStruct);
 
-        /* USART6 interrupt Init */
-        HAL_NVIC_SetPriority(USART6_IRQn, 0, 0);
-        HAL_NVIC_EnableIRQ(USART6_IRQn);
+        /* USART_TIC interrupt Init */
+        HAL_NVIC_SetPriority(USART_TIC_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(USART_TIC_IRQn);
     }
-    else if (huart->Instance==USART1) {
-        USART1_TX_GPIO_CLK_ENABLE();
-        USART1_RX_GPIO_CLK_ENABLE();
+    else if (huart->Instance==USART_DBG) {
+        USART_DBG_TX_GPIO_CLK_ENABLE();
+        USART_DBG_RX_GPIO_CLK_ENABLE();
 
         /* Peripheral clock enable */
-        USART1_CLK_ENABLE();
+        USART_DBG_CLK_ENABLE();
 
-        GPIO_InitStruct.Pin       = USART1_TX_PIN;
+        GPIO_InitStruct.Pin       = USART_DBG_TX_PIN;
         GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull      = GPIO_PULLUP;
         GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
-        GPIO_InitStruct.Alternate = USART1_TX_AF;
-        HAL_GPIO_Init(USART1_TX_GPIO_PORT, &GPIO_InitStruct);
+        GPIO_InitStruct.Alternate = USART_DBG_TX_AF;
+        HAL_GPIO_Init(USART_DBG_TX_GPIO_PORT, &GPIO_InitStruct);
 
-        GPIO_InitStruct.Pin = USART1_RX_PIN;
-        GPIO_InitStruct.Alternate = USART1_RX_AF;
-        HAL_GPIO_Init(USART1_RX_GPIO_PORT, &GPIO_InitStruct);
+        GPIO_InitStruct.Pin = USART_DBG_RX_PIN;
+        GPIO_InitStruct.Alternate = USART_DBG_RX_AF;
+        HAL_GPIO_Init(USART_DBG_RX_GPIO_PORT, &GPIO_InitStruct);
     }
 }
 
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     /*##-1- Reset peripherals ##################################################*/
-    if (huart->Instance!=USART6 /*&& huart->Instance!=USART3*/) {
+    if (huart->Instance!=USART_TIC /*&& huart->Instance!=USART_DBG*/) {
         return;
     }
 
-    if (huart->Instance==USART6) {
+    if (huart->Instance==USART_TIC) {
         /* Peripheral clock disable */
-        USART6_FORCE_RESET();
-        USART6_RELEASE_RESET();
+        USART_TIC_FORCE_RESET();
+        USART_TIC_RELEASE_RESET();
 
         /*##-2- Disable peripherals and GPIO Clocks #################################*/
-        USART6_CLK_DISABLE(); // Or __HAL_RCC_USART1_CLK_DISABLE();
-        /* De-Initialize USART6 Tx and RX */
-        /**USART6 GPIO Configuration
-        PC6     ------> USART6_TX
-        PC7     ------> USART6_RX
-        */
-        HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6|GPIO_PIN_7);
-        /* USART6 interrupt DeInit */
-        HAL_NVIC_DisableIRQ(USART6_IRQn);
+        USART_TIC_CLK_DISABLE(); // Or __HAL_RCC_USART1_CLK_DISABLE();
+        /* De-Initialize USART TIC Tx and RX */
+        HAL_GPIO_DeInit(USART_TIC_TX_GPIO_PORT, USART_TIC_TX_PIN);
+        HAL_GPIO_DeInit(USART_TIC_RX_GPIO_PORT, USART_TIC_RX_PIN);
+        /* USART_TIC interrupt DeInit */
+        HAL_NVIC_DisableIRQ(USART_TIC_IRQn);
     }
-    else if (huart->Instance==USART1) {
+    else if (huart->Instance==USART_DBG) {
         /* Peripheral clock disable */
-        USART1_FORCE_RESET();
-        USART1_RELEASE_RESET();
+        USART_DBG_FORCE_RESET();
+        USART_DBG_RELEASE_RESET();
 
         /*##-2- Disable peripherals and GPIO Clocks #################################*/
-        USART1_CLK_DISABLE();
-        /* De-Initialize USART1 Tx and RX */
-        /**USART6 GPIO Configuration
-        PA9     ------> USART1_TX
-        PA10    ------> USART1_RX
-        */
-        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9|GPIO_PIN_10);
+        USART_DBG_CLK_DISABLE();
+        /* De-Initialize USART_DBG Tx and RX */
+        HAL_GPIO_DeInit(USART_DBG_TX_GPIO_PORT, USART_DBG_TX_PIN);
+        HAL_GPIO_DeInit(USART_DBG_RX_GPIO_PORT, USART_DBG_RX_PIN);
     }
 }
 
-inline void UART6_Enable_interrupt_callback(UART_HandleTypeDef* huart) {
-    HAL_UART_Receive_IT(huart, UART6_rxBuffer, 1);
+inline void UART_TIC_Enable_interrupt_callback(UART_HandleTypeDef* huart) {
+    HAL_UART_Receive_IT(huart, UART_TIC_rxBuffer, 1);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
-    if (huart->Instance==USART6) {
-        unsigned char Received_Data = UART6_rxBuffer[0];
+    if (huart->Instance==USART_TIC) {
+        unsigned char Received_Data = UART_TIC_rxBuffer[0];
         onTicUartRx((uint8_t)Received_Data);
 #ifdef LED_SERIAL_RX
         BSP_LED_Toggle(LED_SERIAL_RX); // Toggle the orange LED when new serial data is received on the TIC UART
 #endif
-        UART6_Enable_interrupt_callback(huart);
+        UART_TIC_Enable_interrupt_callback(huart);
     }
 }
 } // extern "C"
@@ -183,8 +140,8 @@ Stm32SerialDriver& Stm32SerialDriver::get() {
 }
 
 void Stm32SerialDriver::start() {
-    MX_USART6_UART_Init(&(this->huart));
-    UART6_Enable_interrupt_callback(&(this->huart));
+    MX_USART_TIC_UART_Init(&(this->huart));
+    UART_TIC_Enable_interrupt_callback(&(this->huart));
 }
 
 void Stm32SerialDriver::resetRxOverflowCount() {
