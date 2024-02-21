@@ -4,8 +4,15 @@
 #ifdef STM32F469xx
 #include "stm32f4xx_hal.h"
 #endif
+#ifdef STM32F769xx
+#include "stm32f7xx_hal.h"
+#endif
+
 #ifdef USE_STM32469I_DISCOVERY
 #include "stm32469i_discovery_lcd.h"
+#endif
+#ifdef USE_STM32F769I_DISCO
+#include "stm32f769i_discovery_lcd.h"
 #endif
 
 extern "C" {

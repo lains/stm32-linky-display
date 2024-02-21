@@ -4,13 +4,16 @@
 #ifdef STM32F469xx
 #include "stm32f4xx_hal.h"
 #endif
+#ifdef STM32F769xx
+#include "stm32f7xx_hal.h"
+#endif
 #include <cstdint>
 #ifdef USE_ALLOCATION
 #include <string>
 #endif
 
 /* Definition for the USART used to receive the TIC signal */
-#ifdef USE_STM32469I_DISCOVERY
+#if defined(USE_STM32469I_DISCOVERY) || defined(USE_STM32F769I_DISCO)
 /**
  * USART6 GPIO Configuration
  * PC6     ------> USART6_TX
@@ -81,6 +84,41 @@
 #define USART_DBG_RX_GPIO_PORT           USART3_RX_GPIO_PORT
 #define USART_DBG_RX_AF                  USART3_RX_AF
 #endif
+#ifdef USE_STM32F769I_DISCO
+/**
+ * USART1 GPIO Configuration
+ * PA9     ------> USART1_TX
+ * PA10    ------> USART1_RX
+ */
+/* Definition for USART1 HAL functions */
+#define USART1_CLK_ENABLE()              __HAL_RCC_USART1_CLK_ENABLE()
+#define USART1_CLK_DISABLE()             __HAL_RCC_USART1_CLK_DISABLE()
+#define USART1_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOA_CLK_ENABLE()
+#define USART1_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOA_CLK_ENABLE()
+#define USART1_FORCE_RESET()             __HAL_RCC_USART1_FORCE_RESET()
+#define USART1_RELEASE_RESET()           __HAL_RCC_USART1_RELEASE_RESET()
+#define USART1_TX_PIN                    GPIO_PIN_9
+#define USART1_TX_GPIO_PORT              GPIOA
+#define USART1_TX_AF                     GPIO_AF7_USART1
+#define USART1_RX_PIN                    GPIO_PIN_10
+#define USART1_RX_GPIO_PORT              GPIOA
+#define USART1_RX_AF                     GPIO_AF7_USART1
+
+#define USART_DBG                        USART1
+#define USART_DBG_CLK_ENABLE()           USART1_CLK_ENABLE()
+#define USART_DBG_CLK_DISABLE()          USART1_CLK_DISABLE()
+#define USART_DBG_RX_GPIO_CLK_ENABLE()   USART1_RX_GPIO_CLK_ENABLE()
+#define USART_DBG_TX_GPIO_CLK_ENABLE()   USART1_TX_GPIO_CLK_ENABLE()
+#define USART_DBG_FORCE_RESET()          USART1_FORCE_RESET()
+#define USART_DBG_RELEASE_RESET()        USART1_RELEASE_RESET()
+#define USART_DBG_TX_PIN                 USART1_TX_PIN
+#define USART_DBG_TX_GPIO_PORT           USART1_TX_GPIO_PORT
+#define USART_DBG_TX_AF                  USART1_TX_AF
+#define USART_DBG_RX_PIN                 USART1_RX_PIN
+#define USART_DBG_RX_GPIO_PORT           USART1_RX_GPIO_PORT
+#define USART_DBG_RX_AF                  USART1_RX_AF
+#endif
+
 
 extern "C" {
 UART_HandleTypeDef* get_huart6(void);   // C-linkage exported getter for huart6 handler

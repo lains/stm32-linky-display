@@ -76,6 +76,9 @@ There are abstraction layers in place to ease porting of this code to another bo
 
 Porting to another STM32 microcontroller will be easier than porting to another manufacturer.
 
+For the STM32F769I-DISCO, I found quite useful to start from a [project that has an valid .ioc file already setup for that board](https://github.com/spark404/STM32F769I-DISCO_Blank_Project.git) concerning all major required peripherals (on that board, this means USART6, LCD and Ethernet).
+Although that example uses a RTOS (actually very useful for networking), the ioc file is a good starting point and networking may be supported using active polling in a mainloop.
+
 #### Display support
 
 First, LCD should be taken care of (after all, this whole code is about displaying power usage to a screen).

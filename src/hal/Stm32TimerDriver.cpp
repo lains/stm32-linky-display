@@ -3,6 +3,9 @@ extern "C" {
 #ifdef STM32F469xx
 #include "stm32f4xx_hal.h"
 #endif
+#ifdef STM32F769xx
+#include "stm32f7xx_hal.h"
+#endif
 }
 
 void waitDelayAndCondition(uint32_t delay, FHalDelayRefreshFunc toRunWhileWaiting, FHalDelayConditionFunc conditionCheck, void* context) {

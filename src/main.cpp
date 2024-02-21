@@ -18,6 +18,11 @@ extern "C" {
 static void SystemClock_Config(void); /* Defined below */
 }
 
+#ifdef USE_STM32F769I_DISCO
+static void MPU_Config(void);
+static void CPU_CACHE_Enable(void);
+#endif
+
 /* Private define ------------------------------------------------------------*/
 const unsigned int LCDWidth = 800;
 const unsigned int LCDHeight = 480;
@@ -98,16 +103,15 @@ public:
  * @brief  Main program
  */
 int main(void) {
-    /* STM32F4xx HAL library initialization:
-      - Configure the Flash prefetch, instruction and Data caches
-      - Systick timer is configured by default as source of time base, but user 
-        can eventually implement his proper time base source (a general purpose 
-        timer for example or other time source), keeping in mind that Time base 
-        duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and 
-        handled in milliseconds basis.
-      - Set NVIC Group Priority to 4
-      - Low Level Initialization: global MSP (MCU Support Package) initialization
-    */
+    /* STM32Fxxx HAL library initialization */
+#ifdef USE_STM32F769I_DISCO
+    /* Configure the MPU attributes */
+    MPU_Config();
+
+    /* Enable the CPU Cache */
+    CPU_CACHE_Enable();
+#endif
+
     HAL_Init();
   
     /* Configure the system clock to 180 MHz */
@@ -120,9 +124,19 @@ int main(void) {
     BSP_LED_Init(LED_ORANGE);
     BSP_LED_Init(LED_BLUE);
 #endif
-    BSP_LED_On(LED_ORANGE);
+    /* Configure the 2 available LEDs on STM32F769I DISCOVERY */
+#ifdef USE_STM32F769I_DISCO
+    BSP_LED_Init(LED_RED);
+    BSP_LED_Init(LED_GREEN);
+#endif
+    BSP_LED_On(LED_STARTUP_BLINK);
     waitDelay(250);
-    BSP_LED_Off(LED_ORANGE);
+    BSP_LED_Off(LED_STARTUP_BLINK);
+
+#ifdef USE_STM32F769I_DISCO
+    /* Configure the Tamper push-button in GPIO Mode */
+    BSP_PB_Init(BUTTON_WAKEUP, BUTTON_MODE_GPIO);
+#endif
 
     /* Initialize the SDRAM */
     BSP_SDRAM_Init();
@@ -492,6 +506,13 @@ static void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLQ = 7;
     RCC_OscInitStruct.PLL.PLLR = 6;
 #endif
+#ifdef USE_STM32F769I_DISCO
+    RCC_OscInitStruct.PLL.PLLM = 25;
+    RCC_OscInitStruct.PLL.PLLN = 400;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 8;
+    RCC_OscInitStruct.PLL.PLLR = 7;
+#endif
 
     ret = HAL_RCC_OscConfig(&RCC_OscInitStruct);
     if (ret != HAL_OK) {
@@ -500,6 +521,7 @@ static void SystemClock_Config(void)
   
     /* Activate the OverDrive to reach:
        - the 180 MHz Frequency on STM32F469I DISCOVERY
+       - the 200 MHz Frequency on STM32F769I DISCOVERY
     */
     ret = HAL_PWREx_EnableOverDrive();
     if (ret != HAL_OK) {
@@ -516,6 +538,9 @@ static void SystemClock_Config(void)
 #ifdef USE_STM32469I_DISCOVERY
 #define BOARD_FLASH_LATENCY FLASH_LATENCY_5
 #endif
+#ifdef USE_STM32F769I_DISCO
+#define BOARD_FLASH_LATENCY FLASH_LATENCY_6
+#endif
     ret = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, BOARD_FLASH_LATENCY);
 
     if (ret != HAL_OK) {
@@ -523,6 +548,82 @@ static void SystemClock_Config(void)
     }
 }
 } // extern "C"
+
+
+#ifdef USE_STM32F769I_DISCO
+/**
+  * @brief  CPU L1-Cache enable.
+  * @param  None
+  * @retval None
+  */
+static void CPU_CACHE_Enable(void) {
+    /* Enable I-Cache */
+    SCB_EnableICache();
+
+    /* Enable D-Cache */
+    SCB_EnableDCache();
+}
+
+/**
+  * @brief  Configure the MPU attributes
+  * @param  None
+  * @retval None
+  */
+static void MPU_Config(void) {
+    MPU_Region_InitTypeDef MPU_InitStruct;
+
+    /* Disable the MPU */
+    HAL_MPU_Disable();
+
+    /* Configure the MPU as Strongly ordered for not defined regions */
+    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    MPU_InitStruct.BaseAddress = 0x00;
+    MPU_InitStruct.Size = MPU_REGION_SIZE_4GB;
+    MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
+    MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+    MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+    MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+    MPU_InitStruct.Number = MPU_REGION_NUMBER0;
+    MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+    MPU_InitStruct.SubRegionDisable = 0x87;
+    MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+
+    HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+    /* Configure the MPU attributes as WT for SDRAM */
+    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    MPU_InitStruct.BaseAddress = 0xC0000000;
+    MPU_InitStruct.Size = MPU_REGION_SIZE_32MB;
+    MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+    MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+    MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
+    MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+    MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+    MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+    MPU_InitStruct.SubRegionDisable = 0x00;
+    MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+
+    HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+    /* Configure the MPU attributes FMC control registers */
+    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    MPU_InitStruct.BaseAddress = 0xA0000000;
+    MPU_InitStruct.Size = MPU_REGION_SIZE_8KB;
+    MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+    MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+    MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+    MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+    MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+    MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+    MPU_InitStruct.SubRegionDisable = 0x0;
+    MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+    
+    HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+    /* Enable the MPU */
+    HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+}
+#endif
 
 #ifdef  USE_FULL_ASSERT
 /**

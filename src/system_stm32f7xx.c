@@ -1,16 +1,16 @@
-#ifdef STM32F469xx
-/* This file is only used on STM32F469 boards */
+#ifdef STM32F769xx
+/* This file is only used on STM32F769 boards
 /**
   ******************************************************************************
-  * @file    system_stm32f4xx.c
+  * @file    system_stm32f7xx.c
   * @author  MCD Application Team
-  * @brief   CMSIS Cortex-M4 Device Peripheral Access Layer System Source File.
+  * @brief   CMSIS Cortex-M7 Device Peripheral Access Layer System Source File.
   *
   *   This file provides two functions and one global variable to be called from 
   *   user application:
   *      - SystemInit(): This function is called at startup just after reset and 
   *                      before branch to main program. This call is made inside
-  *                      the "startup_stm32f4xx.s" file.
+  *                      the "startup_stm32f7xx.s" file.
   *
   *      - SystemCoreClock variable: Contains the core clock (HCLK), it can be used
   *                                  by the user application to setup the SysTick 
@@ -24,7 +24,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
+  * Copyright (c) 2016 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -38,23 +38,18 @@
   * @{
   */
 
-/** @addtogroup stm32f4xx_system
+/** @addtogroup stm32f7xx_system
   * @{
   */  
   
-/** @addtogroup STM32F4xx_System_Private_Includes
+/** @addtogroup STM32F7xx_System_Private_Includes
   * @{
   */
 
-
-#include "stm32f4xx.h"
+#include "stm32f7xx.h"
 
 #if !defined  (HSE_VALUE) 
-#if defined(USE_STM32469I_DISCO_REVA) 
-  #define HSE_VALUE    ((uint32_t)25000000)  /*!< Default value of the External oscillator in Hz */
-#else
-  #define HSE_VALUE    ((uint32_t)8000000)   /*!< Default value of the External oscillator in Hz */
-#endif /* USE_STM32469I_DISCO_REVA */
+  #define HSE_VALUE    ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 #if !defined  (HSI_VALUE)
@@ -65,7 +60,7 @@
   * @}
   */
 
-/** @addtogroup STM32F4xx_System_Private_TypesDefinitions
+/** @addtogroup STM32F7xx_System_Private_TypesDefinitions
   * @{
   */
 
@@ -73,7 +68,7 @@
   * @}
   */
 
-/** @addtogroup STM32F4xx_System_Private_Defines
+/** @addtogroup STM32F7xx_System_Private_Defines
   * @{
   */
 
@@ -93,7 +88,7 @@
   * @}
   */
 
-/** @addtogroup STM32F4xx_System_Private_Macros
+/** @addtogroup STM32F7xx_System_Private_Macros
   * @{
   */
 
@@ -101,9 +96,10 @@
   * @}
   */
 
-/** @addtogroup STM32F4xx_System_Private_Variables
+/** @addtogroup STM32F7xx_System_Private_Variables
   * @{
   */
+
   /* This variable is updated in three ways:
       1) by calling CMSIS function SystemCoreClockUpdate()
       2) by calling HAL API function HAL_RCC_GetHCLKFreq()
@@ -112,17 +108,17 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-uint32_t SystemCoreClock = 16000000;
-const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
-const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
+  uint32_t SystemCoreClock = 16000000;
+  const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+  const uint8_t APBPrescTable[8] = {0, 0, 0, 0, 1, 2, 3, 4};
+
 /**
   * @}
   */
 
-/** @addtogroup STM32F4xx_System_Private_FunctionPrototypes
+/** @addtogroup STM32F7xx_System_Private_FunctionPrototypes
   * @{
   */
-
 #if defined (DATA_IN_ExtSDRAM)
   static void SystemInit_ExtMemCtl(void); 
 #endif /* DATA_IN_ExtSDRAM */
@@ -131,14 +127,14 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
   * @}
   */
 
-/** @addtogroup STM32F4xx_System_Private_Functions
+/** @addtogroup STM32F7xx_System_Private_Functions
   * @{
   */
 
 /**
   * @brief  Setup the microcontroller system
-  *         Initialize the FPU setting, vector table location and External memory 
-  *         configuration.
+  *         Initialize the Embedded Flash Interface, the PLL and update the 
+  *         SystemFrequency variable.
   * @param  None
   * @retval None
   */
@@ -173,7 +169,7 @@ void SystemInit(void)
 
   /* Configure the Vector Table location add offset address ------------------*/
 #ifdef VECT_TAB_SRAM
-  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+  SCB->VTOR = SRAM1_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
 #endif
@@ -200,14 +196,14 @@ void SystemInit(void)
   *           - If SYSCLK source is PLL, SystemCoreClock will contain the HSE_VALUE(**) 
   *             or HSI_VALUE(*) multiplied/divided by the PLL factors.
   *         
-  *         (*) HSI_VALUE is a constant defined in stm32f4xx_hal_conf.h file (default value
+  *         (*) HSI_VALUE is a constant defined in stm32f7xx.h file (default value
   *             16 MHz) but the real value may vary depending on the variations
   *             in voltage and temperature.   
   *    
-  *         (**) HSE_VALUE is a constant defined in stm32f4xx_hal_conf.h file (its value
-  *              depends on the application requirements), user has to ensure that HSE_VALUE
-  *              is same as the real frequency of the crystal used. Otherwise, this function
-  *              may have wrong result.
+  *         (**) HSE_VALUE is a constant defined in stm32f7xx.h file (default value
+  *              25 MHz), user has to ensure that HSE_VALUE is same as the real
+  *              frequency of the crystal used. Otherwise, this function may
+  *              have wrong result.
   *                
   *         - The result of this function could be not correct when using fractional
   *           value for HSE crystal.
@@ -246,7 +242,7 @@ void SystemCoreClockUpdate(void)
       else
       {
         /* HSI used as PLL clock source */
-        pllvco = (HSI_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
+        pllvco = (HSI_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);      
       }
 
       pllp = (((RCC->PLLCFGR & RCC_PLLCFGR_PLLP) >>16) + 1 ) *2;
@@ -266,9 +262,9 @@ void SystemCoreClockUpdate(void)
 #if defined (DATA_IN_ExtSDRAM)
 /**
   * @brief  Setup the external memory controller.
-  *         Called in startup_stm32f4xx.s before jump to main.
-  *         This function configures the external memories (SRAM/SDRAM)
-  *         This SRAM/SDRAM will be used as program data memory (including heap and stack).
+  *         Called in startup_stm32f7xx.s before jump to main.
+  *         This function configures the external memories (SDRAM)
+  *         This SDRAM will be used as program data memory (including heap and stack).
   * @param  None
   * @retval None
   */
@@ -277,22 +273,22 @@ void SystemInit_ExtMemCtl(void)
   register uint32_t tmpreg = 0, timeout = 0xFFFF;
   register __IO uint32_t index;
 
-  /* Enable GPIOC, GPIOD, GPIOE, GPIOF, GPIOG, GPIOH, and GPIOI interface
+  /* Enable GPIOC, GPIOD, GPIOE, GPIOF, GPIOG and GPIOH interface 
   clock */
-  RCC->AHB1ENR |= 0x000001FC;
-
+  RCC->AHB1ENR |= 0x000000FC;
+  
   /* Connect PCx pins to FMC Alternate function */
-  GPIOC->AFR[0]  = 0x0000000C;
+  GPIOC->AFR[0]  = 0x0000C000;
   GPIOC->AFR[1]  = 0x00000000;
   /* Configure PCx pins in Alternate function mode */ 
-  GPIOC->MODER   = 0x00000002;
-  /* Configure PCx pins speed to 100 MHz */
-  GPIOC->OSPEEDR = 0x00000003;
+  GPIOC->MODER   = 0x00000080;
+  /* Configure PCx pins speed to 50 MHz */
+  GPIOC->OSPEEDR = 0x00000080;
   /* Configure PCx pins Output type to push-pull */
   GPIOC->OTYPER  = 0x00000000;
-  /* No pull-up, pull-down for PCx pins */ 
-  GPIOC->PUPDR   = 0x00000000;
-
+  /* No pull-up, pull-down for PCx pins */
+  GPIOC->PUPDR   = 0x00000040;
+  
   /* Connect PDx pins to FMC Alternate function */
   GPIOD->AFR[0]  = 0x000000CC;
   GPIOD->AFR[1]  = 0xCC000CCC;
@@ -303,7 +299,7 @@ void SystemInit_ExtMemCtl(void)
   /* Configure PDx pins Output type to push-pull */
   GPIOD->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PDx pins */ 
-  GPIOD->PUPDR   = 0x00000000;
+  GPIOD->PUPDR   = 0x50150005;
   
   /* Connect PEx pins to FMC Alternate function */
   GPIOE->AFR[0]  = 0xC00000CC;
@@ -315,7 +311,7 @@ void SystemInit_ExtMemCtl(void)
   /* Configure PEx pins Output type to push-pull */
   GPIOE->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PEx pins */ 
-  GPIOE->PUPDR   = 0x00000000;
+  GPIOE->PUPDR   = 0x55554005;
   
   /* Connect PFx pins to FMC Alternate function */
   GPIOF->AFR[0]  = 0x00CCCCCC;
@@ -327,31 +323,31 @@ void SystemInit_ExtMemCtl(void)
   /* Configure PFx pins Output type to push-pull */
   GPIOF->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PFx pins */ 
-  GPIOF->PUPDR   = 0x00000000;
+  GPIOF->PUPDR   = 0x55400555;
   
   /* Connect PGx pins to FMC Alternate function */
-  GPIOG->AFR[0]  = 0x00CC00CC;
+  GPIOG->AFR[0]  = 0x00CC0CCC;
   GPIOG->AFR[1]  = 0xC000000C;
   /* Configure PGx pins in Alternate function mode */ 
-  GPIOG->MODER   = 0x80020A0A;
+  GPIOG->MODER   = 0x80020A2A;
   /* Configure PGx pins speed to 100 MHz */
-  GPIOG->OSPEEDR = 0xC0030F0F;
+  GPIOG->OSPEEDR = 0xC0030F3F;
   /* Configure PGx pins Output type to push-pull */
   GPIOG->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PGx pins */ 
-  GPIOG->PUPDR   = 0x00000000;
+  GPIOG->PUPDR   = 0x40010515;
   
   /* Connect PHx pins to FMC Alternate function */
-  GPIOH->AFR[0]  = 0x0000CC00;
+  GPIOH->AFR[0]  = 0x00C0CC00;
   GPIOH->AFR[1]  = 0xCCCCCCCC;
   /* Configure PHx pins in Alternate function mode */ 
-  GPIOH->MODER   = 0xAAAA00A0;
+  GPIOH->MODER   = 0xAAAA08A0;
   /* Configure PHx pins speed to 100 MHz */
-  GPIOH->OSPEEDR = 0xFFFF00F0;
+  GPIOH->OSPEEDR = 0xFFFF0CF0;
   /* Configure PHx pins Output type to push-pull */
   GPIOH->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PHx pins */ 
-  GPIOH->PUPDR   = 0x00000000;
+  GPIOH->PUPDR   = 0x55550450;
   
   /* Connect PIx pins to FMC Alternate function */
   GPIOI->AFR[0]  = 0xCCCCCCCC;
@@ -362,16 +358,15 @@ void SystemInit_ExtMemCtl(void)
   GPIOI->OSPEEDR = 0x003CFFFF;
   /* Configure PIx pins Output type to push-pull */
   GPIOI->OTYPER  = 0x00000000;
-  /* No pull-up, pull-down for PIx pins */ 
-  GPIOI->PUPDR   = 0x00000000;
-
-  /* FMC Configuration */
+  /* No pull-up, pull-down for PIx pins */
+  GPIOI->PUPDR   = 0x00145555;
+  
   /* Enable the FMC interface clock */
   RCC->AHB3ENR |= 0x00000001;
   
-  /* Configure and enable SDRAM bank2 */
-  FMC_Bank5_6->SDCR[0] = 0x000019E4;
-  FMC_Bank5_6->SDTR[0] = 0x01115351;
+  /* Configure and enable SDRAM bank1 */
+  FMC_Bank5_6->SDCR[0]  = 0x000019E4;
+  FMC_Bank5_6->SDTR[0]  = 0x01116361;
   
   /* SDRAM initialization sequence */
   /* Clock enable command */
@@ -386,8 +381,7 @@ void SystemInit_ExtMemCtl(void)
   for (index = 0; index<1000; index++);
   
   /* PALL command */
-  FMC_Bank5_6->SDCMR = 0x00000012;     
-  tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
+  FMC_Bank5_6->SDCMR = 0x00000012;           
   timeout = 0xFFFF;
   while((tmpreg != 0) && (timeout-- > 0))
   {
@@ -396,7 +390,6 @@ void SystemInit_ExtMemCtl(void)
   
   /* Auto refresh command */
   FMC_Bank5_6->SDCMR = 0x000000F3;
-  tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
   timeout = 0xFFFF;
   while((tmpreg != 0) && (timeout-- > 0))
   {
@@ -405,7 +398,6 @@ void SystemInit_ExtMemCtl(void)
  
   /* MRD register program */
   FMC_Bank5_6->SDCMR = 0x00046014;
-  tmpreg = FMC_Bank5_6->SDSR & 0x00000020;
   timeout = 0xFFFF;
   while((tmpreg != 0) && (timeout-- > 0))
   {
@@ -414,11 +406,18 @@ void SystemInit_ExtMemCtl(void)
   
   /* Set refresh count */
   tmpreg = FMC_Bank5_6->SDRTR;
-  FMC_Bank5_6->SDRTR = (tmpreg | (0x0000056A<<1));
+  FMC_Bank5_6->SDRTR = (tmpreg | (0x00000603<<1));
   
   /* Disable write protection */
   tmpreg = FMC_Bank5_6->SDCR[0]; 
   FMC_Bank5_6->SDCR[0] = (tmpreg & 0xFFFFFDFF);
+  
+  /*
+   * Disable the FMC bank1 (enabled after reset).
+   * This, prevents CPU speculation access on this bank which blocks the use of FMC during
+   * 24us. During this time the others FMC master (such as LTDC) cannot use it!
+   */
+  FMC_Bank1->BTCR[0] = 0x000030d2;
 }
 #endif /* DATA_IN_ExtSDRAM */
 
@@ -429,7 +428,7 @@ void SystemInit_ExtMemCtl(void)
 /**
   * @}
   */
-
+  
 /**
   * @}
   */

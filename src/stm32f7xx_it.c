@@ -1,8 +1,8 @@
-#ifdef STM32F469xx
-/* This file is only used on STM32F469 boards */
+#ifdef STM32F769xx
+/* This file is only used on STM32F769 boards
 /**
   ******************************************************************************
-  * @file    LCD_DSI/LCD_DSI_CmdMode_DoubleBuffering/Src/stm32f4xx_it.c 
+  * @file    LCD_DSI/LCD_DSI_CmdMode_DoubleBuffering/Src/stm32f7xx_it.c 
   * @author  MCD Application Team
   * @brief   Main Interrupt Service Routines.
   *          This file provides template for all exceptions handler and
@@ -10,7 +10,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
+  * Copyright (c) 2016 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -22,28 +22,28 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32f4xx_it.h"
+#include "stm32f7xx_it.h"
 
-/** @addtogroup STM32F4xx_HAL_Examples
+/** @addtogroup STM32F7xx_HAL_Examples
   * @{
   */
 
-/** @addtogroup LCD_DSI_Video_OneLayer
+/** @addtogroup LCD_DSI_CmdMode_DoubleBuffering
   * @{
   */
 
 /* Private typedef -----------------------------------------------------------*/
-LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
-DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/ 
 /* Private function prototypes -----------------------------------------------*/
+LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
+DSI_HandleTypeDef* get_hdsi(void); // C-linkage exported getter for hdsi handler
 extern UART_HandleTypeDef* get_huart6(void);
 /* Private functions ---------------------------------------------------------*/
 
 /******************************************************************************/
-/*            Cortex-M4 Processor Exceptions Handlers                         */
+/*            Cortex-M7 Processor Exceptions Handlers                         */
 /******************************************************************************/
 
 /**
@@ -145,29 +145,19 @@ void SysTick_Handler(void)
 }
 
 /******************************************************************************/
-/*                 STM32F4xx Peripherals Interrupt Handlers                   */
+/*                 STM32F7xx Peripherals Interrupt Handlers                   */
 /*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
 /*  available peripheral interrupt handler's name please refer to the startup */
-/*  file (startup_stm32f4xx.s).                                               */
+/*  file (startup_stm32f7xx.s).                                               */
 /******************************************************************************/
 
 /**
-  * @brief This function handles USART1 global interrupt.
+  * @brief This function handles USART6 global interrupt.
   */
 void USART6_IRQHandler(void)
 {
   UART_HandleTypeDef* huart6_ptr = get_huart6();
   HAL_UART_IRQHandler(huart6_ptr);
-}
-
-/**
-  * @brief  This function handles LTDC interrupt request.
-  * @param  None
-  * @retval None
-  */
-void LTDC_IRQHandler(void)
-{
-  HAL_LTDC_IRQHandler(get_hltdc());
 }
 
 /**
