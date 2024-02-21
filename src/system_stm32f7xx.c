@@ -1,3 +1,5 @@
+#ifdef STM32F769xx
+/* This file is only used on STM32F769 boards
 /**
   ******************************************************************************
   * @file    system_stm32f7xx.c
@@ -430,4 +432,4 @@ void SystemInit_ExtMemCtl(void)
 /**
   * @}
   */
-
+#endif

@@ -31,7 +31,7 @@ jobs:
         with:
           submodules: recursive
       - name: Build
-        run: make TOOLCHAIN_PATH_PREFIX=
+        run: make TOOLCHAIN_PATH_PREFIX= elf
 
   test:
     runs-on: ubuntu-latest
