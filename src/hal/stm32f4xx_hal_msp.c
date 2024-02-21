@@ -1,3 +1,5 @@
+#ifdef STM32F469xx
+/* This file is only used on STM32F4 board
 /**
   ******************************************************************************
   * @file    LCD_DSI/LCD_DSI_CmdMode_DoubleBuffering/Src/stm32f4xx_hal_msp.c
@@ -51,3 +53,4 @@
 /**
   * @}
   */
+#endif

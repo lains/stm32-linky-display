@@ -1,3 +1,5 @@
+#ifdef STM32F469xx
+/* This file is only used on STM32F4 board
 /**
   ******************************************************************************
   * @file    system_stm32f4xx.c
@@ -431,3 +433,4 @@ void SystemInit_ExtMemCtl(void)
 /**
   * @}
   */
+#endif
