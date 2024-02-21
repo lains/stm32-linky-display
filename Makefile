@@ -25,7 +25,7 @@ INC_DIR = $(TOPDIR)/inc
 TEST_SUBDIR = test
 TEST_DIR = $(TOPDIR)/$(TEST_SUBDIR)
 
-TARGET_BOARD?=STM32F769I_DISCO
+TARGET_BOARD?=STM32F469I_DISCO
 
 # Path to the STM32 codebase, make sure to fetch submodules to populate this directory
 BSP_DIR ?= bsp
