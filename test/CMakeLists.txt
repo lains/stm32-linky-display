@@ -27,6 +27,7 @@ target_compile_options(${PROJECT_NAME} PUBLIC -Wall -fdiagnostics-color=always -
 target_compile_options(${PROJECT_NAME} PUBLIC -MMD -MP)
 target_compile_options(${PROJECT_NAME} PUBLIC -fpermissive)
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
 
 target_link_libraries(${PROJECT_NAME}
         gmock_main
@@ -38,9 +39,12 @@ target_link_libraries(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME} PUBLIC
         tools/Tools.cpp
+        ../ticdecodecpp/src/TIC/Unframer.cpp
+        ../src/domain/TicProcessingContext.cpp
         src/FixedSizeRingBuffer_tests.cpp
         src/PowerHistory_tests.cpp
         src/TicFrameParser_test.cpp
+        src/EndToEndDecoding_tests.cpp
         )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${cmock_SOURCE_DIR}/include)

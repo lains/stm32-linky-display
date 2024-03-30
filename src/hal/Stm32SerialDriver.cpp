@@ -10,7 +10,7 @@ extern "C" {
 
 static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart) {
     huart->Instance = USART_TIC;
-    huart->Init.BaudRate = 9600;
+    huart->Init.BaudRate = 1200;
     huart->Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
     huart->Init.StopBits = UART_STOPBITS_1;
     huart->Init.Parity = UART_PARITY_EVEN;

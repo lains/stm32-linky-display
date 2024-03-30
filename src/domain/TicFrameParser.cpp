@@ -3,6 +3,9 @@
 #include <climits>
 #include <string.h>
 #include <utility> // For std::swap()
+//#include "stm32469i_discovery.h"
+//#include <iostream>
+//#include <iomanip>
 
 TicEvaluatedPower::TicEvaluatedPower() :
     isValid(false),
@@ -221,6 +224,7 @@ void TicFrameParser::onNewInstCurrentMeasurement(uint32_t current) {
 }
 
 void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
+    //std::cout << cnt << " new byte " << std::hex << static_cast<unsigned int>(buf[0]) << " sent to de\n";
     this->de.pushBytes(buf, cnt);   /* Forward the bytes to the dataset extractor */
 }
 
@@ -233,13 +237,18 @@ void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
 
 void TicFrameParser::onFrameComplete() {
     this->de.reset();
+    /* Should blink green light */
     this->nbFramesParsed++;
 }
 
 void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
     /* This is our actual parsing of a newly received dataset */
+    //std::cout << "Entering TicFrameParser::onDatasetExtracted() with a " << std::dec << cnt << " byte(s) long dataset\n";
     TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
+    //std::cout << "Above dataset is " << std::string(dv.isValid()?"":"in") << "valid\n";
     if (dv.isValid()) {
+        //std::vector<uint8_t> datasetLabel(dv.labelBuffer, dv.labelBuffer+dv.labelSz);
+        //std::cout << "Dataset has label \"" << std::string(datasetLabel.begin(), datasetLabel.end()) << "\"\n";
         if (dv.labelSz == 4 &&
             memcmp(dv.labelBuffer, "DATE", 4) == 0) {
             /* The current label is a DATE */
@@ -247,14 +256,22 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
                 this->onNewDate(dv.horodate);
             }
         }
-        /* Search for SINSTS */
-        else if (dv.labelSz == 6 &&
-            memcmp(dv.labelBuffer, "SINSTS", 6) == 0 &&
-            dv.dataSz > 0) {
-            /* The current label is a SINSTS with some value associated */
-            uint32_t sinsts = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
-            if (sinsts != (uint32_t)-1)
-                this->onNewWithdrawnPowerMesurement(sinsts);
+        /* Search for SINSTS or PAPP */
+        else if ( (dv.labelSz == 6 &&
+                  memcmp(dv.labelBuffer, "SINSTS", 6) == 0) ||
+                  (dv.labelSz == 4 &&
+                  memcmp(dv.labelBuffer, "PAPP", 4) == 0)
+                ) {
+            //std::cout << "Found inst power dataset\n";
+            if (dv.dataSz > 0) {
+                /* The current label is a SINSTS or PAPP with some value associated */
+                //std::vector<uint8_t> datasetValue(dv.dataBuffer, dv.dataBuffer+dv.dataSz);
+                //std::cout << "Power data received: \"" << std::string(datasetValue.begin(), datasetValue.end()) << "\"\n";
+                uint32_t withdrawnPower = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                //std::cout << "interpreted as " << withdrawnPower << "W\n";
+                if (withdrawnPower != (uint32_t)-1)
+                    this->onNewWithdrawnPowerMesurement(withdrawnPower);
+            }
         }
         /* Search for URMS1 */
         else if (dv.labelSz == 5 &&
@@ -312,5 +329,6 @@ void TicFrameParser::ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, un
         return; /* Failsafe, discard if no context */
     TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
     /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
+    //BSP_LED_Toggle(LED_GREEN); // Toggle the green LED when a dataset has been completely received
     ticFrameParserInstance->onDatasetExtracted(buf, cnt);
 }

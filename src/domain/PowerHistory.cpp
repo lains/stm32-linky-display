@@ -1,6 +1,7 @@
 #include "PowerHistory.h"
 
 #include <climits>
+//#include <iostream>
 
 PowerHistoryEntry::PowerHistoryEntry() :
     power(),
@@ -93,7 +94,9 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 
 
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
+    //std::cout << "Entering PowerHistory::onNewPowerData()\n";
     if (!power.isValid || !horodate.isValid) {
+        //std::cout << "Skipping this measurement because it is invalid\n"; //FIXME: Lionel! On sample historical TIC data, we have no horodate and measurement will thus always be discarded!
         return;
     }
 
@@ -102,14 +105,16 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Hor
         this->ticContext->lastParsedFrameNb = frameSequenceNb;
     }
 
-    if (this->horodatesAreInSamePeriodSample(horodate, this->lastPowerHorodate)) {
-        PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
-        if (lastEntry != nullptr) {
-            lastEntry->averageWithPowerSample(power, horodate);
-            this->lastPowerHorodate = horodate;
-            return;
+    if (horodate.isValid) {
+        if (this->horodatesAreInSamePeriodSample(horodate, this->lastPowerHorodate)) {
+            PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
+            if (lastEntry != nullptr) {
+                lastEntry->averageWithPowerSample(power, horodate);
+                this->lastPowerHorodate = horodate;
+                return;
+            }
+            /* If lastEntry is not valid, create a new entry by falling-through the following code */
         }
-        /* If lastEntry is not valid, create a new entry by falling-through the following code */
     }
     if (false && this->lastPowerHorodate.isValid) { /* If we already store some historical data, make sure last horodate and new horodate are consecutive (in periods), or otherwise pad */
         TIC::Horodate forwardHorodate = this->lastPowerHorodate;

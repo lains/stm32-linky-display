@@ -6,6 +6,7 @@
 #include "../hal/Stm32SerialDriver.h"
 #else
 struct Stm32SerialDriver {
+    Stm32SerialDriver() {}
 };
 #endif
 #include <stdint.h>
