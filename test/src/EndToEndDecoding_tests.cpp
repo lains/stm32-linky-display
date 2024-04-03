@@ -20,7 +20,7 @@ TEST(EndToEndDecoding_tests, TriphaseSample) {
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
-        std::cout << "Got frame complete... target would toggle green LED\n";
+        //std::cout << "Got frame complete... target would toggle green LED\n";
     };
 
     TIC::Unframer ticUnframer(TicFrameParser::unwrapInvokeOnFrameNewBytes,
@@ -32,16 +32,16 @@ TEST(EndToEndDecoding_tests, TriphaseSample) {
     powerHistory.setContext(&ticContext);
 
 	//std::vector<uint8_t> ticData = readVectorFromDisk("./ticdecodecpp/test/samples/continuous_linky_3P_historical_TIC_2024_sample.bin");
-    std::vector<uint8_t> ticData = readVectorFromDisk("./capture_bis_evening_3phase.bin");
+    std::vector<uint8_t> ticData = readVectorFromDisk("./ticdecodecpp/test/samples/continuous_linky_3P_historical_TIC_with_rx_errors.bin");
 
     assert(ticData.size() != 0);
 
-    std::cout << "TIC sample is " << ticData.size() << " bytes long\n";
+    //std::cout << "TIC sample is " << ticData.size() << " bytes long\n";
 
 	for (unsigned int pos = 0; pos < ticData.size(); pos++) {
         size_t incomingBytesCount = 1;
         uint8_t incomingByte = ticData[pos];
-        std::cerr << "Pushing byte " << vectorToHexString(std::vector<uint8_t>(1, incomingByte)) << "\n";
+        //std::cerr << "Pushing byte " << vectorToHexString(std::vector<uint8_t>(1, incomingByte)) << "\n";
         std::size_t processedBytesCount = ticUnframer.pushBytes(&incomingByte, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
             size_t lostBytesCount = incomingBytesCount - processedBytesCount;

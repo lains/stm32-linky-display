@@ -156,29 +156,29 @@ int main(void) {
         size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
         if (incomingBytesCount == 0)
             return;
-        char countAsStr[4];
-        unsigned int pos = 0;
-        if (incomingBytesCount >= 1000) {
-            countAsStr[0]='+';
-            countAsStr[1]='+';
-            countAsStr[2]='+';
-            countAsStr[3]='\0';
-        }
-        else {
-            if (incomingBytesCount >= 100) {
-                countAsStr[pos++] = '0' + (incomingBytesCount / 100)%10;
-            }
-            if (incomingBytesCount >= 10) {
-                countAsStr[pos++] = '0' + (incomingBytesCount / 10)%10;
-            }
-            countAsStr[pos++] = '0' + (incomingBytesCount / 1)%10;
-            countAsStr[pos++] = '\0';
-        }
-        Stm32DebugOutput::get().send("TIC RX ");
-        Stm32DebugOutput::get().send(countAsStr);
-        Stm32DebugOutput::get().send(" bytes: ");
-        Stm32DebugOutput::get().hexdumpBuffer(streamedBytesBuffer, incomingBytesCount);
-        Stm32DebugOutput::get().send("\n");
+        // char countAsStr[4];
+        // unsigned int pos = 0;
+        // if (incomingBytesCount >= 1000) {
+        //     countAsStr[0]='+';
+        //     countAsStr[1]='+';
+        //     countAsStr[2]='+';
+        //     countAsStr[3]='\0';
+        // }
+        // else {
+        //     if (incomingBytesCount >= 100) {
+        //         countAsStr[pos++] = '0' + (incomingBytesCount / 100)%10;
+        //     }
+        //     if (incomingBytesCount >= 10) {
+        //         countAsStr[pos++] = '0' + (incomingBytesCount / 10)%10;
+        //     }
+        //     countAsStr[pos++] = '0' + (incomingBytesCount / 1)%10;
+        //     countAsStr[pos++] = '\0';
+        // }
+        // Stm32DebugOutput::get().send("TIC RX ");
+        // Stm32DebugOutput::get().send(countAsStr);
+        // Stm32DebugOutput::get().send(" bytes: ");
+        // Stm32DebugOutput::get().hexdumpBuffer(streamedBytesBuffer, incomingBytesCount);
+        // Stm32DebugOutput::get().send("\n");
         std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
             size_t lostBytesCount = incomingBytesCount - processedBytesCount;
