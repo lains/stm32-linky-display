@@ -45,4 +45,21 @@ bool send(const std::string& text) {
 }
 #endif
 
+bool Stm32DebugOutput::hexdumpBuffer(const uint8_t* buffer, unsigned int len) {
+    char byteHexDump[]="@@";
+    unsigned char nibble;
+    for (unsigned int offsByte=0; offsByte<len; offsByte++) {
+        nibble = (((*buffer) >> 4) & 0xf);
+        byteHexDump[0]=(nibble<=9)?'0'+nibble:nibble-10+'a';
+        nibble = ((*buffer) & 0xf);
+        byteHexDump[1]=(nibble<=9)?'0'+nibble:nibble-10+'a';
+        if (offsByte != 0)
+            this->send(" ");
+        if (!this->send(byteHexDump))
+            return false;
+        offsByte++;
+    }
+    return true;
+}
+
 Stm32DebugOutput Stm32DebugOutput::instance=Stm32DebugOutput();

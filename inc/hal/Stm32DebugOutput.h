@@ -49,6 +49,11 @@ public:
     bool send(const std::string& text);
 #endif
 
+    /**
+     * @brief Send the hex dump of a byte buffer to the debug console
+     */
+    bool hexdumpBuffer(const uint8_t* buffer, unsigned int len);
+
 private:
     Stm32DebugOutput();
 
