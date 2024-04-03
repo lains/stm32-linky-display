@@ -1,5 +1,5 @@
 #ifdef STM32F769xx
-/* This file is only used on STM32F769 boards
+/* This file is only used on STM32F769 boards */
 /**
   ******************************************************************************
   * @file    LCD_DSI/LCD_DSI_CmdMode_DoubleBuffering/Src/stm32f7xx_it.c 
