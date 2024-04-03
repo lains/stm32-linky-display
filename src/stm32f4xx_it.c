@@ -2,8 +2,7 @@
 /* This file is only used on STM32F469 boards */
 /**
   ******************************************************************************
-  * @file    LCD_DSI/LCD_DSI_CmdMode_DoubleBuffering/Src/stm32f4xx_it.c 
-  * @author  MCD Application Team
+  * @file    stm32f4xx_it.c 
   * @brief   Main Interrupt Service Routines.
   *          This file provides template for all exceptions handler and
   *          peripherals interrupt service routine.
@@ -23,14 +22,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_it.h"
-
-/** @addtogroup STM32F4xx_HAL_Examples
-  * @{
-  */
-
-/** @addtogroup LCD_DSI_Video_OneLayer
-  * @{
-  */
 
 /* Private typedef -----------------------------------------------------------*/
 LTDC_HandleTypeDef* get_hltdc(void); // C-linkage exported getter for hltdc handler
@@ -152,7 +143,7 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles USART1 global interrupt.
+  * @brief This function handles USART6 global interrupt.
   */
 void USART6_IRQHandler(void)
 {
@@ -180,11 +171,4 @@ void DSI_IRQHandler(void)
   HAL_DSI_IRQHandler(get_hdsi());
 }
 
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
 #endif

@@ -70,15 +70,15 @@ class Stm32DebugOutput {
 public:
     Stm32DebugOutput() : inError(false) {
         this->handle.Instance = USART_DBG;
-        this->handle.Init.BaudRate = 57600;
+        this->handle.Init.BaudRate = 115200;
         this->handle.Init.WordLength = UART_WORDLENGTH_8B;
         this->handle.Init.StopBits = UART_STOPBITS_1;
         this->handle.Init.Parity = UART_PARITY_NONE;
         this->handle.Init.Mode = UART_MODE_TX_RX;
         this->handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
         this->handle.Init.OverSampling = UART_OVERSAMPLING_16;
-        //HAL_UART_DeInit(&(this->handle));
-        if (HAL_UART_Init(&(this->handle)) != HAL_OK) {
+        HAL_UART_DeInit(&(this->handle)); /* This will call HAL_UART_MspDeInit() */
+        if (HAL_UART_Init(&(this->handle)) != HAL_OK) { /* This will call HAL_UART_MspInit() */
             this->inError = true;
             return;
         }
@@ -131,10 +131,8 @@ int main(void) {
     BSP_LED_Init(LED_GREEN);
 #endif
     BSP_LED_On(LED_STARTUP_BLINK);
-    BSP_LED_On(LED_GREEN);
     waitDelay(250);
     BSP_LED_Off(LED_STARTUP_BLINK);
-    BSP_LED_Off(LED_GREEN);
 
 #ifdef USE_STM32F769I_DISCO
     /* Configure the Tamper push-button in GPIO Mode */
@@ -146,7 +144,7 @@ int main(void) {
     //BSP_SD_Init();
 
     Stm32DebugOutput debugSerial;
-    debugSerial.send("...\n");
+    debugSerial.send("Init\n");
 
     Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
 
@@ -163,7 +161,9 @@ int main(void) {
     TicFrameParser ticParser(PowerHistory::unWrapOnNewPowerData, (void *)(&powerHistory));
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
-//        BSP_LED_Toggle(LED_TIC_FRAME_RX); // Toggle the green LED when a frame has been completely received
+#ifdef LED_TIC_FRAME_RX
+        BSP_LED_Toggle(LED_TIC_FRAME_RX); // Toggle the green LED when a frame has been completely received
+#endif
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
     };
 
@@ -175,9 +175,7 @@ int main(void) {
 
     powerHistory.setContext(&ticContext);
 
-    debugSerial.send("Hello\n");
-    if (debugSerial.inError)
-        BSP_LED_Toggle(LED_RED);
+    debugSerial.send("Waiting for TIC data...\n");
 
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
     auto streamTicRxBytesToUnframer = [](void* context) { }; /* Discard any TIC data */
@@ -454,9 +452,7 @@ int main(void) {
         waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
 #endif
         lcdRefreshCount++;
-        debugSerial.send("LCD\n");
-        if (debugSerial.inError)
-            BSP_LED_Toggle(LED_RED);
+        debugSerial.send("LCD refresh\n");
     }
 }
 

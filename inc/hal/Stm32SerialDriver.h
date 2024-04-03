@@ -59,15 +59,15 @@
 /* Definition for USART3 HAL functions */
 #define USART3_CLK_ENABLE()              __HAL_RCC_USART3_CLK_ENABLE()
 #define USART3_CLK_DISABLE()             __HAL_RCC_USART3_CLK_DISABLE()
-#define USART3_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOD_CLK_ENABLE()
-#define USART3_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOD_CLK_ENABLE()
+#define USART3_RX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
+#define USART3_TX_GPIO_CLK_ENABLE()      __HAL_RCC_GPIOB_CLK_ENABLE()
 #define USART3_FORCE_RESET()             __HAL_RCC_USART3_FORCE_RESET()
 #define USART3_RELEASE_RESET()           __HAL_RCC_USART3_RELEASE_RESET()
-#define USART3_TX_PIN                    GPIO_PIN_8
-#define USART3_TX_GPIO_PORT              GPIOD
+#define USART3_TX_PIN                    GPIO_PIN_10
+#define USART3_TX_GPIO_PORT              GPIOB
 #define USART3_TX_AF                     GPIO_AF7_USART3
-#define USART3_RX_PIN                    GPIO_PIN_9
-#define USART3_RX_GPIO_PORT              GPIOD
+#define USART3_RX_PIN                    GPIO_PIN_11
+#define USART3_RX_GPIO_PORT              GPIOB
 #define USART3_RX_AF                     GPIO_AF7_USART3
 
 #define USART_DBG                        USART3

@@ -25,10 +25,11 @@ static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart) {
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
+    /* FIXME: use USE_HAL_UART_REGISTER_CALLBACKS, and register different callbacks for USART_TIC and USART_DBG for both MspInit and MspDeInit */
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
-    if (huart->Instance!=USART_TIC /*&& huart->Instance!=USART_DBG*/) { /* Initializing USART3 leads to a pinkish display, there is a probably a conflict on PINs */
+    if (huart->Instance!=USART_TIC && huart->Instance!=USART_DBG) { /* Initializing USART3 leads to a pinkish display on STM32F7, there is a probably a conflict on PINs */
         return;
     }
 
@@ -76,7 +77,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
 
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     /*##-1- Reset peripherals ##################################################*/
-    if (huart->Instance!=USART_TIC /*&& huart->Instance!=USART_DBG*/) {
+    if (huart->Instance!=USART_TIC && huart->Instance!=USART_DBG) {
         return;
     }
 
