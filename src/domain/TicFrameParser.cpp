@@ -3,9 +3,10 @@
 #include <climits>
 #include <string.h>
 #include <utility> // For std::swap()
-//#include "stm32469i_discovery.h"
-//#include <iostream>
-//#include <iomanip>
+
+#ifdef EMBEDDED_DEBUG_CONSOLE
+#include "Stm32DebugOutput.h"
+#endif
 
 TicEvaluatedPower::TicEvaluatedPower() :
     isValid(false),
@@ -224,11 +225,23 @@ void TicFrameParser::onNewInstCurrentMeasurement(uint32_t current) {
 }
 
 void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
-    //std::cout << cnt << " new byte " << std::hex << static_cast<unsigned int>(buf[0]) << " sent to de\n";
     this->de.pushBytes(buf, cnt);   /* Forward the bytes to the dataset extractor */
 }
 
 void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
+    
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("onNewComputedPower(");
+    char p[6];
+    p[0]='0' + (minValue / 10000)%10;
+    p[1]='0' + (minValue / 1000)%10;
+    p[2]='0' + (minValue / 100)%10;
+    p[3]='0' + (minValue / 10)%10;
+    p[4]='0' + (minValue / 1)%10;
+    p[5]='\0';
+    Stm32DebugOutput::get().send(p);
+    Stm32DebugOutput::get().send("W)\n");
+#endif
     this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
     if (this->onNewPowerData != nullptr) {
         this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.horodate, this->nbFramesParsed, onNewPowerDataContext);
@@ -237,16 +250,31 @@ void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
 
 void TicFrameParser::onFrameComplete() {
     this->de.reset();
-    /* Should blink green light */
     this->nbFramesParsed++;
 }
 
 void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
     /* This is our actual parsing of a newly received dataset */
     //std::cout << "Entering TicFrameParser::onDatasetExtracted() with a " << std::dec << cnt << " byte(s) long dataset\n";
+
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("onDatasetExtracted() called with ");
+    char sz[4];
+    sz[0]='0' + (cnt / 100)%10;
+    sz[1]='0' + (cnt / 10)%10;
+    sz[2]='0' + (cnt / 1)%10;
+    sz[3]='\0';
+    Stm32DebugOutput::get().send(sz);
+    Stm32DebugOutput::get().send(" bytes\n");
+#endif
     TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
     //std::cout << "Above dataset is " << std::string(dv.isValid()?"":"in") << "valid\n";
     if (dv.isValid()) {
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("New dataset: ");
+        Stm32DebugOutput::get().send(dv.labelBuffer, dv.labelSz);
+        Stm32DebugOutput::get().send("\n");
+#endif
         //std::vector<uint8_t> datasetLabel(dv.labelBuffer, dv.labelBuffer+dv.labelSz);
         //std::cout << "Dataset has label \"" << std::string(datasetLabel.begin(), datasetLabel.end()) << "\"\n";
         if (dv.labelSz == 4 &&
@@ -329,6 +357,5 @@ void TicFrameParser::ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, un
         return; /* Failsafe, discard if no context */
     TicFrameParser* ticFrameParserInstance = static_cast<TicFrameParser*>(context);
     /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
-    //BSP_LED_Toggle(LED_GREEN); // Toggle the green LED when a dataset has been completely received
     ticFrameParserInstance->onDatasetExtracted(buf, cnt);
 }

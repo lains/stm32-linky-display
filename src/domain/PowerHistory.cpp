@@ -1,7 +1,9 @@
 #include "PowerHistory.h"
+#ifdef EMBEDDED_DEBUG_CONSOLE
+#include "Stm32DebugOutput.h"
+#endif
 
 #include <climits>
-//#include <iostream>
 
 PowerHistoryEntry::PowerHistoryEntry() :
     power(),
@@ -94,9 +96,13 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 
 
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
-    //std::cout << "Entering PowerHistory::onNewPowerData()\n";
-    if (!power.isValid || !horodate.isValid) {
-        //std::cout << "Skipping this measurement because it is invalid\n"; //FIXME: Lionel! On sample historical TIC data, we have no horodate and measurement will thus always be discarded!
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("onNewPowerData()\n");
+#endif
+    if (!power.isValid /*|| !horodate.isValid*/) {
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("Skipping invalid frame\n");
+#endif
         return;
     }
 

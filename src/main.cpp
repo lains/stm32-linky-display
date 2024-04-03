@@ -110,9 +110,8 @@ int main(void) {
     BSP_SDRAM_Init();
     //BSP_SD_Init();
 
-    Stm32DebugOutput& debugSerial = Stm32DebugOutput::get();
-    debugSerial.start();
-    debugSerial.send("Init\n");
+    Stm32DebugOutput::get().start();
+    Stm32DebugOutput::get().send("Init\n");
 
     Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
 
@@ -130,6 +129,7 @@ int main(void) {
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
 #ifdef LED_TIC_FRAME_RX
+        Stm32DebugOutput::get().send("Frame complete\n");
         BSP_LED_Toggle(LED_TIC_FRAME_RX); // Toggle the green LED when a frame has been completely received
 #endif
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
@@ -143,7 +143,7 @@ int main(void) {
 
     powerHistory.setContext(&ticContext);
 
-    debugSerial.send("Waiting for TIC data...\n");
+    Stm32DebugOutput::get().send("Waiting for TIC data...\n");
 
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
     auto streamTicRxBytesToUnframer = [](void* context) { }; /* Discard any TIC data */
@@ -157,16 +157,28 @@ int main(void) {
         if (incomingBytesCount == 0)
             return;
         char countAsStr[4];
-        Stm32DebugOutput& debugSerial = Stm32DebugOutput::get();
-        countAsStr[0] = '0' + incomingBytesCount / 100;
-        countAsStr[1] = '0' + (incomingBytesCount / 10)%10;
-        countAsStr[2] = '0' + (incomingBytesCount %10);
-        countAsStr[3] = '\0';
-        debugSerial.send("TIC RX ");
-        debugSerial.send(countAsStr);
-        debugSerial.send(" bytes: ");
-        debugSerial.hexdumpBuffer(streamedBytesBuffer, incomingBytesCount);
-        debugSerial.send("\n");
+        unsigned int pos = 0;
+        if (incomingBytesCount >= 1000) {
+            countAsStr[0]='+';
+            countAsStr[1]='+';
+            countAsStr[2]='+';
+            countAsStr[3]='\0';
+        }
+        else {
+            if (incomingBytesCount >= 100) {
+                countAsStr[pos++] = '0' + (incomingBytesCount / 100)%10;
+            }
+            if (incomingBytesCount >= 10) {
+                countAsStr[pos++] = '0' + (incomingBytesCount / 10)%10;
+            }
+            countAsStr[pos++] = '0' + (incomingBytesCount / 1)%10;
+            countAsStr[pos++] = '\0';
+        }
+        Stm32DebugOutput::get().send("TIC RX ");
+        Stm32DebugOutput::get().send(countAsStr);
+        Stm32DebugOutput::get().send(" bytes: ");
+        Stm32DebugOutput::get().hexdumpBuffer(streamedBytesBuffer, incomingBytesCount);
+        Stm32DebugOutput::get().send("\n");
         std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
             size_t lostBytesCount = incomingBytesCount - processedBytesCount;
@@ -434,10 +446,10 @@ int main(void) {
 #endif
         lcdRefreshCount++;
         if (isNoNewPowerReceivedSinceLastDisplay(static_cast<void*>(&ticContext))) {
-            debugSerial.send("LCD refresh without TIC rx\n");
+            Stm32DebugOutput::get().send("LCD refresh without TIC rx\n");
         }
         else {
-            debugSerial.send("LCD refresh on TIC power rx\n");
+            Stm32DebugOutput::get().send("LCD refresh on TIC power rx\n");
         }
     }
 }
