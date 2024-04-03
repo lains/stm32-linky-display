@@ -154,6 +154,19 @@ int main(void) {
         TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
         uint8_t streamedBytesBuffer[256];  /* We allow copies of max 256 bytes at a time */
         size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
+        if (incomingBytesCount == 0)
+            return;
+        char countAsStr[4];
+        Stm32DebugOutput& debugSerial = Stm32DebugOutput::get();
+        countAsStr[0] = '0' + incomingBytesCount / 100;
+        countAsStr[1] = '0' + (incomingBytesCount / 10)%10;
+        countAsStr[2] = '0' + (incomingBytesCount %10);
+        countAsStr[3] = '\0';
+        debugSerial.send("TIC RX ");
+        debugSerial.send(countAsStr);
+        debugSerial.send(" bytes: ");
+        debugSerial.hexdumpBuffer(streamedBytesBuffer, incomingBytesCount);
+        debugSerial.send("\n");
         std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
             size_t lostBytesCount = incomingBytesCount - processedBytesCount;
