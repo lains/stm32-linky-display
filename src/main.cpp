@@ -420,7 +420,12 @@ int main(void) {
         waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
 #endif
         lcdRefreshCount++;
-        debugSerial.send("LCD refresh\n");
+        if (isNoNewPowerReceivedSinceLastDisplay(static_cast<void*>(&ticContext))) {
+            debugSerial.send("LCD refresh without TIC rx\n");
+        }
+        else {
+            debugSerial.send("LCD refresh on TIC power rx\n");
+        }
     }
 }
 
