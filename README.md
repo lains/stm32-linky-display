@@ -70,6 +70,47 @@ The instantaneous power consumption will be displayed in real-time.
 * Optionally, open a serial terminal to view the `printf` function calls.
   * For example, run `pyserial`: `python -m serial - 115200` and then select the port labeled "STM32 STLink".
 
+### Debugging console
+
+A debugging console is available using the Stm32DebugOuput class (singleton)
+This serial port is wired to the virtual serial port provided by the ST-Link probe, so it's easy to see debugging messages, directly by reading from the ST-Link virtual serial port (something like /dev/ttyACM0 on Linux).
+
+The following code snippet allows to print out debugging data:
+```
+#include "Stm32DebugOutput.h"
+
+uint8_t buffer[3] = { 0x01, 0x02, 0x03 }
+Stm32DebugOutput& debugSerial = Stm32DebugOutput::get();
+debugSerial.send("Sample buffer content: ");
+debugSerial.hexdumpBuffer(buffer, sizeof(buffer));
+debugSerial.send("\n");
+```
+
+### Emulating TIC signal
+
+It is possible to directly wire your STM32 TIC USART port to a PC in order to avoid having to connect to a realy Linky meter.
+
+This can be useful to debug a TIC stream (with or without transmission errors), by first collecting the data, and then replaying it to the embedded code at a later stage, with debug on.
+
+You will need a 3.3V TTL-level serial adapter plugged into your PC.
+This often creates a virtual serial device on your PC, like `/dev/ttyUSB0` on Linux.
+
+You can now configure this port with the same config as the Linky meter:
+```
+stty -F /dev/ttyUSB0 1200 sane evenp parenb cs7 -crtscts
+```
+
+> **Note**  
+> 1200 is for historical TIC, use 9600 bauds instead for standard TIC
+
+Now, replay a captured TIC stream, for example:
+```
+cat ticdecodecpp/test/samples/continuous_linky_3P_historical_TIC_with_rx_errors.bin | pv -L 100 >/dev/ttyUSB0
+```
+
+> **Note**  
+> `pv` allows to give a specific pace for data flow (100 characters par second in the above example)
+
 ## Developper guide
 
 ### Porting
