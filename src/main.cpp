@@ -2,6 +2,7 @@
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "Stm32TimerDriver.h"
+#include "Stm32DebugOutput.h"
 #include "TIC/Unframer.h"
 #include "TicProcessingContext.h"
 #include "PowerHistory.h"
@@ -66,40 +67,6 @@ void Error_Handler() {
 	  OnError_Handler(1);
 }
 
-class Stm32DebugOutput {
-public:
-    Stm32DebugOutput() : inError(false) {
-        this->handle.Instance = USART_DBG;
-        this->handle.Init.BaudRate = 115200;
-        this->handle.Init.WordLength = UART_WORDLENGTH_8B;
-        this->handle.Init.StopBits = UART_STOPBITS_1;
-        this->handle.Init.Parity = UART_PARITY_NONE;
-        this->handle.Init.Mode = UART_MODE_TX_RX;
-        this->handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-        this->handle.Init.OverSampling = UART_OVERSAMPLING_16;
-        HAL_UART_DeInit(&(this->handle)); /* This will call HAL_UART_MspDeInit() */
-        if (HAL_UART_Init(&(this->handle)) != HAL_OK) { /* This will call HAL_UART_MspInit() */
-            this->inError = true;
-            return;
-        }
-    }
-
-    bool send(const uint8_t* buffer, unsigned int len) {
-        if (this->inError) return false;
-        HAL_StatusTypeDef result = HAL_UART_Transmit(&(this->handle), (uint8_t*)buffer, len, 5000);
-        if (result != HAL_OK)
-            this->inError = true;
-        return this->inError;
-    }
-
-    bool send(const char* text) {
-        return this->send(reinterpret_cast<const uint8_t*>(text), strlen(text));
-    }
-
-    bool inError;
-    UART_HandleTypeDef handle;
-};
-
 /**
  * @brief  Main program
  */
@@ -143,7 +110,8 @@ int main(void) {
     BSP_SDRAM_Init();
     //BSP_SD_Init();
 
-    Stm32DebugOutput debugSerial;
+    Stm32DebugOutput& debugSerial = Stm32DebugOutput::get();
+    debugSerial.start();
     debugSerial.send("Init\n");
 
     Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
