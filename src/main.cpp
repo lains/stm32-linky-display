@@ -524,7 +524,14 @@ static void SystemClock_Config(void)
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+#ifdef USE_STM32469I_DISCOVERY
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4; // Default value (DIV2) does not allow to go down to 1200 bauds for historical TIC
+    /* We change APB2 divider because TIC USART (USART6) is connected to APB2 as per RM0386 datasheet, 2.2.2 table 1.
+       This has consequences on other devices like DSI Host and LCD-TFT however, so be careful.
+    */
+#else
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+#endif
 
 #ifdef USE_STM32469I_DISCOVERY
 #define BOARD_FLASH_LATENCY FLASH_LATENCY_5
