@@ -138,8 +138,10 @@ public:
 
     /**
      * @brief Initialize the serial link and start receiving data from it
+     * 
+     * @param baudrate The baudrate to use on the serial port
      */
-    void start();
+    void start(uint32_t baudrate);
 
     /**
      * @brief Reset the reception buffer overflow counter

@@ -8,9 +8,9 @@ static void onTicUartRx(uint8_t incomingByte);
 
 extern "C" {
 
-static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart) {
+static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart, uint32_t baudrate) {
     huart->Instance = USART_TIC;
-    huart->Init.BaudRate = 1200;
+    huart->Init.BaudRate = baudrate;
     huart->Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
     huart->Init.StopBits = UART_STOPBITS_1;
     huart->Init.Parity = UART_PARITY_EVEN;
@@ -140,8 +140,8 @@ Stm32SerialDriver& Stm32SerialDriver::get() {
     return Stm32SerialDriver::instance;
 }
 
-void Stm32SerialDriver::start() {
-    MX_USART_TIC_UART_Init(&(this->huart));
+void Stm32SerialDriver::start(uint32_t baudrate) {
+    MX_USART_TIC_UART_Init(&(this->huart), baudrate);
     UART_TIC_Enable_interrupt_callback(&(this->huart));
 }
 
