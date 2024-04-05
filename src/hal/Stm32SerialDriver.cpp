@@ -16,9 +16,9 @@ static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart) {
     huart->Init.Parity = UART_PARITY_EVEN;
     huart->Init.Mode = UART_MODE_TX_RX;
     huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    // if (HAL_UART_DeInit(huart) != HAL_OK) {
-    //     OnError_Handler(1);
-    // }
+    if (HAL_UART_DeInit(huart) != HAL_OK) {
+        OnError_Handler(1);
+    }
     if (HAL_UART_Init(huart) != HAL_OK) {
 	      OnError_Handler(1);
     }
@@ -29,7 +29,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
-    if (huart->Instance!=USART_TIC && huart->Instance!=USART_DBG) { /* Initializing USART3 leads to a pinkish display on STM32F7, there is a probably a conflict on PINs */
+    if (huart->Instance!=USART_TIC && huart->Instance!=USART_DBG) {
         return;
     }
 

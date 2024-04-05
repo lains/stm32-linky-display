@@ -542,7 +542,12 @@ static void SystemClock_Config(void)
        This has consequences on other devices like DSI Host and LCD-TFT however, so be careful.
     */
 #else
+#ifdef USE_STM32F769I_DISCO
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4; // Default value (DIV2) does not allow to go down to 1200 bauds for historical TIC
+    /* We change APB2 divider because TIC USART (USART6) is connected to APB2 */
+#else
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+#endif // USE_STM32F769I_DISCO
 #endif
 
 #ifdef USE_STM32469I_DISCOVERY
