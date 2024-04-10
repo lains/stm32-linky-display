@@ -50,6 +50,11 @@ public:
 #endif
 
     /**
+     * @brief Send an unsigned int value to the debug console
+     */
+    bool send(unsigned int value);
+
+    /**
      * @brief Send the hex dump of a byte buffer to the debug console
      */
     bool hexdumpBuffer(const uint8_t* buffer, unsigned int len);

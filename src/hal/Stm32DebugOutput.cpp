@@ -45,6 +45,27 @@ bool send(const std::string& text) {
 }
 #endif
 
+bool Stm32DebugOutput::send(unsigned int value) {
+    char valueAsInt[10 + 1];
+    char *firstNon0Digit = nullptr;
+    char *currentDigit = valueAsInt + 10;
+    *currentDigit = '\0'; /* Terminate the string */
+    do {
+        currentDigit--;
+        *currentDigit = '0' + (value % 10);
+        if (*currentDigit != '0') {
+            firstNon0Digit = currentDigit;
+        }
+        value /= 10;
+    } while (currentDigit != valueAsInt /* Check for underflow */);
+    if (!firstNon0Digit) {
+        valueAsInt[0] = '0';
+        firstNon0Digit = valueAsInt;
+        valueAsInt[1] = '\0';
+    }
+    return this->send(firstNon0Digit);
+}
+
 bool Stm32DebugOutput::hexdumpBuffer(const uint8_t* buffer, unsigned int len) {
     char byteHexDump[]="@@";
     unsigned char nibble;

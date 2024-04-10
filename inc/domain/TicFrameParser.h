@@ -84,7 +84,19 @@ public:
 protected:
     void onNewMeasurementAvailable();
 
+    /**
+     * @brief Take a TIC frame date timestamp into account
+     * 
+     * @param horodate The orodate data that has been read in the current TIC frame
+    **/
     void onNewDate(const TIC::Horodate& horodate);
+
+    /**
+     * @brief Try to guess the arrival time for the current frame and store it as the current frame's horodate
+     * 
+     * @note This is required for historical TIC frames that include no date timestamp
+    **/
+    void guessFrameArrivalTime();
 
     void onRefPowerInfo(uint32_t power);
 

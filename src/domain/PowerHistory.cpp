@@ -97,9 +97,17 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
 #ifdef EMBEDDED_DEBUG_CONSOLE
-    Stm32DebugOutput::get().send("onNewPowerData()\n");
+    Stm32DebugOutput::get().send("onNewPowerData() with ");
+    if (!(power.isValid)) {
+        Stm32DebugOutput::get().send("in");
+    }
+    Stm32DebugOutput::get().send("valid power and ");
+    if (!(horodate.isValid)) {
+        Stm32DebugOutput::get().send("in");
+    }
+    Stm32DebugOutput::get().send("valid horodate\n");
 #endif
-    if (!power.isValid /*|| !horodate.isValid*/) {
+    if (!power.isValid || !horodate.isValid) {
 #ifdef EMBEDDED_DEBUG_CONSOLE
         Stm32DebugOutput::get().send("Skipping invalid frame\n");
 #endif

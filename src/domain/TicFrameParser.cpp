@@ -208,6 +208,38 @@ void TicFrameParser::onNewDate(const TIC::Horodate& horodate) {
     this->lastFrameMeasurements.horodate = horodate;
 }
 
+void TicFrameParser::guessFrameArrivalTime() {
+    this->onNewMeasurementAvailable();
+    if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("It seems we are in a new frame ID ");
+        Stm32DebugOutput::get().send(static_cast<unsigned int>(this->nbFramesParsed));
+        Stm32DebugOutput::get().send("\n");
+#endif
+    }
+    this->lastFrameMeasurements.horodate = TIC::Horodate();
+    this->lastFrameMeasurements.horodate.isValid = true; /* Fake the horodate */
+    this->lastFrameMeasurements.horodate.year = 2024;
+    this->lastFrameMeasurements.horodate.month = 1;
+    this->lastFrameMeasurements.horodate.second = (this->nbFramesParsed * 3) % 60; /* Assume 1 historical TIC frame every 3 seconds */
+    unsigned int emulatedHorodateRemainder = (this->nbFramesParsed / 20); /* Counts total remainder as minutes */
+    this->lastFrameMeasurements.horodate.minute = emulatedHorodateRemainder % 60;
+    emulatedHorodateRemainder = emulatedHorodateRemainder / 60; /* Now count total remainder as hours */
+    this->lastFrameMeasurements.horodate.hour = emulatedHorodateRemainder % 24;
+    this->lastFrameMeasurements.horodate.degradedTime = true;
+    this->lastFrameMeasurements.horodate.season = TIC::Horodate::Season::Unknown;
+    /* Note: we discard days and month for now */
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("Injecting timestamp in historical frame: ");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.horodate.hour));
+    Stm32DebugOutput::get().send(":");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.horodate.minute));
+    Stm32DebugOutput::get().send(":");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.horodate.second));
+    Stm32DebugOutput::get().send("\n");
+#endif
+}
+
 void TicFrameParser::onRefPowerInfo(uint32_t power) {
     //FIXME: Todo
 }
@@ -232,15 +264,36 @@ void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
     
 #ifdef EMBEDDED_DEBUG_CONSOLE
     Stm32DebugOutput::get().send("onNewComputedPower(");
-    char p[6];
-    p[0]='0' + (minValue / 10000)%10;
-    p[1]='0' + (minValue / 1000)%10;
-    p[2]='0' + (minValue / 100)%10;
-    p[3]='0' + (minValue / 10)%10;
-    p[4]='0' + (minValue / 1)%10;
-    p[5]='\0';
-    Stm32DebugOutput::get().send(p);
-    Stm32DebugOutput::get().send("W)\n");
+    if (minValue != maxValue)
+        Stm32DebugOutput::get().send("[");
+    {
+        if (minValue < 0) {
+            Stm32DebugOutput::get().send("-");
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(-minValue));
+        }
+        else {
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(minValue));
+        }
+    }
+    if (minValue != maxValue) {
+        Stm32DebugOutput::get().send(";");
+        if (maxValue < 0) {
+            Stm32DebugOutput::get().send("-");
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(-maxValue));
+        }
+        else {
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(maxValue));
+        }
+        Stm32DebugOutput::get().send("]");
+    }
+    Stm32DebugOutput::get().send("W) with ");
+    if (this->lastFrameMeasurements.horodate.isValid) {
+        Stm32DebugOutput::get().send("a valid");
+    }
+    else {
+        Stm32DebugOutput::get().send("no");
+    }
+    Stm32DebugOutput::get().send("horodate\n");
 #endif
     this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
     if (this->onNewPowerData != nullptr) {
@@ -259,12 +312,7 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
 
 #ifdef EMBEDDED_DEBUG_CONSOLE
     Stm32DebugOutput::get().send("onDatasetExtracted() called with ");
-    char sz[4];
-    sz[0]='0' + (cnt / 100)%10;
-    sz[1]='0' + (cnt / 10)%10;
-    sz[2]='0' + (cnt / 1)%10;
-    sz[3]='\0';
-    Stm32DebugOutput::get().send(sz);
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(cnt));
     Stm32DebugOutput::get().send(" bytes\n");
 #endif
     TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
@@ -275,6 +323,12 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
         Stm32DebugOutput::get().send(dv.labelBuffer, dv.labelSz);
         Stm32DebugOutput::get().send("\n");
 #endif
+        if (dv.decodedType == TIC::DatasetView::ValidHistorical) {  /* In this case, we will have no horodate, evaluate time instead */
+#ifdef EMBEDDED_DEBUG_CONSOLE
+            Stm32DebugOutput::get().send("Dataset above is following historical format\n");
+#endif
+            this->guessFrameArrivalTime();
+        }
         //std::vector<uint8_t> datasetLabel(dv.labelBuffer, dv.labelBuffer+dv.labelSz);
         //std::cout << "Dataset has label \"" << std::string(datasetLabel.begin(), datasetLabel.end()) << "\"\n";
         if (dv.labelSz == 4 &&
