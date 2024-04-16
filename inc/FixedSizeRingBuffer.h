@@ -59,7 +59,7 @@ void FixedSizeRingBuffer<T, N>::reset() {
 	this->head = 0;
     this->tail = 0;
 	this->full = false;
-    for (std::size_t i; i < N; i++) {
+    for (std::size_t i = 0; i < N; i++) {
         T emptyElement;
         std::swap(this->buf[i], emptyElement);
     }

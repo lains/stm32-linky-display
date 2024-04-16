@@ -38,9 +38,11 @@ target_link_libraries(${PROJECT_NAME}
 
 target_sources(${PROJECT_NAME} PUBLIC
         tools/Tools.cpp
+        ../src/domain/Timestamp.cpp
         src/FixedSizeRingBuffer_tests.cpp
         src/PowerHistory_tests.cpp
-        src/TicFrameParser_test.cpp
+        src/TicFrameParser_tests.cpp
+        src/Timestamp_tests.cpp
         )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${cmock_SOURCE_DIR}/include)
