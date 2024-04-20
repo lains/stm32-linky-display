@@ -143,6 +143,7 @@ INCLUDES += $(INCLUDE_DIRS_SIMPLIFIED:%=-I%)
 CXXFLAGS  = -g -O0 -Wall -Wextra -Warray-bounds -Wno-unused-parameter -fno-exceptions
 CXXFLAGS += -mcpu=cortex-m7 -mthumb -mlittle-endian -mthumb-interwork
 CXXFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CXXFLAGS += -DEMBEDDED_DEBUG_CONSOLE
 ifeq ($(TARGET_BOARD),STM32F469I_DISCO)
 CXXFLAGS += -DSTM32F469xx -DUSE_STM32469I_DISCOVERY -DUSE_STM32469I_DISCO_REVB -DUSE_HAL_DRIVER # Board specific defines
 endif

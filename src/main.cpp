@@ -2,6 +2,7 @@
 #include "Stm32SerialDriver.h"
 #include "Stm32LcdDriver.h"
 #include "Stm32TimerDriver.h"
+#include "Stm32DebugOutput.h"
 #include "TIC/Unframer.h"
 #include "TicProcessingContext.h"
 #include "PowerHistory.h"
@@ -66,39 +67,6 @@ void Error_Handler() {
 	  OnError_Handler(1);
 }
 
-class Stm32DebugOutput {
-public:
-    Stm32DebugOutput() : inError(false) {
-        this->handle.Instance = USART_DBG;
-        this->handle.Init.BaudRate = 57600;
-        this->handle.Init.WordLength = UART_WORDLENGTH_8B;
-        this->handle.Init.StopBits = UART_STOPBITS_1;
-        this->handle.Init.Parity = UART_PARITY_NONE;
-        this->handle.Init.Mode = UART_MODE_TX_RX;
-        this->handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-
-        HAL_UART_DeInit(&(this->handle));
-        if (HAL_UART_Init(&handle) != HAL_OK) {
-            this->inError = true;
-        }
-    }
-
-    bool send(const uint8_t* buffer, unsigned int len) {
-        if (this->inError) return false;
-        HAL_StatusTypeDef result = HAL_UART_Transmit(&(this->handle), (uint8_t*)buffer, len, 5000);
-        if (result != HAL_OK)
-            this->inError = true;
-        return this->inError;
-    }
-
-    bool send(const char* text) {
-        return this->send(reinterpret_cast<const uint8_t*>(text), strlen(text));
-    }
-
-    bool inError;
-    UART_HandleTypeDef handle;
-};
-
 /**
  * @brief  Main program
  */
@@ -142,11 +110,13 @@ int main(void) {
     BSP_SDRAM_Init();
     //BSP_SD_Init();
 
-    Stm32DebugOutput debugSerial;
+    Stm32DebugOutput::get().start();
+    Stm32DebugOutput::get().send("Init\n");
 
     Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
 
-    ticSerial.start();
+    //ticSerial.start(9600); /* For standard TIC */
+    ticSerial.start(1200); /* For historical TIC */
 
     Stm32LcdDriver& lcd = Stm32LcdDriver::get();
 
@@ -160,6 +130,7 @@ int main(void) {
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
 #ifdef LED_TIC_FRAME_RX
+        Stm32DebugOutput::get().send("Frame complete\n");
         BSP_LED_Toggle(LED_TIC_FRAME_RX); // Toggle the green LED when a frame has been completely received
 #endif
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
@@ -173,6 +144,8 @@ int main(void) {
 
     powerHistory.setContext(&ticContext);
 
+    Stm32DebugOutput::get().send("Waiting for TIC data...\n");
+
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
     auto streamTicRxBytesToUnframer = [](void* context) { }; /* Discard any TIC data */
 #else
@@ -182,6 +155,31 @@ int main(void) {
         TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
         uint8_t streamedBytesBuffer[256];  /* We allow copies of max 256 bytes at a time */
         size_t incomingBytesCount = ticContext->ticSerial.read(streamedBytesBuffer, sizeof(streamedBytesBuffer));
+        if (incomingBytesCount == 0)
+            return;
+        // char countAsStr[4];
+        // unsigned int pos = 0;
+        // if (incomingBytesCount >= 1000) {
+        //     countAsStr[0]='+';
+        //     countAsStr[1]='+';
+        //     countAsStr[2]='+';
+        //     countAsStr[3]='\0';
+        // }
+        // else {
+        //     if (incomingBytesCount >= 100) {
+        //         countAsStr[pos++] = '0' + (incomingBytesCount / 100)%10;
+        //     }
+        //     if (incomingBytesCount >= 10) {
+        //         countAsStr[pos++] = '0' + (incomingBytesCount / 10)%10;
+        //     }
+        //     countAsStr[pos++] = '0' + (incomingBytesCount / 1)%10;
+        //     countAsStr[pos++] = '\0';
+        // }
+        // Stm32DebugOutput::get().send("TIC RX ");
+        // Stm32DebugOutput::get().send(countAsStr);
+        // Stm32DebugOutput::get().send(" bytes: ");
+        // Stm32DebugOutput::get().hexdumpBuffer(streamedBytesBuffer, incomingBytesCount);
+        // Stm32DebugOutput::get().send("\n");
         std::size_t processedBytesCount = ticContext->ticUnframer.pushBytes(streamedBytesBuffer, incomingBytesCount);
         if (processedBytesCount < incomingBytesCount) {
             size_t lostBytesCount = incomingBytesCount - processedBytesCount;
@@ -448,6 +446,12 @@ int main(void) {
         waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
 #endif
         lcdRefreshCount++;
+        if (isNoNewPowerReceivedSinceLastDisplay(static_cast<void*>(&ticContext))) {
+            Stm32DebugOutput::get().send("LCD refresh without TIC rx\n");
+        }
+        else {
+            Stm32DebugOutput::get().send("LCD refresh on TIC power rx\n");
+        }
     }
 }
 
@@ -533,7 +537,19 @@ static void SystemClock_Config(void)
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+#ifdef USE_STM32469I_DISCOVERY
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4; // Default value (DIV2) does not allow to go down to 1200 bauds for historical TIC
+    /* We change APB2 divider because TIC USART (USART6) is connected to APB2 as per RM0386 datasheet, 2.2.2 table 1.
+       This has consequences on other devices like DSI Host and LCD-TFT however, so be careful.
+    */
+#else
+#ifdef USE_STM32F769I_DISCO
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4; // Default value (DIV2) does not allow to go down to 1200 bauds for historical TIC
+    /* We change APB2 divider because TIC USART (USART6) is connected to APB2 */
+#else
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+#endif // USE_STM32F769I_DISCO
+#endif
 
 #ifdef USE_STM32469I_DISCOVERY
 #define BOARD_FLASH_LATENCY FLASH_LATENCY_5

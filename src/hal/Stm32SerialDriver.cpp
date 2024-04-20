@@ -8,27 +8,28 @@ static void onTicUartRx(uint8_t incomingByte);
 
 extern "C" {
 
-static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart) {
+static void MX_USART_TIC_UART_Init(UART_HandleTypeDef* huart, uint32_t baudrate) {
     huart->Instance = USART_TIC;
-    huart->Init.BaudRate = 9600;
+    huart->Init.BaudRate = baudrate;
     huart->Init.WordLength = UART_WORDLENGTH_8B;  // Note 7bits+parity bit
     huart->Init.StopBits = UART_STOPBITS_1;
     huart->Init.Parity = UART_PARITY_EVEN;
     huart->Init.Mode = UART_MODE_TX_RX;
     huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    // if (HAL_UART_DeInit(huart) != HAL_OK) {
-    //     OnError_Handler(1);
-    // }
+    if (HAL_UART_DeInit(huart) != HAL_OK) {
+        OnError_Handler(1);
+    }
     if (HAL_UART_Init(huart) != HAL_OK) {
 	      OnError_Handler(1);
     }
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
+    /* FIXME: use USE_HAL_UART_REGISTER_CALLBACKS, and register different callbacks for USART_TIC and USART_DBG for both MspInit and MspDeInit */
     GPIO_InitTypeDef GPIO_InitStruct;
     memset(&GPIO_InitStruct, 0, sizeof(GPIO_InitStruct));
 
-    if (huart->Instance!=USART_TIC /*&& huart->Instance!=USART_DBG*/) { /* Initializing USART3 leads to a pinkish display, there is a probably a conflict on PINs */
+    if (huart->Instance!=USART_TIC && huart->Instance!=USART_DBG) {
         return;
     }
 
@@ -76,7 +77,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart) {
 
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
     /*##-1- Reset peripherals ##################################################*/
-    if (huart->Instance!=USART_TIC /*&& huart->Instance!=USART_DBG*/) {
+    if (huart->Instance!=USART_TIC && huart->Instance!=USART_DBG) {
         return;
     }
 
@@ -139,8 +140,8 @@ Stm32SerialDriver& Stm32SerialDriver::get() {
     return Stm32SerialDriver::instance;
 }
 
-void Stm32SerialDriver::start() {
-    MX_USART_TIC_UART_Init(&(this->huart));
+void Stm32SerialDriver::start(uint32_t baudrate) {
+    MX_USART_TIC_UART_Init(&(this->huart), baudrate);
     UART_TIC_Enable_interrupt_callback(&(this->huart));
 }
 

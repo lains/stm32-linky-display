@@ -22,15 +22,14 @@ On the STM32F769I-DISCO., I use USART6, the above pins are all available on the 
 * Vcc is on CN11, pin 2
 * USART6 RX is on CN13, pin 1 (maps to PC7)
 
-The software is currently configured to decode Linky data in standard TIC mode (9600 bauds), which is not the default built-in mode for Linky meters.
-In order to switch to this more verbose mode (that also provides more data), you need to make a request to your energy vendor.
-As an alternative, the code can be slightly tweaked to switch to historical mode and to work at 1200 bauds (this is actually the default mode for Linky meters).
-In that case, replace 9600 by 1200 in source file [Stm32SerialDriver.cpp](https://github.com/lains/stm32-linky-display/blob/master/src/hal/Stm32SerialDriver.cpp) inside the function called `MX_USART_TIC_UART_Init()`.
+The software is currently configured to decode Linky data in historical TIC mode (1200 bauds), which is the default built-in mode for Linky meters.
+You can get more data out of your meter by switching to standard TIC mode. In order to switch to this more verbose mode, you need to make a request to your energy vendor.
+In that case, replace 1200 by 9600 in source file [main.cpp](https://github.com/lains/stm32-linky-display/blob/master/src/main.cpp) when function `ticSerial.start()` is called.
 
 In order to compile the code, this project uses:
 * GNU Make (Build System)
 * GNU ARM Embedded Toolchain (Compiler)
-* STM32CubeF4 MCU Firmware Package (BSP/Drivers)
+* STM32CubeF4 or STM32CubeF7 MCU Firmware Package (BSP/Drivers), depending on the board selected
 * [ticdecodecpp](https://github.com/lains/ticdecodecpp) as a C++ library to decode the TIC serial data on the fly
 * ST-Link or OpenOCD (Debug)
 
@@ -71,6 +70,50 @@ The instantaneous power consumption will be displayed in real-time.
 * Run `make gdb-client` to download the code and start debugging.
 * Optionally, open a serial terminal to view the `printf` function calls.
   * For example, run `pyserial`: `python -m serial - 115200` and then select the port labeled "STM32 STLink".
+
+### Debugging console
+
+A debugging console is available using the Stm32DebugOuput class (singleton)
+This serial port is wired to the virtual serial port provided by the ST-Link probe, so it's easy to see debugging messages, directly by reading from the ST-Link virtual serial port (something like /dev/ttyACM0 on Linux).
+
+The following code snippet allows to print out debugging data:
+```
+#include "Stm32DebugOutput.h"
+
+uint8_t buffer[3] = { 0x01, 0x02, 0x03 }
+Stm32DebugOutput& debugSerial = Stm32DebugOutput::get();
+debugSerial.send("Sample buffer content: ");
+debugSerial.hexdumpBuffer(buffer, sizeof(buffer));
+debugSerial.send("\n");
+```
+
+> **Note**  
+> In order to enable debug logs on the debugging console in the current code, you should define the following compiler directive `EMBEDDED_DEBUG_CONSOLE`
+
+### Emulating TIC signal
+
+It is possible to directly wire your STM32 TIC USART port to a PC in order to avoid having to connect to a realy Linky meter.
+
+This can be useful to debug a TIC stream (with or without transmission errors), by first collecting the data, and then replaying it to the embedded code at a later stage, with debug on.
+
+You will need a 3.3V TTL-level serial adapter plugged into your PC.
+This often creates a virtual serial device on your PC, like `/dev/ttyUSB0` on Linux.
+
+You can now configure this port with the same config as the Linky meter:
+```
+stty -F /dev/ttyUSB0 1200 sane evenp parenb cs7 -crtscts
+```
+
+> **Note**  
+> 1200 is for historical TIC, use 9600 bauds instead for standard TIC
+
+Now, replay a captured TIC stream, for example:
+```
+cat ticdecodecpp/test/samples/continuous_linky_3P_historical_TIC_with_rx_errors.bin | pv -L 100 >/dev/ttyUSB0
+```
+
+> **Note**  
+> `pv` allows to give a specific pace for data flow (100 characters par second in the above example)
 
 ## Developper guide
 

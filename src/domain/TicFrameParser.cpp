@@ -4,6 +4,10 @@
 #include <string.h>
 #include <utility> // For std::swap()
 
+#ifdef EMBEDDED_DEBUG_CONSOLE
+#include "Stm32DebugOutput.h"
+#endif
+
 TicEvaluatedPower::TicEvaluatedPower() :
     isValid(false),
     minValue(INT_MIN),
@@ -204,6 +208,33 @@ void TicFrameParser::onNewDate(const TIC::Horodate& horodate) {
     this->lastFrameMeasurements.timestamp = Timestamp(horodate);
 }
 
+void TicFrameParser::guessFrameArrivalTime() {
+    this->onNewMeasurementAvailable();
+    if (this->lastFrameMeasurements.fromFrameNb != this->nbFramesParsed) {
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("It seems we are in a new frame ID ");
+        Stm32DebugOutput::get().send(static_cast<unsigned int>(this->nbFramesParsed));
+        Stm32DebugOutput::get().send("\n");
+#endif
+    }
+    unsigned int emulatedSecond =  (this->nbFramesParsed * 3) % 60; /* Assume 1 historical TIC frame every 3 seconds */
+    unsigned int emulatedHorodateRemainder = (this->nbFramesParsed / 20); /* Counts total remainder as minutes */
+    unsigned int emulatedMinute = emulatedHorodateRemainder % 60;
+    emulatedHorodateRemainder = emulatedHorodateRemainder / 60; /* Now count total remainder as hours */
+    unsigned int emulatedHour = emulatedHorodateRemainder % 24;
+    /* Note: we discard days and month for now */
+    this->lastFrameMeasurements.timestamp = Timestamp(emulatedHour, emulatedMinute, emulatedSecond);
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("Injecting timestamp in historical frame: ");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.hour));
+    Stm32DebugOutput::get().send(":");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.minute));
+    Stm32DebugOutput::get().send(":");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.second));
+    Stm32DebugOutput::get().send("\n");
+#endif
+}
+
 void TicFrameParser::onRefPowerInfo(uint32_t power) {
     //FIXME: Todo
 }
@@ -225,6 +256,40 @@ void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
 }
 
 void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
+    
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("onNewComputedPower(");
+    if (minValue != maxValue)
+        Stm32DebugOutput::get().send("[");
+    {
+        if (minValue < 0) {
+            Stm32DebugOutput::get().send("-");
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(-minValue));
+        }
+        else {
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(minValue));
+        }
+    }
+    if (minValue != maxValue) {
+        Stm32DebugOutput::get().send(";");
+        if (maxValue < 0) {
+            Stm32DebugOutput::get().send("-");
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(-maxValue));
+        }
+        else {
+            Stm32DebugOutput::get().send(static_cast<unsigned int>(maxValue));
+        }
+        Stm32DebugOutput::get().send("]");
+    }
+    Stm32DebugOutput::get().send("W) with ");
+    if (this->lastFrameMeasurements.timestamp.isValid) {
+        Stm32DebugOutput::get().send("a valid");
+    }
+    else {
+        Stm32DebugOutput::get().send("no");
+    }
+    Stm32DebugOutput::get().send("horodate\n");
+#endif
     this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
     if (this->onNewPowerData != nullptr) {
         this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.timestamp, this->nbFramesParsed, onNewPowerDataContext);
@@ -238,8 +303,29 @@ void TicFrameParser::onFrameComplete() {
 
 void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
     /* This is our actual parsing of a newly received dataset */
+    //std::cout << "Entering TicFrameParser::onDatasetExtracted() with a " << std::dec << cnt << " byte(s) long dataset\n";
+
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    Stm32DebugOutput::get().send("onDatasetExtracted() called with ");
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(cnt));
+    Stm32DebugOutput::get().send(" bytes\n");
+#endif
     TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
+    //std::cout << "Above dataset is " << std::string(dv.isValid()?"":"in") << "valid\n";
     if (dv.isValid()) {
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("New dataset: ");
+        Stm32DebugOutput::get().send(dv.labelBuffer, dv.labelSz);
+        Stm32DebugOutput::get().send("\n");
+#endif
+        if (dv.decodedType == TIC::DatasetView::ValidHistorical) {  /* In this case, we will have no horodate, evaluate time instead */
+#ifdef EMBEDDED_DEBUG_CONSOLE
+            Stm32DebugOutput::get().send("Dataset above is following historical format\n");
+#endif
+            this->guessFrameArrivalTime();
+        }
+        //std::vector<uint8_t> datasetLabel(dv.labelBuffer, dv.labelBuffer+dv.labelSz);
+        //std::cout << "Dataset has label \"" << std::string(datasetLabel.begin(), datasetLabel.end()) << "\"\n";
         if (dv.labelSz == 4 &&
             memcmp(dv.labelBuffer, "DATE", 4) == 0) {
             /* The current label is a DATE */
@@ -247,14 +333,22 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
                 this->onNewDate(dv.horodate);
             }
         }
-        /* Search for SINSTS */
-        else if (dv.labelSz == 6 &&
-            memcmp(dv.labelBuffer, "SINSTS", 6) == 0 &&
-            dv.dataSz > 0) {
-            /* The current label is a SINSTS with some value associated */
-            uint32_t sinsts = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
-            if (sinsts != (uint32_t)-1)
-                this->onNewWithdrawnPowerMesurement(sinsts);
+        /* Search for SINSTS or PAPP */
+        else if ( (dv.labelSz == 6 &&
+                  memcmp(dv.labelBuffer, "SINSTS", 6) == 0) ||
+                  (dv.labelSz == 4 &&
+                  memcmp(dv.labelBuffer, "PAPP", 4) == 0)
+                ) {
+            //std::cout << "Found inst power dataset\n";
+            if (dv.dataSz > 0) {
+                /* The current label is a SINSTS or PAPP with some value associated */
+                //std::vector<uint8_t> datasetValue(dv.dataBuffer, dv.dataBuffer+dv.dataSz);
+                //std::cout << "Power data received: \"" << std::string(datasetValue.begin(), datasetValue.end()) << "\"\n";
+                uint32_t withdrawnPower = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                //std::cout << "interpreted as " << withdrawnPower << "W\n";
+                if (withdrawnPower != (uint32_t)-1)
+                    this->onNewWithdrawnPowerMesurement(withdrawnPower);
+            }
         }
         /* Search for URMS1 */
         else if (dv.labelSz == 5 &&

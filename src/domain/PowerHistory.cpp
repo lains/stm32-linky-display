@@ -1,4 +1,7 @@
 #include "PowerHistory.h"
+#ifdef EMBEDDED_DEBUG_CONSOLE
+#include "Stm32DebugOutput.h"
+#endif
 
 #include <climits>
 
@@ -102,12 +105,15 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const Timestam
         this->ticContext->lastParsedFrameNb = frameSequenceNb;
     }
 
-    if (this->timestampsAreInSamePeriodSample(timestamp, this->lastPowerTimestamp)) {
-        PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
-        if (lastEntry != nullptr) {
-            lastEntry->averageWithPowerSample(power, timestamp);
-            this->lastPowerTimestamp = timestamp;
-            return;
+    if (timestamp.isValid) {
+        if (this->timestampsAreInSamePeriodSample(timestamp, this->lastPowerTimestamp)) {
+            PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
+            if (lastEntry != nullptr) {
+                lastEntry->averageWithPowerSample(power, timestamp);
+                this->lastPowerTimestamp = timestamp;
+                return;
+            }
+            /* If lastEntry is not valid, create a new entry by falling-through the following code */
         }
         /* If lastEntry is not valid, create a new entry by falling-through the following code */
     }
