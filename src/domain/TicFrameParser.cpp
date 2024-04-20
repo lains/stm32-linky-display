@@ -81,7 +81,7 @@ std::string std::to_string(const TicEvaluatedPower& power) {
 
 TicMeasurements::TicMeasurements() :
     fromFrameNb(static_cast<unsigned int>(-1)),
-    horodate(),
+    timestamp(),
     instVoltage(static_cast<unsigned int>(-1)),
     instAbsCurrent(static_cast<unsigned int>(-1)),
     instPower()
@@ -90,7 +90,7 @@ TicMeasurements::TicMeasurements() :
 
 TicMeasurements::TicMeasurements(unsigned int fromFrameNb) :
     fromFrameNb(fromFrameNb),
-    horodate(),
+    timestamp(),
     instVoltage(static_cast<unsigned int>(-1)),
     instAbsCurrent(static_cast<unsigned int>(-1)),
     instPower()
@@ -99,7 +99,7 @@ TicMeasurements::TicMeasurements(unsigned int fromFrameNb) :
 
 void TicMeasurements::reset() {
     this->fromFrameNb = static_cast<unsigned int>(-1);
-    this->horodate = TIC::Horodate();
+    this->timestamp = Timestamp();
     this->instVoltage = static_cast<unsigned int>(-1);
     this->instAbsCurrent = static_cast<unsigned int>(-1);
     this->instPower = TicEvaluatedPower();
@@ -107,7 +107,7 @@ void TicMeasurements::reset() {
 
 void TicMeasurements::swapWith(TicMeasurements& other) {
     std::swap(this->fromFrameNb, other.fromFrameNb);
-    std::swap(this->horodate, other.horodate);
+    std::swap(this->timestamp, other.timestamp);
     std::swap(this->instVoltage, other.instVoltage);
     std::swap(this->instAbsCurrent, other.instAbsCurrent);
     std::swap(this->maxSubscribedPower, other.maxSubscribedPower);
@@ -205,7 +205,7 @@ void TicFrameParser::onNewMeasurementAvailable() {
 
 void TicFrameParser::onNewDate(const TIC::Horodate& horodate) {
     this->onNewMeasurementAvailable();
-    this->lastFrameMeasurements.horodate = horodate;
+    this->lastFrameMeasurements.timestamp = Timestamp(horodate);
 }
 
 void TicFrameParser::guessFrameArrivalTime() {
@@ -217,25 +217,20 @@ void TicFrameParser::guessFrameArrivalTime() {
         Stm32DebugOutput::get().send("\n");
 #endif
     }
-    this->lastFrameMeasurements.horodate = TIC::Horodate();
-    this->lastFrameMeasurements.horodate.isValid = true; /* Fake the horodate */
-    this->lastFrameMeasurements.horodate.year = 2024;
-    this->lastFrameMeasurements.horodate.month = 1;
-    this->lastFrameMeasurements.horodate.second = (this->nbFramesParsed * 3) % 60; /* Assume 1 historical TIC frame every 3 seconds */
+    unsigned int emulatedSecond =  (this->nbFramesParsed * 3) % 60; /* Assume 1 historical TIC frame every 3 seconds */
     unsigned int emulatedHorodateRemainder = (this->nbFramesParsed / 20); /* Counts total remainder as minutes */
-    this->lastFrameMeasurements.horodate.minute = emulatedHorodateRemainder % 60;
+    unsigned int emulatedMinute = emulatedHorodateRemainder % 60;
     emulatedHorodateRemainder = emulatedHorodateRemainder / 60; /* Now count total remainder as hours */
-    this->lastFrameMeasurements.horodate.hour = emulatedHorodateRemainder % 24;
-    this->lastFrameMeasurements.horodate.degradedTime = true;
-    this->lastFrameMeasurements.horodate.season = TIC::Horodate::Season::Unknown;
+    unsigned int emulatedHour = emulatedHorodateRemainder % 24;
     /* Note: we discard days and month for now */
+    this->lastFrameMeasurements.timestamp = Timestamp(emulatedHour, emulatedMinute, emulatedSecond);
 #ifdef EMBEDDED_DEBUG_CONSOLE
     Stm32DebugOutput::get().send("Injecting timestamp in historical frame: ");
-    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.horodate.hour));
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.hour));
     Stm32DebugOutput::get().send(":");
-    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.horodate.minute));
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.minute));
     Stm32DebugOutput::get().send(":");
-    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.horodate.second));
+    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.second));
     Stm32DebugOutput::get().send("\n");
 #endif
 }
@@ -287,7 +282,7 @@ void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
         Stm32DebugOutput::get().send("]");
     }
     Stm32DebugOutput::get().send("W) with ");
-    if (this->lastFrameMeasurements.horodate.isValid) {
+    if (this->lastFrameMeasurements.timestamp.isValid) {
         Stm32DebugOutput::get().send("a valid");
     }
     else {
@@ -297,7 +292,7 @@ void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
 #endif
     this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
     if (this->onNewPowerData != nullptr) {
-        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.horodate, this->nbFramesParsed, onNewPowerDataContext);
+        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.timestamp, this->nbFramesParsed, onNewPowerDataContext);
     }
 }
 

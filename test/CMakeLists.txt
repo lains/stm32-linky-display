@@ -40,10 +40,12 @@ target_link_libraries(${PROJECT_NAME}
 target_sources(${PROJECT_NAME} PUBLIC
         tools/Tools.cpp
         ../ticdecodecpp/src/TIC/Unframer.cpp
+        ../src/domain/Timestamp.cpp
         ../src/domain/TicProcessingContext.cpp
         src/FixedSizeRingBuffer_tests.cpp
         src/PowerHistory_tests.cpp
-        src/TicFrameParser_test.cpp
+        src/Timestamp_tests.cpp
+        src/TicFrameParser_tests.cpp
         src/EndToEndDecoding_tests.cpp
         )
 

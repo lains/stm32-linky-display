@@ -164,7 +164,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         }
 
         if (thisSamplePower.isValid) {
-            /* Review the code below */
+            /* TODO: Review the code below */
             if (thisSamplePower.maxValue > 0) { /* Positive value, even if range, display the highest value of the range (worst case) */
                 uint16_t thisSampleTopAbsoluteY = 0;
                 uint16_t thisSampleBottomAbsoluteY = 0;
@@ -252,7 +252,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
                 if (gridX > x)
                     lcd.drawVerticalLine(gridX-1, y, height, Stm32LcdDriver::Black); /* Draw each hour, with a double line */
             }
-            else if (fiveMinStep % 4 == 0)  /* gridX is pointing to the edge of a quarter of an hour */
+            else if (fiveMinStep % 3 == 0)  /* gridX is pointing to the edge of a quarter of an hour */
                 lcd.drawVerticalLine(gridX, y, height, Stm32LcdDriver::Black); /* Draw each other quarter */
             else
                 lcd.drawVerticalLine(gridX, y, height, Stm32LcdDriver::LightGrey); /* Draw each other step of 5 mins */

@@ -285,8 +285,8 @@ int main(void) {
         unsigned int nbSamples = 1;
         PowerHistoryEntry lastMeasurement;
         powerHistory.getLastPower(nbSamples, &lastMeasurement);
-        if (nbSamples == 1 && lastMeasurement.horodate.isValid) {   /* We have a valid last measurement */
-            const TIC::Horodate& displayedHorodate = lastMeasurement.horodate;
+        if (nbSamples == 1 && lastMeasurement.timestamp.isValid) {   /* We have a valid last measurement */
+            const Timestamp& displayedHorodate = lastMeasurement.timestamp;
             unsigned int horodateHour = displayedHorodate.hour;
             statusLine[pos++]=(horodateHour / 10) % 10 + '0';
             statusLine[pos++]=(horodateHour / 1) % 10 + '0';

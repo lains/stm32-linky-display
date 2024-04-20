@@ -23,7 +23,9 @@ On the STM32F769I-DISCO., I use USART6, the above pins are all available on the 
 * USART6 RX is on CN13, pin 1 (maps to PC7)
 
 The software is currently configured to decode Linky data in standard TIC mode (9600 bauds), which is not the default built-in mode for Linky meters.
-In order to switch to this more verbose mode (that also provides more data), you need to make a request to your energy vendor. As an alternative, the code can be slightly tweaked to switch to historical mode and to work at 1200 bauds (this is actually the default mode for Linky meters).
+In order to switch to this more verbose mode (that also provides more data), you need to make a request to your energy vendor.
+As an alternative, the code can be slightly tweaked to switch to historical mode and to work at 1200 bauds (this is actually the default mode for Linky meters).
+In that case, replace 9600 by 1200 in source file [Stm32SerialDriver.cpp](https://github.com/lains/stm32-linky-display/blob/master/src/hal/Stm32SerialDriver.cpp) inside the function called `MX_USART_TIC_UART_Init()`.
 
 In order to compile the code, this project uses:
 * GNU Make (Build System)
@@ -162,4 +164,4 @@ The content of function `HAL_UART_MspInit()` should be moved from `stm32f7xx_hal
 
 Also remember to redirect USART interruptions to the proper handler. (in `stm32fxxx_it.c`, `USARTx_IRQHandler(void)` should grab an external reference to the uart pointer via `get_huartx()` and call `HAL_UART_IRQHandler()`.
 File `stm32xxx_it.c` should however be used almost as is (it has a `USARTx_IRQHandler()` defined).
-You should try to replace arguments `&huartx` in the above function by `get_huartx()`` provided by my code.
+You should try to replace arguments `&huartx` in the above function by `get_huartx()` provided by my code.
