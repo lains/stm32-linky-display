@@ -3,7 +3,8 @@
 #include "TIC/DatasetView.h" // For TIC::Horodate
 
 class Timestamp {
-static constexpr unsigned int lastDayPerMonth[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+private:
+    static constexpr unsigned int lastDayPerMonth[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 public:
 /* Methods */
     Timestamp();

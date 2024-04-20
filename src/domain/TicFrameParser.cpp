@@ -77,7 +77,7 @@ std::string std::to_string(const TicEvaluatedPower& power) {
 
 TicMeasurements::TicMeasurements() :
     fromFrameNb(static_cast<unsigned int>(-1)),
-    horodate(),
+    timestamp(),
     instVoltage(static_cast<unsigned int>(-1)),
     instAbsCurrent(static_cast<unsigned int>(-1)),
     instPower()
@@ -86,7 +86,7 @@ TicMeasurements::TicMeasurements() :
 
 TicMeasurements::TicMeasurements(unsigned int fromFrameNb) :
     fromFrameNb(fromFrameNb),
-    horodate(),
+    timestamp(),
     instVoltage(static_cast<unsigned int>(-1)),
     instAbsCurrent(static_cast<unsigned int>(-1)),
     instPower()
@@ -95,7 +95,7 @@ TicMeasurements::TicMeasurements(unsigned int fromFrameNb) :
 
 void TicMeasurements::reset() {
     this->fromFrameNb = static_cast<unsigned int>(-1);
-    this->horodate = TIC::Horodate();
+    this->timestamp = Timestamp();
     this->instVoltage = static_cast<unsigned int>(-1);
     this->instAbsCurrent = static_cast<unsigned int>(-1);
     this->instPower = TicEvaluatedPower();
@@ -103,7 +103,7 @@ void TicMeasurements::reset() {
 
 void TicMeasurements::swapWith(TicMeasurements& other) {
     std::swap(this->fromFrameNb, other.fromFrameNb);
-    std::swap(this->horodate, other.horodate);
+    std::swap(this->timestamp, other.timestamp);
     std::swap(this->instVoltage, other.instVoltage);
     std::swap(this->instAbsCurrent, other.instAbsCurrent);
     std::swap(this->maxSubscribedPower, other.maxSubscribedPower);
@@ -201,7 +201,7 @@ void TicFrameParser::onNewMeasurementAvailable() {
 
 void TicFrameParser::onNewDate(const TIC::Horodate& horodate) {
     this->onNewMeasurementAvailable();
-    this->lastFrameMeasurements.horodate = horodate;
+    this->lastFrameMeasurements.timestamp = Timestamp(horodate);
 }
 
 void TicFrameParser::onRefPowerInfo(uint32_t power) {
@@ -227,7 +227,7 @@ void TicFrameParser::onNewFrameBytes(const uint8_t* buf, unsigned int cnt) {
 void TicFrameParser::onNewComputedPower(int minValue, int maxValue) {
     this->lastFrameMeasurements.instPower.setMinMax(minValue, maxValue);
     if (this->onNewPowerData != nullptr) {
-        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.horodate, this->nbFramesParsed, onNewPowerDataContext);
+        this->onNewPowerData(this->lastFrameMeasurements.instPower, this->lastFrameMeasurements.timestamp, this->nbFramesParsed, onNewPowerDataContext);
     }
 }
 

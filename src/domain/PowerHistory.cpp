@@ -4,14 +4,14 @@
 
 PowerHistoryEntry::PowerHistoryEntry() :
     power(),
-    horodate(),
+    timestamp(),
     nbSamples(0)
 {
 }
 
-PowerHistoryEntry::PowerHistoryEntry(const TicEvaluatedPower& power, const TIC::Horodate& horodate) :
+PowerHistoryEntry::PowerHistoryEntry(const TicEvaluatedPower& power, const Timestamp& timestamp) :
     power(power),
-    horodate(horodate),
+    timestamp(timestamp),
     nbSamples(1)
 {
 }
@@ -31,21 +31,21 @@ signed int PowerHistoryEntry::truncateSignedLongToSignedInt(const signed long in
     }
 }
 
-void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, const TIC::Horodate& horodate) {
+void PowerHistoryEntry::averageWithPowerSample(const TicEvaluatedPower& power, const Timestamp& timestamp) {
     PowerHistoryEntry result;
 
     /* If any of the two provided data instances are invalid, discard it and directly return the second one */
     if (!this->power.isValid) {
         this->power = power;
-        this->horodate = horodate;
+        this->timestamp = timestamp;
         this->nbSamples = 1;
         return;
     }
     if (!power.isValid)
         return; /* New sample is invalid: do nothing, no new calculation should be performed */
 
-    if (horodate > this->horodate)
-        this->horodate = horodate;  /* Update our internal horodate */
+    if (timestamp > this->timestamp)
+        this->timestamp = timestamp;  /* Update our internal timestamp */
 
     if (this->power.isExact && power.isExact) {
         /* Averaging two exact measurements */
@@ -83,7 +83,7 @@ PowerHistory::PowerHistory(AveragingMode averagingPeriod, TicProcessingContext* 
     data(),
     averagingPeriod(averagingPeriod),
     ticContext(context),
-    lastPowerHorodate()
+    lastPowerTimestamp()
 {
 }
 
@@ -92,8 +92,8 @@ void PowerHistory::setContext(TicProcessingContext* context) {
 }
 
 
-void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb) {
-    if (!power.isValid || !horodate.isValid) {
+void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const Timestamp& timestamp, unsigned int frameSequenceNb) {
+    if (!power.isValid || !timestamp.isValid) {
         return;
     }
 
@@ -102,37 +102,36 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TIC::Hor
         this->ticContext->lastParsedFrameNb = frameSequenceNb;
     }
 
-    if (this->horodatesAreInSamePeriodSample(horodate, this->lastPowerHorodate)) {
+    if (this->timestampsAreInSamePeriodSample(timestamp, this->lastPowerTimestamp)) {
         PowerHistoryEntry* lastEntry = this->data.getPtrToLast();
         if (lastEntry != nullptr) {
-            lastEntry->averageWithPowerSample(power, horodate);
-            this->lastPowerHorodate = horodate;
+            lastEntry->averageWithPowerSample(power, timestamp);
+            this->lastPowerTimestamp = timestamp;
             return;
         }
         /* If lastEntry is not valid, create a new entry by falling-through the following code */
     }
-    if (false && this->lastPowerHorodate.isValid) { /* If we already store some historical data, make sure last horodate and new horodate are consecutive (in periods), or otherwise pad */
-        TIC::Horodate forwardHorodate = this->lastPowerHorodate;
+    if (false && this->lastPowerTimestamp.isValid) { /* If we already store some historical data, make sure last timestamp and new timestamp are consecutive (in periods), or otherwise pad */
+        Timestamp forwardTimestamp = this->lastPowerTimestamp;
         for (unsigned int padding = 0; padding < this->data.getCapacity(); padding++) {
-            forwardHorodate.addSeconds(this->getAveragingPeriodInSeconds());  /* Check what would happen if horodate was in the next averaging period */
-            if (this->horodatesAreInSamePeriodSample(horodate, forwardHorodate))
+            forwardTimestamp.addSecondsWrapDay(this->getAveragingPeriodInSeconds());  /* Check what would happen if timestamp was in the next averaging period */
+            if (this->timestampsAreInSamePeriodSample(timestamp, forwardTimestamp))
                 break;
-            /* If that horodate slot does not match the horodate passed as argument, we have a hole in our history entries, pad it */
+            /* If that timestamp slot does not match the timestamp passed as argument, we have a hole in our history entries, pad it */
             this->data.push(PowerHistoryEntry());   /* Push an invalid power history entry to pad the history */
         }
     }
     /* Warning: these lines are not reached when the new power is in the same average period as a previously valid entry (see the above return statement) */
     /* If code needs to be executed systematically, put it at the top of this function, not here... */
-    this->data.push(PowerHistoryEntry(power, horodate)); /* First sample in this period */
-    this->lastPowerHorodate = horodate;
+    this->data.push(PowerHistoryEntry(power, timestamp)); /* First sample in this period */
+    this->lastPowerTimestamp = timestamp;
 }
 
-bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, const TIC::Horodate& second) {
-    if (first.year != second.year ||
-        first.month != second.month ||
+bool PowerHistory::timestampsAreInSamePeriodSample(const Timestamp& first, const Timestamp& second) {
+    if (first.month != second.month ||
         first.day != second.day ||
         first.hour != second.hour)
-        return false; /* Period is different whenever anything longer than one hour is different between the two horodates */
+        return false; /* Period is different whenever anything longer than one hour is different between the two timestamps */
     if (this->averagingPeriod >= AveraginOverMinutesOrMore) { /* We are averaging over at least 1 minute, so only compare minutes */
         switch (this->averagingPeriod) {
             case PerMinute:
@@ -150,7 +149,7 @@ bool PowerHistory::horodatesAreInSamePeriodSample(const TIC::Horodate& first, co
     }
     /* If we fall here, we are averaging over less than 1 minute */
     if (first.minute != second.minute)
-        return false; /* Period is different whenever the minute is different between the two horodates */
+        return false; /* Period is different whenever the minute is different between the two timestamps */
     unsigned int periodStepInSeconds = this->getAveragingPeriodInSeconds();
     return ((first.second / periodStepInSeconds) == (second.second / periodStepInSeconds)); /* return true only if we are in the same step, even if remainders (seconds) are different */
 }
@@ -183,12 +182,12 @@ unsigned int PowerHistory::getPowerRecordsPerHour() const {
     return (60 * 60 / averagingPeriodInSeconds);
 }
 
-void PowerHistory::unWrapOnNewPowerData(const TicEvaluatedPower& power, const TIC::Horodate& horodate, unsigned int frameSequenceNb, void* context) {
+void PowerHistory::unWrapOnNewPowerData(const TicEvaluatedPower& power, const Timestamp& timestamp, unsigned int frameSequenceNb, void* context) {
     if (context == nullptr)
         return; /* Failsafe, discard if no context */
     PowerHistory* powerHistoryInstance = static_cast<PowerHistory*>(context);
     /* We have finished parsing a frame, if there is an open dataset, we should discard it and start over at the following frame */
-    powerHistoryInstance->onNewPowerData(power, horodate, frameSequenceNb);
+    powerHistoryInstance->onNewPowerData(power, timestamp, frameSequenceNb);
 }
 
 void PowerHistory::getLastPower(unsigned int& nb, PowerHistoryEntry* result) const {
