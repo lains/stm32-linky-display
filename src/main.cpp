@@ -115,7 +115,8 @@ int main(void) {
 
     Stm32SerialDriver& ticSerial = Stm32SerialDriver::get();
 
-    ticSerial.start(1200); /* Or 9600 for historical TIC */
+    //ticSerial.start(9600); /* For standard TIC */
+    ticSerial.start(1200); /* For historical TIC */
 
     Stm32LcdDriver& lcd = Stm32LcdDriver::get();
 

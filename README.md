@@ -22,15 +22,14 @@ On the STM32F769I-DISCO., I use USART6, the above pins are all available on the 
 * Vcc is on CN11, pin 2
 * USART6 RX is on CN13, pin 1 (maps to PC7)
 
-The software is currently configured to decode Linky data in standard TIC mode (9600 bauds), which is not the default built-in mode for Linky meters.
-In order to switch to this more verbose mode (that also provides more data), you need to make a request to your energy vendor.
-As an alternative, the code can be slightly tweaked to switch to historical mode and to work at 1200 bauds (this is actually the default mode for Linky meters).
-In that case, replace 9600 by 1200 in source file [Stm32SerialDriver.cpp](https://github.com/lains/stm32-linky-display/blob/master/src/hal/Stm32SerialDriver.cpp) inside the function called `MX_USART_TIC_UART_Init()`.
+The software is currently configured to decode Linky data in historical TIC mode (1200 bauds), which is the default built-in mode for Linky meters.
+You can get more data out of your meter by switching to standard TIC mode. In order to switch to this more verbose mode, you need to make a request to your energy vendor.
+In that case, replace 1200 by 9600 in source file [main.cpp](https://github.com/lains/stm32-linky-display/blob/master/src/main.cpp) when function `ticSerial.start()` is called.
 
 In order to compile the code, this project uses:
 * GNU Make (Build System)
 * GNU ARM Embedded Toolchain (Compiler)
-* STM32CubeF4 MCU Firmware Package (BSP/Drivers)
+* STM32CubeF4 or STM32CubeF7 MCU Firmware Package (BSP/Drivers), depending on the board selected
 * [ticdecodecpp](https://github.com/lains/ticdecodecpp) as a C++ library to decode the TIC serial data on the fly
 * ST-Link or OpenOCD (Debug)
 
@@ -87,6 +86,9 @@ debugSerial.send("Sample buffer content: ");
 debugSerial.hexdumpBuffer(buffer, sizeof(buffer));
 debugSerial.send("\n");
 ```
+
+> **Note**  
+> In order to enable debug logs on the debugging console in the current code, you should define the following compiler directive `EMBEDDED_DEBUG_CONSOLE`
 
 ### Emulating TIC signal
 
