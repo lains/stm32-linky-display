@@ -208,7 +208,7 @@ public:
     /**
      * @brief Get the low-level serial link handler object
      * 
-     * @return UART_HandleTypeDef* The STM32 low level UART hanlder
+     * @return The STM32 low level UART hanlder
      */
     friend UART_HandleTypeDef* getTicUartHandle();
 

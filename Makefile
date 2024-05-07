@@ -113,6 +113,8 @@ BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_dsi.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_dma2d.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_ltdc.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_ltdc_ex.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_tim.c
+BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_tim_ex.c
 BSP_SRC_FILES += $(HAL_DRIVER_DIR)/Src/$(HAL_DRIVER_PREFIX)_hal_sdram.c
 
 #libticdecodecpp related source files

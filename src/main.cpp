@@ -3,13 +3,14 @@
 #include "Stm32LcdDriver.h"
 #include "Stm32TimerDriver.h"
 #include "Stm32DebugOutput.h"
+#include "Stm32MonotonicTimeDriver.h"
 #include "TIC/Unframer.h"
 #include "TicProcessingContext.h"
 #include "PowerHistory.h"
 #include "TicFrameParser.h"
 #include "HistoryDraw.h"
 
-//#define SIMULATE_POWER_VALUES_WITHOUT_TIC
+#define SIMULATE_POWER_VALUES_WITHOUT_TIC
 
 extern "C" {
 #include "main.h"
@@ -145,6 +146,8 @@ int main(void) {
     powerHistory.setContext(&ticContext);
 
     Stm32DebugOutput::get().send("Waiting for TIC data...\n");
+
+    Stm32MonotonicTimeDriver::get().start();
 
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
     auto streamTicRxBytesToUnframer = [](void* context) { }; /* Discard any TIC data */
