@@ -1,13 +1,7 @@
 #include "TimeOfDay.h"
 
-constexpr unsigned int TimeOfDay::lastDayPerMonth[];
-
 TimeOfDay::TimeOfDay():
     isValid(false),
-    estimatedTime(true),
-    month(static_cast<unsigned int>(-1)),
-    day(static_cast<unsigned int>(-1)),
-    knownDate(false),
     hour(static_cast<unsigned int>(-1)),
     minute(static_cast<unsigned int>(-1)),
     second(static_cast<unsigned int>(-1)),
@@ -35,30 +29,13 @@ TimeOfDay::TimeOfDay(unsigned int hour, unsigned int minute, unsigned int second
     this->isValid = true;
 }
 
-TimeOfDay::TimeOfDay(unsigned int month, unsigned int day, unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond) :
-    TimeOfDay(hour, minute, second, millisecond) {
-    this->isValid = false; /* Even if timestamp construction has been delegated above, not all args have been checked yet */
-    if (month == 0 || month > 12) {
-        /* Error case */
-        return;
-    }
-    if (day == 0 || day > TimeOfDay::lastDayPerMonth[month-1]) {
-        /* Invalid day */
-        return;
-    }
-    this->month = month;
-    this->day = day;
-    this->isValid = true;
-    this->knownDate = true;
-}
-
 TimeOfDay::TimeOfDay(const TIC::Horodate& from) :
-    TimeOfDay(from.month, from.day, from.hour, from.minute, from.second) {
+    TimeOfDay(from.hour, from.minute, from.second) {
         this->isValid = from.isValid;
         this->estimatedTime = false;
 }
 
-unsigned int TimeOfDay::addSecondsWrapDay(unsigned int seconds) {
+unsigned int TimeOfDay::addSeconds(unsigned int seconds) {
     this->second += seconds; /* Forward in time */
     if (this->second < 60)
         return 0;
@@ -90,19 +67,6 @@ int TimeOfDay::timeStampCmp(const TimeOfDay& other) const {
     }
     else if (this->isValid && !other.isValid) {
         return -1;
-    }
-
-    if (this->knownDate && !other.knownDate) {
-        return 1;
-    }
-    else if (this->knownDate && !other.knownDate) {
-        return -1;
-    }
-    if (this->knownDate && other.knownDate) {
-        if (this->month > other.month) return 1;
-        if (this->month < other.month) return -1;
-        if (this->day > other.day) return 1;
-        if (this->day < other.day) return -1;
     }
 
     if (this->hour > other.hour) return 1;
@@ -154,14 +118,6 @@ std::string TimeOfDay::toString() const {
         return "Invalid timestamp";
     }
     std::string result;
-    if (this->knownDate) {
-        result += '0' + ((this->month / 10)  % 10);
-        result += '0' + ((this->month)       % 10);
-        result += '/';
-        result += '0' + ((this->day / 10)    % 10);
-        result += '0' + ((this->day)         % 10);
-        result += ' ';
-    }
     result += '0' + ((this->hour / 10)   % 10);
     result += '0' + ((this->hour)        % 10);
     result += ':';

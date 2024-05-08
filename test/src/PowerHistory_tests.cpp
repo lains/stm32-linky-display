@@ -18,7 +18,7 @@ TEST(PowerHistoryEntry_tests, DefaultInstanciation) {
 
 TEST(PowerHistoryEntry_tests, InstanciationFromPowerHorodate) {
     TicEvaluatedPower power(1000, 1000);
-    TimeOfDay tod(5, 2, 12, 49, 03);
+    TimeOfDay tod(12, 49, 03);
 
     PowerHistoryEntry phe(power, tod);
     EXPECT_EQ(tod, phe.timestamp);
@@ -27,11 +27,11 @@ TEST(PowerHistoryEntry_tests, InstanciationFromPowerHorodate) {
 }
 
 TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoIdenticalValues) {
-    TimeOfDay tod1(5, 2, 12, 49, 03);
+    TimeOfDay tod1(12, 49, 03);
 
     PowerHistoryEntry phe(TicEvaluatedPower(1000, 1000), tod1);
 
-    TimeOfDay tod2(5, 2, 13, 49, 03);
+    TimeOfDay tod2(13, 49, 03);
 
     phe.averageWithPowerSample(TicEvaluatedPower(1000, 1000), tod2);
 
@@ -41,11 +41,11 @@ TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoIdenticalValues) {
 }
 
 TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoDifferentValues) {
-    TimeOfDay tod1(5, 2, 12, 49, 03);
+    TimeOfDay tod1(12, 49, 03);
 
     PowerHistoryEntry phe(TicEvaluatedPower(200, 200), tod1);
 
-    TimeOfDay tod2(5, 2, 13, 49, 03);
+    TimeOfDay tod2(13, 49, 03);
 
     phe.averageWithPowerSample(TicEvaluatedPower(2200, 2200), tod2);
 
@@ -55,11 +55,11 @@ TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoDifferentValues) {
 }
 
 TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoDifferentValuesNegativePositive) {
-    TimeOfDay tod1(5, 2, 12, 49, 03);
+    TimeOfDay tod1(12, 49, 03);
 
     PowerHistoryEntry phe(TicEvaluatedPower(-2000, -2000), tod1);
 
-    TimeOfDay tod2(5, 2, 13, 49, 03);
+    TimeOfDay tod2(13, 49, 03);
 
     phe.averageWithPowerSample(TicEvaluatedPower(+1000, +1000), tod2);
 
@@ -69,11 +69,11 @@ TEST(PowerHistoryEntry_tests, AverageWithPowerSampleTwoDifferentValuesNegativePo
 }
 
 TEST(PowerHistoryEntry_tests, AverageWithPowerSample2NegativePositiveRangeAverage) {
-    TimeOfDay tod1(5, 2, 12, 49, 03);
+    TimeOfDay tod1(12, 49, 03);
 
     PowerHistoryEntry phe(TicEvaluatedPower(-2000, -1000), tod1);
 
-    TimeOfDay tod2(5, 2, 13, 49, 03);
+    TimeOfDay tod2(13, 49, 03);
 
     phe.averageWithPowerSample(TicEvaluatedPower(+1000, +1000), tod2);
 
@@ -85,39 +85,39 @@ TEST(PowerHistoryEntry_tests, AverageWithPowerSample2NegativePositiveRangeAverag
 TEST(PowerHistoryEntry_tests, AverageWithPowerSample7NegativePositiveRangeAverage) {
     PowerHistoryEntry phe;
 
-    TimeOfDay tod1(5, 2, 12, 49, 03);
+    TimeOfDay tod1(12, 49, 03);
     signed int min1 = 500;
     signed int max1 = 500;
     phe.averageWithPowerSample(TicEvaluatedPower(min1, max1), tod1);
 
-    TimeOfDay tod2(5, 2, 13, 49, 03);
+    TimeOfDay tod2(13, 49, 03);
     signed int min2 = 1000;
     signed int max2 = 1000;
     phe.averageWithPowerSample(TicEvaluatedPower(min2, max2), tod2);
 
-    TimeOfDay tod3(5, 2, 14, 49, 03);
+    TimeOfDay tod3(14, 49, 03);
     signed int min3 = -1000;
     signed int max3 = -1000;
     phe.averageWithPowerSample(TicEvaluatedPower(min3, max3), tod3);
 
-    TimeOfDay tod4(5, 2, 15, 49, 03);
+    TimeOfDay tod4(15, 49, 03);
     signed int min4 = -1000;
     signed int max4 = 0;
     phe.averageWithPowerSample(TicEvaluatedPower(min4, max4), tod4);
 
-    TimeOfDay tod5(5, 2, 16, 49, 03);
+    TimeOfDay tod5(16, 49, 03);
     signed int min5 = -3000;
     signed int max5 = -2000;
     phe.averageWithPowerSample(TicEvaluatedPower(min5, max5), tod5);
 
-    TimeOfDay tod6(5, 2, 17, 49, 03);
+    TimeOfDay tod6(17, 49, 03);
     signed int min6 = -500;
     signed int max6 = -500;
     phe.averageWithPowerSample(TicEvaluatedPower(min6, max6), tod6);
 
     signed int min7 = 750;
     signed int max7 = 750;
-    TimeOfDay tod7(5, 2, 18, 49, 03);
+    TimeOfDay tod7(18, 49, 03);
     phe.averageWithPowerSample(TicEvaluatedPower(min7, max7), tod7);
 
     EXPECT_EQ(tod7, phe.timestamp);
@@ -137,22 +137,22 @@ TEST(PowerHistoryEntry_tests, AverageWithPowerSample7NegativePositiveRangeAverag
 TEST(PowerHistoryEntry_tests, AverageWithPowerSample4NegativePositiveRangeAverage) {
     PowerHistoryEntry phe;
 
-    TimeOfDay tod1(5, 2, 12, 49, 03);
+    TimeOfDay tod1(12, 49, 03);
     signed int min1 = -2000;
     signed int max1 = -1000;
     phe.averageWithPowerSample(TicEvaluatedPower(min1, max1), tod1);
 
-    TimeOfDay tod2(5, 2, 13, 49, 03);
+    TimeOfDay tod2(13, 49, 03);
     signed int min2 = 1000;
     signed int max2 = 1000;
     phe.averageWithPowerSample(TicEvaluatedPower(min2, max2), tod2);
 
-    TimeOfDay tod3(5, 2, 14, 49, 03);
+    TimeOfDay tod3(14, 49, 03);
     signed int min3 = -3000;
     signed int max3 = -2000;
     phe.averageWithPowerSample(TicEvaluatedPower(min3, max3), tod3);
 
-    TimeOfDay tod4(5, 2, 15, 49, 03);
+    TimeOfDay tod4(15, 49, 03);
     signed int min4 = -1000;
     signed int max4 = 0;
     phe.averageWithPowerSample(TicEvaluatedPower(min4, max4), tod4);
@@ -224,71 +224,71 @@ TEST(PowerHistory_tests, PeriodPerSecondWithOneSampleInPeriod) {
     PowerHistory ph(PowerHistory::PerSecond);
     PowerHistoryEntry result[5];
 
-    TimeOfDay timestamp(5, 2, 12, 49, 03);
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), timestamp, 1);
+    TimeOfDay tod(12, 49, 03);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), tod, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
 
     EXPECT_EQ(1, nb);
     EXPECT_EQ(TicEvaluatedPower(100, 100), result[0].power);
-    EXPECT_EQ(timestamp, result[0].timestamp);
+    EXPECT_EQ(tod, result[0].timestamp);
 }
 
 TEST(PowerHistory_tests, unWrapOnNewPowerData) {
     PowerHistory ph(PowerHistory::PerSecond);
     PowerHistoryEntry result[5];
 
-    TimeOfDay timestamp(5, 2, 12, 49, 03);
-    PowerHistory::unWrapOnNewPowerData(TicEvaluatedPower(100, 100), timestamp, 1, static_cast<void *>(&ph));
+    TimeOfDay tod(12, 49, 03);
+    PowerHistory::unWrapOnNewPowerData(TicEvaluatedPower(100, 100), tod, 1, static_cast<void *>(&ph));
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
 
     EXPECT_EQ(1, nb);
     EXPECT_EQ(TicEvaluatedPower(100, 100), result[0].power);
-    EXPECT_EQ(timestamp, result[0].timestamp);
+    EXPECT_EQ(tod, result[0].timestamp);
 }
 
 TEST(PowerHistory_tests, PeriodPerSecondWithThreeSamplesInPeriod) {
     PowerHistory ph(PowerHistory::PerSecond);
     PowerHistoryEntry result[5];
 
-    TimeOfDay timestamp(5, 2, 12, 49, 03);
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), timestamp, 1);
-    ph.onNewPowerData(TicEvaluatedPower(200, 200), timestamp, 1);
-    ph.onNewPowerData(TicEvaluatedPower(300, 300), timestamp, 1);
+    TimeOfDay tod(12, 49, 03);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), tod, 1);
+    ph.onNewPowerData(TicEvaluatedPower(200, 200), tod, 1);
+    ph.onNewPowerData(TicEvaluatedPower(300, 300), tod, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
 
     EXPECT_EQ(1, nb);
     EXPECT_EQ(TicEvaluatedPower(200, 200), result[0].power);
-    EXPECT_EQ(timestamp, result[0].timestamp);
+    EXPECT_EQ(tod, result[0].timestamp);
 }
 
 TEST(PowerHistory_tests, PeriodPer10SecondsWithOneSampleInPeriod) {
     PowerHistory ph(PowerHistory::Per10Seconds);
     PowerHistoryEntry result[5];
 
-    TimeOfDay timestamp(5, 2, 12, 49, 03);
-    ph.onNewPowerData(TicEvaluatedPower(100, 100), timestamp, 1);
+    TimeOfDay tod(12, 49, 03);
+    ph.onNewPowerData(TicEvaluatedPower(100, 100), tod, 1);
 
     unsigned int nb = static_cast<unsigned int>(sizeof(result)/sizeof(result[0]));
     ph.getLastPower(nb, result);
 
     EXPECT_EQ(1, nb);
     EXPECT_EQ(TicEvaluatedPower(100, 100), result[0].power);
-    EXPECT_EQ(timestamp, result[0].timestamp);
+    EXPECT_EQ(tod, result[0].timestamp);
 }
 
 TEST(PowerHistory_tests, PeriodPer10SecondsWithThreeSamplesInPeriod) {
     PowerHistory ph(PowerHistory::Per10Seconds);
     PowerHistoryEntry result[5];
 
-    TimeOfDay tod1(5, 10, 0, 0, 1);
-    TimeOfDay tod2(5, 10, 0, 0, 7);
-    TimeOfDay tod3(5, 10, 0, 0, 9);
+    TimeOfDay tod1(0, 0, 1);
+    TimeOfDay tod2(0, 0, 7);
+    TimeOfDay tod3(0, 0, 9);
 
     ph.onNewPowerData(TicEvaluatedPower(100, 100), tod1, 1);
     ph.onNewPowerData(TicEvaluatedPower(200, 200), tod2, 1);
@@ -306,9 +306,9 @@ TEST(PowerHistory_tests, PeriodPer10SecondsWithOneThenTwoSamplesInPeriod) {
     PowerHistory ph(PowerHistory::Per10Seconds);
     PowerHistoryEntry result[5];
 
-    TimeOfDay tod1(5, 10, 0, 0, 1);
-    TimeOfDay tod2(5, 10, 0, 0, 17);
-    TimeOfDay tod3(5, 10, 0, 0, 19);
+    TimeOfDay tod1(0, 0, 1);
+    TimeOfDay tod2(0, 0, 17);
+    TimeOfDay tod3(0, 0, 19);
 
     ph.onNewPowerData(TicEvaluatedPower(100, 100), tod1, 1);
     ph.onNewPowerData(TicEvaluatedPower(200, 200), tod2, 1);

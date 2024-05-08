@@ -94,7 +94,6 @@ void PowerHistory::setContext(TicProcessingContext* context) {
     this->ticContext = context;
 }
 
-
 void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameSequenceNb) {
     if (!power.isValid || !timestamp.isValid) {
         return;
@@ -120,7 +119,7 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TimeOfDa
     if (false && this->lastPowerTimeOfDay.isValid) { /* If we already store some historical data, make sure last timestamp and new timestamp are consecutive (in periods), or otherwise pad */
         TimeOfDay forwardTimeOfDay = this->lastPowerTimeOfDay;
         for (unsigned int padding = 0; padding < this->data.getCapacity(); padding++) {
-            forwardTimeOfDay.addSecondsWrapDay(this->getAveragingPeriodInSeconds());  /* Check what would happen if timestamp was in the next averaging period */
+            forwardTimeOfDay.addSeconds(this->getAveragingPeriodInSeconds());  /* Check what would happen if timestamp was in the next averaging period */
             if (this->timestampsAreInSamePeriodSample(timestamp, forwardTimeOfDay))
                 break;
             /* If that timestamp slot does not match the timestamp passed as argument, we have a hole in our history entries, pad it */
@@ -134,9 +133,7 @@ void PowerHistory::onNewPowerData(const TicEvaluatedPower& power, const TimeOfDa
 }
 
 bool PowerHistory::timestampsAreInSamePeriodSample(const TimeOfDay& first, const TimeOfDay& second) {
-    if (first.month != second.month ||
-        first.day != second.day ||
-        first.hour != second.hour)
+    if (first.hour != second.hour)
         return false; /* Period is different whenever anything longer than one hour is different between the two timestamps */
     if (this->averagingPeriod >= AveraginOverMinutesOrMore) { /* We are averaging over at least 1 minute, so only compare minutes */
         switch (this->averagingPeriod) {
