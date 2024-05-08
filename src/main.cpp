@@ -10,7 +10,7 @@
 #include "TicFrameParser.h"
 #include "HistoryDraw.h"
 
-#define SIMULATE_POWER_VALUES_WITHOUT_TIC
+//#define SIMULATE_POWER_VALUES_WITHOUT_TIC
 
 extern "C" {
 #include "main.h"
