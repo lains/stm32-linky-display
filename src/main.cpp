@@ -147,6 +147,12 @@ int main(void) {
 
     Stm32DebugOutput::get().send("Waiting for TIC data...\n");
 
+    Timestamp timeSinceBoot(0, 0, 0, 0);
+    auto onSecondElapsed = [](void* context) {
+        Timestamp* timeSinceBoot = static_cast<Timestamp*>(context);
+        timeSinceBoot->addSecondsWrapDay(1);
+    };
+    Stm32MonotonicTimeDriver::get().setOnPeriodElapsed(onSecondElapsed, static_cast<void*>(&timeSinceBoot));
     Stm32MonotonicTimeDriver::get().start();
 
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
@@ -448,6 +454,14 @@ int main(void) {
 #ifndef SIMULATE_POWER_VALUES_WITHOUT_TIC
         waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
 #endif
+        {
+            unsigned int seconds = timeSinceBoot.toSeconds();
+            if (seconds % 10 == 0) {
+                Stm32DebugOutput::get().send("Uptime: ");
+                Stm32DebugOutput::get().send(seconds);
+                Stm32DebugOutput::get().send("s\n");
+            }
+        }
         lcdRefreshCount++;
         if (isNoNewPowerReceivedSinceLastDisplay(static_cast<void*>(&ticContext))) {
             Stm32DebugOutput::get().send("LCD refresh without TIC rx\n");
