@@ -73,7 +73,6 @@ void Stm32MonotonicTimeDriver::millisecondsElapsed(unsigned int ms) {
         return;
     this->millisecondsRemainder += ms;
     if (this->millisecondsRemainder >= 1000) {
-        BSP_LED_Toggle(LED_GREEN);
         if (this->onPeriodElapsedCallback) {
             this->onPeriodElapsedCallback(this->onPeriodElapsedContext);
         }
