@@ -33,10 +33,21 @@ class Stm32MeasurementTimer {
 public:
     Stm32MeasurementTimer(bool start = false);
 
+    /**
+     * @brief Reset the timer
+    */
     void reset();
 
+    /**
+     * @brief Start the timer
+    */
     void start();
 
+    /**
+     * @brief Get the elapsed time in ms since start() was last invoked
+     * 
+     * @note We can handle 32-bit values max, thus 4294967s max, or roughly 1193. This should be enough however
+    */
     uint32_t get() const;
 
 private:
