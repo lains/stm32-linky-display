@@ -4,7 +4,7 @@
 
 #include "TIC/DatasetExtractor.h"
 #include "TIC/DatasetView.h"
-#include "Timestamp.h"
+#include "TimeOfDay.h"
 #include "FixedSizeRingBuffer.h"
 
 /* Forward declarations */
@@ -57,7 +57,7 @@ public:
 
 /* Attributes */
     unsigned int fromFrameNb; /*!< The TIC frame ID from which the enclosed data has been extracted */
-    Timestamp timestamp; /*!< An optional timestamp for the TIC frame */
+    TimeOfDay timestamp; /*!< An optional timestamp for the TIC frame */
     unsigned int instVoltage; /*!< The instantaneous (ie within the last TIC frame) RMS voltage, in Volts */
     unsigned int instAbsCurrent; /*!< The instantaneous (ie within the last TIC frame) absolute current, in Amps */
     unsigned int maxSubscribedPower; /*!< The maximum allowed withdrawned power (subscribed), in Watts */
@@ -67,7 +67,7 @@ public:
 class TicFrameParser {
 public:
 /* Types */
-    typedef void(*FOnNewPowerData)(const TicEvaluatedPower& power, const Timestamp& timestamp, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
+    typedef void(*FOnNewPowerData)(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
 
 /* Methods */
     /**

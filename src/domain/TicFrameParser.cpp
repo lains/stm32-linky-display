@@ -99,7 +99,7 @@ TicMeasurements::TicMeasurements(unsigned int fromFrameNb) :
 
 void TicMeasurements::reset() {
     this->fromFrameNb = static_cast<unsigned int>(-1);
-    this->timestamp = Timestamp();
+    this->timestamp = TimeOfDay();
     this->instVoltage = static_cast<unsigned int>(-1);
     this->instAbsCurrent = static_cast<unsigned int>(-1);
     this->instPower = TicEvaluatedPower();
@@ -205,7 +205,7 @@ void TicFrameParser::onNewMeasurementAvailable() {
 
 void TicFrameParser::onNewDate(const TIC::Horodate& horodate) {
     this->onNewMeasurementAvailable();
-    this->lastFrameMeasurements.timestamp = Timestamp(horodate);
+    this->lastFrameMeasurements.timestamp = TimeOfDay(horodate);
 }
 
 void TicFrameParser::guessFrameArrivalTime() {
@@ -223,7 +223,7 @@ void TicFrameParser::guessFrameArrivalTime() {
     emulatedHorodateRemainder = emulatedHorodateRemainder / 60; /* Now count total remainder as hours */
     unsigned int emulatedHour = emulatedHorodateRemainder % 24;
     /* Note: we discard days and month for now */
-    this->lastFrameMeasurements.timestamp = Timestamp(emulatedHour, emulatedMinute, emulatedSecond);
+    this->lastFrameMeasurements.timestamp = TimeOfDay(emulatedHour, emulatedMinute, emulatedSecond);
 #ifdef EMBEDDED_DEBUG_CONSOLE
     Stm32DebugOutput::get().send("Injecting timestamp in historical frame: ");
     Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.hour));

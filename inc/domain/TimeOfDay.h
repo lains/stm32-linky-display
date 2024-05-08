@@ -2,27 +2,27 @@
 
 #include "TIC/DatasetView.h" // For TIC::Horodate
 
-class Timestamp {
+class TimeOfDay {
 private:
     static constexpr unsigned int lastDayPerMonth[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 public:
 /* Methods */
-    Timestamp();
+    TimeOfDay();
 
     /**
      * @brief Construct from hour, minute, seconds and optionally milliseconds
     */
-    Timestamp(unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond = static_cast<unsigned int>(-1));
+    TimeOfDay(unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond = static_cast<unsigned int>(-1));
 
     /**
      * @brief Construct from month, day, hour, minute, seconds and optionally milliseconds
     */
-    Timestamp(unsigned int month, unsigned int day, unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond = static_cast<unsigned int>(-1));
+    TimeOfDay(unsigned int month, unsigned int day, unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond = static_cast<unsigned int>(-1));
 
     /**
      * @brief Construct from a TIC::Horodate
     */
-    Timestamp(const TIC::Horodate& from);
+    TimeOfDay(const TIC::Horodate& from);
 
     /**
      * @brief Make the current horodate go forward a given seconds in time
@@ -46,7 +46,7 @@ private:
     /**
      * @brief Comparison of two timestamps
      * 
-     * @param other The other Timestamp to compare with
+     * @param other The other TimeOfDay to compare with
      * @return int -1 is we are earlier than @other, 1 if we are later than @other and 0 if both are equal
      * 
      * @note If one timestamp is invalid, it is considered as the origin of time, thus earlier (-1) than any valid timestamps
@@ -55,15 +55,15 @@ private:
      *       If one date is unknown, it is considered as the origin of time, thus earlier (-1) than any valid timestamps
      * @note We only compare milliseconds if available on both objects
      */
-    int timeStampCmp(const Timestamp& other) const;
+    int timeStampCmp(const TimeOfDay& other) const;
 
 public:
-    bool operator==(const Timestamp& other) const;
-    bool operator!=(const Timestamp& other) const;
-    bool operator<(const Timestamp& other) const;
-    bool operator>(const Timestamp& other) const;
-    bool operator<=(const Timestamp& other) const;
-    bool operator>=(const Timestamp& other) const;
+    bool operator==(const TimeOfDay& other) const;
+    bool operator!=(const TimeOfDay& other) const;
+    bool operator<(const TimeOfDay& other) const;
+    bool operator>(const TimeOfDay& other) const;
+    bool operator<=(const TimeOfDay& other) const;
+    bool operator>=(const TimeOfDay& other) const;
 
 #ifdef __TIC_LIB_USE_STD_STRING__
     std::string toString() const;

@@ -1,8 +1,8 @@
-#include "Timestamp.h"
+#include "TimeOfDay.h"
 
-constexpr unsigned int Timestamp::lastDayPerMonth[];
+constexpr unsigned int TimeOfDay::lastDayPerMonth[];
 
-Timestamp::Timestamp():
+TimeOfDay::TimeOfDay():
     isValid(false),
     estimatedTime(true),
     month(static_cast<unsigned int>(-1)),
@@ -14,8 +14,8 @@ Timestamp::Timestamp():
     millisecond(static_cast<unsigned int>(-1)),
     knownMilliseconds(false) { }
 
-Timestamp::Timestamp(unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond) :
-    Timestamp() {
+TimeOfDay::TimeOfDay(unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond) :
+    TimeOfDay() {
     if (hour >= 24 || minute >= 60 || second >= 60) {
         return;
     }
@@ -35,14 +35,14 @@ Timestamp::Timestamp(unsigned int hour, unsigned int minute, unsigned int second
     this->isValid = true;
 }
 
-Timestamp::Timestamp(unsigned int month, unsigned int day, unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond) :
-    Timestamp(hour, minute, second, millisecond) {
+TimeOfDay::TimeOfDay(unsigned int month, unsigned int day, unsigned int hour, unsigned int minute, unsigned int second, unsigned int millisecond) :
+    TimeOfDay(hour, minute, second, millisecond) {
     this->isValid = false; /* Even if timestamp construction has been delegated above, not all args have been checked yet */
     if (month == 0 || month > 12) {
         /* Error case */
         return;
     }
-    if (day == 0 || day > Timestamp::lastDayPerMonth[month-1]) {
+    if (day == 0 || day > TimeOfDay::lastDayPerMonth[month-1]) {
         /* Invalid day */
         return;
     }
@@ -52,13 +52,13 @@ Timestamp::Timestamp(unsigned int month, unsigned int day, unsigned int hour, un
     this->knownDate = true;
 }
 
-Timestamp::Timestamp(const TIC::Horodate& from) :
-    Timestamp(from.month, from.day, from.hour, from.minute, from.second) {
+TimeOfDay::TimeOfDay(const TIC::Horodate& from) :
+    TimeOfDay(from.month, from.day, from.hour, from.minute, from.second) {
         this->isValid = from.isValid;
         this->estimatedTime = false;
 }
 
-unsigned int Timestamp::addSecondsWrapDay(unsigned int seconds) {
+unsigned int TimeOfDay::addSecondsWrapDay(unsigned int seconds) {
     this->second += seconds; /* Forward in time */
     if (this->second < 60)
         return 0;
@@ -75,13 +75,13 @@ unsigned int Timestamp::addSecondsWrapDay(unsigned int seconds) {
     return dayAdd; /* Day wrap occured, return the number of days ahead */
 }
 
-unsigned int Timestamp::toSeconds() const {
+unsigned int TimeOfDay::toSeconds() const {
     if (!this->isValid)
         return static_cast<unsigned int>(-1);
     return this->second + this->minute*60 + this->hour*3600;
 }
 
-int Timestamp::timeStampCmp(const Timestamp& other) const {
+int TimeOfDay::timeStampCmp(const TimeOfDay& other) const {
     if (!this->isValid && !other.isValid) {
         return 0;
     }
@@ -121,35 +121,35 @@ int Timestamp::timeStampCmp(const Timestamp& other) const {
     return 0;
 }
 
-bool Timestamp::operator==(const Timestamp& other) const {
+bool TimeOfDay::operator==(const TimeOfDay& other) const {
     if (!this->isValid || !other.isValid)
         return false;
     
     return (this->timeStampCmp(other) == 0);
 }
 
-bool Timestamp::operator!=(const Timestamp& other) const {
+bool TimeOfDay::operator!=(const TimeOfDay& other) const {
     return !(*this == other);
 }
 
-bool Timestamp::operator>(const Timestamp& other) const {
+bool TimeOfDay::operator>(const TimeOfDay& other) const {
     return (this->timeStampCmp(other) > 0);
 }
 
-bool Timestamp::operator<(const Timestamp& other) const {
+bool TimeOfDay::operator<(const TimeOfDay& other) const {
     return (this->timeStampCmp(other) < 0);
 }
 
-bool Timestamp::operator>=(const Timestamp& other) const {
+bool TimeOfDay::operator>=(const TimeOfDay& other) const {
     return (this->timeStampCmp(other) >= 0);
 }
 
-bool Timestamp::operator<=(const Timestamp& other) const {
+bool TimeOfDay::operator<=(const TimeOfDay& other) const {
     return (this->timeStampCmp(other) <= 0);
 }
 
 #ifdef __TIC_LIB_USE_STD_STRING__
-std::string Timestamp::toString() const {
+std::string TimeOfDay::toString() const {
     if (!this->isValid) {
         return "Invalid timestamp";
     }

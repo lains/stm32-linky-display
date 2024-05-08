@@ -147,9 +147,9 @@ int main(void) {
 
     Stm32DebugOutput::get().send("Waiting for TIC data...\n");
 
-    Timestamp timeSinceBoot(0, 0, 0, 0);
+    TimeOfDay timeSinceBoot(0, 0, 0, 0);
     auto onSecondElapsed = [](void* context) {
-        Timestamp* timeSinceBoot = static_cast<Timestamp*>(context);
+        TimeOfDay* timeSinceBoot = static_cast<TimeOfDay*>(context);
         timeSinceBoot->addSecondsWrapDay(1);
     };
     Stm32MonotonicTimeDriver::get().setOnPeriodElapsed(onSecondElapsed, static_cast<void*>(&timeSinceBoot));
@@ -296,7 +296,7 @@ int main(void) {
         PowerHistoryEntry lastMeasurement;
         powerHistory.getLastPower(nbSamples, &lastMeasurement);
         if (nbSamples == 1 && lastMeasurement.timestamp.isValid) {   /* We have a valid last measurement */
-            const Timestamp& displayedHorodate = lastMeasurement.timestamp;
+            const TimeOfDay& displayedHorodate = lastMeasurement.timestamp;
             unsigned int horodateHour = displayedHorodate.hour;
             statusLine[pos++]=(horodateHour / 10) % 10 + '0';
             statusLine[pos++]=(horodateHour / 1) % 10 + '0';

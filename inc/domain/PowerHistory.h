@@ -3,11 +3,11 @@
 #include "FixedSizeRingBuffer.h"
 #include "TicProcessingContext.h"
 #include "TicFrameParser.h" // For TicEvaluatedPower
-#include "Timestamp.h"
+#include "TimeOfDay.h"
 
 struct PowerHistoryEntry {
     PowerHistoryEntry();
-    PowerHistoryEntry(const TicEvaluatedPower& power, const Timestamp& timestamp);
+    PowerHistoryEntry(const TicEvaluatedPower& power, const TimeOfDay& timestamp);
 
 #ifndef __UNIT_TEST__
 private:
@@ -27,11 +27,11 @@ public:
      * @param power A new power measurement sample to take into account
      * @param timestamp The timestamp for the new @p power
      */
-    void averageWithPowerSample(const TicEvaluatedPower& power, const Timestamp& timestamp);
+    void averageWithPowerSample(const TicEvaluatedPower& power, const TimeOfDay& timestamp);
 
 /* Attributes */
     TicEvaluatedPower power; /*!< A power (in multiples or fractions of W... see scale below) */
-    Timestamp timestamp; /*!< The timestamp for the @p power entry */
+    TimeOfDay timestamp; /*!< The timestamp for the @p power entry */
     unsigned int nbSamples; /*!< The number of samples that have been averaged to produce the value in @p power */
     unsigned int scale; /*!< A divider for @p power. If scale=1000, then power is represented in mW */
 };
@@ -71,7 +71,7 @@ struct PowerHistory {
      * @param timestamp The timestamp associated with the @p power
      * @param frameSequenceNb The TIC frame sequence number
      */
-    void onNewPowerData(const TicEvaluatedPower& power, const Timestamp& timestamp, unsigned int frameSequenceNb);
+    void onNewPowerData(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameSequenceNb);
 
     /**
      * @brief Check if two timestamps are part of the same internal time resolution (and will thus be averaged to be stored in the same period history entry)
@@ -80,7 +80,7 @@ struct PowerHistory {
      * @param second The second timestamp
      * @return true If @p first and @p second end up in the same averaging period, and should thus be averaged to create one signel history entry
      */
-    bool timestampsAreInSamePeriodSample(const Timestamp& first, const Timestamp& second);
+    bool timestampsAreInSamePeriodSample(const TimeOfDay& first, const TimeOfDay& second);
 
     /**
      * @brief Get the averaging period value (in seconds)
@@ -105,7 +105,7 @@ struct PowerHistory {
      * @param frameSequenceNb The TIC frame sequence number
      * @param context A context as provided by TIC::DatasetExtractor, used to retrieve the wrapped TicFrameParser instance
      */
-    static void unWrapOnNewPowerData(const TicEvaluatedPower& power, const Timestamp& timestamp, unsigned int frameSequenceNb, void* context);
+    static void unWrapOnNewPowerData(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameSequenceNb, void* context);
 
     /**
      * @brief Get the Last Values object
@@ -121,5 +121,5 @@ struct PowerHistory {
     FixedSizeRingBuffer<PowerHistoryEntry, 1024> data;    /*!< The last n instantaneous power measurements */
     AveragingMode averagingPeriod; /*!< Which sampling period do we record (we will perform an average on all samples within the period) */
     TicProcessingContext* ticContext;   /*!< An optional context structure instance that we should refresh on new power data reception */
-    Timestamp lastPowerTimestamp;    /*!< The timestamp of the last received power measurement */
+    TimeOfDay lastPowerTimeOfDay;    /*!< The timestamp of the last received power measurement */
 };
