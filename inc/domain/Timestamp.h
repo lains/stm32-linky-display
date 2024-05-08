@@ -32,6 +32,16 @@ public:
      */
     unsigned int addSecondsWrapDay(unsigned int seconds);
 
+    /**
+     * @brief Returns the equivalent seconds from midnight
+     * 
+     * For example a timestamp containing 00:03:00 will return 3*60=180
+     * 
+     * @note This will not return milliseconds or date information, that should be extracted from other attributes
+     * @warning If this timestamp is invalid, we will return -1
+     */
+    unsigned int toSeconds() const;
+
 private:
     /**
      * @brief Comparison of two timestamps

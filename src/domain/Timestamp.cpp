@@ -75,6 +75,12 @@ unsigned int Timestamp::addSecondsWrapDay(unsigned int seconds) {
     return dayAdd; /* Day wrap occured, return the number of days ahead */
 }
 
+unsigned int Timestamp::toSeconds() const {
+    if (!this->isValid)
+        return static_cast<unsigned int>(-1);
+    return this->second + this->minute*60 + this->hour*3600;
+}
+
 int Timestamp::timeStampCmp(const Timestamp& other) const {
     if (!this->isValid && !other.isValid) {
         return 0;

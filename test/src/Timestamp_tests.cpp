@@ -450,3 +450,39 @@ TEST(Timestamp_tests, addSecondsWrapDayWrapMultiDayIncrementWithKnownDate) {
     EXPECT_EQ(13, ts.day);
     EXPECT_EQ(1, ts.month);
 }
+
+TEST(Timestamp_tests, toSecondsFromMidnight) {
+    Timestamp ts(0, 0, 0);
+    EXPECT_EQ(0, ts.toSeconds());
+}
+
+TEST(Timestamp_tests, toSecondsFromMidnightWithMilliseconds) {
+    Timestamp ts(0, 0, 0, 0);
+    EXPECT_EQ(0, ts.toSeconds());
+}
+
+TEST(Timestamp_tests, toSecondsFromTimestamp) {
+    Timestamp ts(3, 36, 51);
+    EXPECT_EQ(13011, ts.toSeconds());
+}
+
+TEST(Timestamp_tests, toSecondsFromTimestampIgnoresMilliseconds) {
+    Timestamp ts(3, 36, 51, 999);
+    EXPECT_EQ(13011, ts.toSeconds());
+}
+
+TEST(Timestamp_tests, toSecondsFromInvalidTimestamp) {
+    Timestamp ts;
+    EXPECT_EQ(static_cast<unsigned int>(-1), ts.toSeconds());
+}
+
+TEST(Timestamp_tests, toSecondsFromMaxTimestamp) {
+    Timestamp ts(23, 59, 59, 999);
+    EXPECT_EQ(86399, ts.toSeconds());
+}
+
+TEST(Timestamp_tests, toSecondsIgnoresDate) {
+    Timestamp ts1(5, 5, 7, 6, 5);
+    Timestamp ts2(7, 6, 5, 998);
+    EXPECT_EQ(ts1.toSeconds(), ts2.toSeconds());
+}
