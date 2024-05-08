@@ -147,12 +147,13 @@ int main(void) {
 
     Stm32DebugOutput::get().send("Waiting for TIC data...\n");
 
-    TimeOfDay timeSinceBoot(0, 0, 0, 0);
     auto onSecondElapsed = [](void* context) {
-        TimeOfDay* timeSinceBoot = static_cast<TimeOfDay*>(context);
-        timeSinceBoot->addSecondsWrapDay(1);
+        if (context == nullptr)
+            return;
+        TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
+        ticContext->currentTime.time.addSeconds(1);
     };
-    Stm32MonotonicTimeDriver::get().setOnPeriodElapsed(onSecondElapsed, static_cast<void*>(&timeSinceBoot));
+    Stm32MonotonicTimeDriver::get().setOnPeriodElapsed(onSecondElapsed, static_cast<void*>(&ticContext));
     Stm32MonotonicTimeDriver::get().start();
 
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
@@ -455,9 +456,14 @@ int main(void) {
         waitDelayAndCondition(5000, streamTicRxBytesToUnframer, isNoNewPowerReceivedSinceLastDisplay, static_cast<void*>(&ticContext));
 #endif
         {
-            unsigned int seconds = timeSinceBoot.toSeconds();
+            unsigned int seconds = ticContext.currentTime.time.toSeconds();
             if (seconds % 10 == 0) {
-                Stm32DebugOutput::get().send("Uptime: ");
+                if (ticContext.currentTime.relativeToBoot) {
+                    Stm32DebugOutput::get().send("Uptime: ");
+                }
+                else {
+                    Stm32DebugOutput::get().send("System time of day: ");
+                }
                 Stm32DebugOutput::get().send(seconds);
                 Stm32DebugOutput::get().send("s\n");
             }

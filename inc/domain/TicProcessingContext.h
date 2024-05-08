@@ -2,6 +2,7 @@
 
 #include "TIC/Unframer.h"
 #include "TicFrameParser.h" // For TicEvaluatedPower
+#include "TimeOfDay.h"
 #ifndef __UNIT_TEST__
 #include "../hal/Stm32SerialDriver.h"
 #else
@@ -11,6 +12,13 @@ struct Stm32SerialDriver {
 #endif
 #include <stdint.h>
 
+struct SystemCurrentTime {
+    SystemCurrentTime();
+
+/* Attributes */
+    TimeOfDay time; /*!< The current time of day */
+    bool relativeToBoot; /*!< Is the time of day relative to boot (uptime) or absolute to day start */
+};
 
 struct TicProcessingContext {
     /**
@@ -31,4 +39,5 @@ struct TicProcessingContext {
     unsigned int lastDisplayedPowerFrameNb; /*!< The ID of the last TIC frame for which the instantanous power was displayed on the screen */
     uint32_t displayTimeMs; /*!< The last duration it took (in ms) to switch display from one frame to another, for statistics */
     uint32_t fbCopyTimeMs; /*!< The last duration it took (in ms) to copy a full framebuffer content, for statistics */
+    SystemCurrentTime currentTime; /*!< The current system time of day */
 };
