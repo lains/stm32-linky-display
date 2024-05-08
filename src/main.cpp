@@ -253,7 +253,7 @@ int main(void) {
 #endif
         /* We can now work on draft buffer */
         uint8_t pos = 0;
-        char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X @@:@@:@@";
+        char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X H@@:@@:@@ T@@:@@:@@";
         statusLine[pos++]=(lcdRefreshCount / 10000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
@@ -293,6 +293,7 @@ int main(void) {
 
         pos++;
 
+        pos++; // 'H' like time from Horodate
         unsigned int nbSamples = 1;
         PowerHistoryEntry lastMeasurement;
         powerHistory.getLastPower(nbSamples, &lastMeasurement);
@@ -309,11 +310,25 @@ int main(void) {
             unsigned int horodateSecond = displayedHorodate.second;
             statusLine[pos++]=(horodateSecond / 10) % 10 + '0';
             statusLine[pos++]=(horodateSecond / 1) % 10 + '0';
-            pos++;
         }
         else {
-            pos += 9;
+            pos += 8;
         }
+        pos++;
+
+        pos++; // 'T' like system time (or uptime)
+        unsigned int systemTimeHour = ticContext.currentTime.time.hour;
+        statusLine[pos++]=(systemTimeHour / 10) % 10 + '0';
+        statusLine[pos++]=(systemTimeHour / 1) % 10 + '0';
+        pos++;
+        unsigned int systemTimeMinute = ticContext.currentTime.time.minute;
+        statusLine[pos++]=(systemTimeMinute / 10) % 10 + '0';
+        statusLine[pos++]=(systemTimeMinute / 1) % 10 + '0';
+        pos++;
+        unsigned int systemTimeSecond = ticContext.currentTime.time.second;
+        statusLine[pos++]=(systemTimeSecond / 10) % 10 + '0';
+        statusLine[pos++]=(systemTimeSecond / 1) % 10 + '0';
+        pos++;
 
         BSP_LCD_SetFont(&Font24);
         lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
