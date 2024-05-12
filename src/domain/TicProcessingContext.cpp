@@ -6,6 +6,12 @@ SystemCurrentTime::SystemCurrentTime() :
 {
 }
 
+void SystemCurrentTime::startNewDayAtMidnight() {
+    TimeOfDay midnight(0, 0, 0);
+    std::swap(this->time, midnight);
+    this->relativeToBoot = false;
+}
+
 TicProcessingContext::TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Unframer& ticUnframer) :
     ticSerial(ticSerial),
     ticUnframer(ticUnframer),
@@ -18,3 +24,4 @@ TicProcessingContext::TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Un
     currentTime()
 {
 }
+

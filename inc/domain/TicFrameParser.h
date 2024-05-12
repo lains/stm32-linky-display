@@ -67,7 +67,8 @@ public:
 class TicFrameParser {
 public:
 /* Types */
-    typedef void(*FOnNewPowerData)(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
+    typedef void(*FOnNewPowerDataFunc)(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
+    typedef void(*FOnDayOverFunc)(void* context); /*!< The prototype of callbacks invoked we we switch to the next day */
 
 /* Methods */
     /**
@@ -80,7 +81,15 @@ public:
      *       This is because we don't have 100% guarantee that exceptions are allowed (especially on embedded targets) and using std::function requires enabling exceptions.
      *       We can still use non-capturing lambdas as function pointer if needed (see https://stackoverflow.com/questions/28746744/passing-capturing-lambda-as-function-pointer)
      */
-    TicFrameParser(FOnNewPowerData onNewPowerData = nullptr, void* onNewPowerDataContext = nullptr);
+    TicFrameParser(FOnNewPowerDataFunc onNewPowerData = nullptr, void* onNewPowerDataContext = nullptr);
+
+    /**
+     * @brief Set the method to invoke when we detect a switch to the next day
+     * 
+     * @param power The method to invoke
+     * @param context A context provided to the method
+    */
+    void onDayOverInvoke(FOnDayOverFunc dayOverFunc, void* context);
 
 protected:
     void onNewMeasurementAvailable();
@@ -99,7 +108,20 @@ protected:
     **/
     void guessFrameArrivalTime();
 
+
+    /**
+     * @brief Method invoked when we get data about the reference power
+     * 
+     * @param power The reference power in Watts
+    */
     void onRefPowerInfo(uint32_t power);
+
+    /**
+     * @brief Method invoked when we get data about the maximum daily withdrawn power
+     * 
+     * @param power The maximum power in Watts
+    */
+    void onMaxPowerInfo(uint32_t maxPower);
 
     void onNewComputedPower(int minValue, int maxValue);
 
@@ -189,8 +211,10 @@ public:
     static void ticFrameParserUnWrapDatasetExtractor(const uint8_t* buf, unsigned int cnt, void* context);
 
 /* Attributes */
-    FOnNewPowerData onNewPowerData; /*!< Pointer to a function invoked at each new power data (withdrawn or injected) computed from a TIC frame */
+    FOnNewPowerDataFunc onNewPowerData; /*!< Pointer to a function invoked at each new power data (withdrawn or injected) computed from a TIC frame */
     void* onNewPowerDataContext; /*!< A context pointer passed to onNewFrameBytes() and onFrameComplete() at invokation */
+    FOnDayOverFunc onDayOverFunc; /*!< Pointer to a function invoked when we detect switching to the next day */
+    void* onDayOverFuncContext; /*!< A context pointer passed as argument to the above method */
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */

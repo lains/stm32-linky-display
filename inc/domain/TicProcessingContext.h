@@ -15,6 +15,11 @@ struct Stm32SerialDriver {
 struct SystemCurrentTime {
     SystemCurrentTime();
 
+    /**
+     * @brief React to a new day starting (just after midnight)
+    */
+    void startNewDayAtMidnight();
+
 /* Attributes */
     TimeOfDay time; /*!< The current time of day */
     bool relativeToBoot; /*!< Is the time of day relative to boot (uptime) or absolute to day start */

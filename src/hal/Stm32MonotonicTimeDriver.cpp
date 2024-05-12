@@ -84,3 +84,4 @@ void Stm32MonotonicTimeDriver::setOnPeriodElapsed(FOnPeriodElapsedFunc toRunOnPe
     this->onPeriodElapsedCallback = toRunOnPeriodElapsed;
     this->onPeriodElapsedContext = context;
 }
+

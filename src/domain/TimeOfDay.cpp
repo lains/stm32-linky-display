@@ -1,4 +1,5 @@
 #include "TimeOfDay.h"
+#include <utility> // For std::swap()
 
 TimeOfDay::TimeOfDay():
     isValid(false),
@@ -135,3 +136,17 @@ std::string TimeOfDay::toString() const {
     return result;
 }
 #endif // __TIC_LIB_USE_STD_STRING__
+
+void TimeOfDay::swapWith(TimeOfDay& other) {
+    std::swap(this->isValid, other.isValid);
+    std::swap(this->estimatedTime, other.estimatedTime);
+    std::swap(this->hour, other.hour);
+    std::swap(this->minute, other.minute);
+    std::swap(this->second, other.second);
+    std::swap(this->millisecond, other.millisecond);
+    std::swap(this->knownMilliseconds, other.knownMilliseconds);
+}
+
+void std::swap(TimeOfDay& first, TimeOfDay& second) {
+    first.swapWith(second);
+}

@@ -118,9 +118,11 @@ void std::swap(TicMeasurements& first, TicMeasurements& second) {
     first.swapWith(second);
 }
 
-TicFrameParser::TicFrameParser(FOnNewPowerData onNewPowerData, void* onNewPowerDataContext) :
+TicFrameParser::TicFrameParser(FOnNewPowerDataFunc onNewPowerData, void* onNewPowerDataContext) :
     onNewPowerData(onNewPowerData),
     onNewPowerDataContext(onNewPowerDataContext),
+    onDayOverFunc([](void* context) { }),
+    onDayOverFuncContext(nullptr),
     nbFramesParsed(0),
     de(ticFrameParserUnWrapDatasetExtractor, this),
     lastFrameMeasurements()
@@ -235,8 +237,21 @@ void TicFrameParser::guessFrameArrivalTime() {
 #endif
 }
 
+void TicFrameParser::onDayOverInvoke(FOnDayOverFunc dayOverFunc, void* context) {
+    this->onDayOverFunc = dayOverFunc;
+    this->onDayOverFuncContext = context;
+}
+
 void TicFrameParser::onRefPowerInfo(uint32_t power) {
     //FIXME: Todo
+}
+
+void TicFrameParser::onMaxPowerInfo(uint32_t maxPower) {
+    static uint32_t lastKnownMaxPower = 0;
+    if (maxPower < lastKnownMaxPower) { /* Daily max power reduces (probably 0), this means we are starting a new day, we are at midnight */
+        //invoke our own onModnightInvoke callback
+    }
+    lastKnownMaxPower = maxPower;
 }
 
 void TicFrameParser::onNewInstVoltageMeasurement(uint32_t voltage) {
@@ -376,6 +391,20 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
             uint32_t pref = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
             if (pref != (uint32_t)-1)
                 this->onRefPowerInfo(pref);
+        }
+        else if (dv.labelSz == 4 &&
+            memcmp(dv.labelBuffer, "PMAX", 4) == 0 &&
+            dv.dataSz > 0) { /* Max withdrawn power today */
+            uint32_t pmax = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+            if (pmax != (uint32_t)-1)
+                this->onMaxPowerInfo(pmax);
+        }
+        else if (dv.labelSz == 8 &&
+            memcmp(dv.labelBuffer, "SMAXSN", 6) == 0 &&
+            dv.dataSz > 0) { /* Max withdrawn power today */
+            uint32_t pmax = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+            if (pmax != (uint32_t)-1)
+                this->onMaxPowerInfo(pmax);
         }
     }
 }

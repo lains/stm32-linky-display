@@ -2,6 +2,12 @@
 
 #include "TIC/DatasetView.h" // For TIC::Horodate
 
+/* Forward declarations */
+class TimeOfDay;
+namespace std {
+     void swap(TimeOfDay& first, TimeOfDay& second);
+}
+
 class TimeOfDay {
 public:
 /* Methods */
@@ -55,6 +61,10 @@ public:
     bool operator>(const TimeOfDay& other) const;
     bool operator<=(const TimeOfDay& other) const;
     bool operator>=(const TimeOfDay& other) const;
+
+    void swapWith(TimeOfDay& other);
+
+    friend void ::std::swap(TimeOfDay& first, TimeOfDay& second);
 
 #ifdef __TIC_LIB_USE_STD_STRING__
     std::string toString() const;

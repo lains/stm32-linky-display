@@ -143,6 +143,12 @@ int main(void) {
 
     TicProcessingContext ticContext(ticSerial, ticUnframer);
 
+    auto performAtMidnight = [](void* context) {
+        TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
+        ticContext->currentTime.startNewDayAtMidnight();
+    };
+    ticParser.onDayOverInvoke(performAtMidnight, static_cast<void*>(&ticContext));
+
     powerHistory.setContext(&ticContext);
 
     Stm32DebugOutput::get().send("Waiting for TIC data...\n");
@@ -223,8 +229,7 @@ int main(void) {
 
     unsigned int lcdRefreshCount = 0;
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
-    char sampleHorodateAsCString[] = "e230502000000";
-	TIC::Horodate fakeHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+    TimeOfDay fakeHorodate(23, 30, 0); // 23h30m00s
 #endif
 
     TicEvaluatedPower lastReceivedPower;
@@ -237,17 +242,24 @@ int main(void) {
         Stm32MeasurementTimer fullDisplayCycleTimeMs(true);
 
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
-        int fakePowerRefV = static_cast<int>(3000) - (static_cast<int>((lcdRefreshCount*30) % 6000)); /* Results in sweeping from +3000 to -3000W */
-        int fakeMinPower = fakePowerRefV;
-        int fakeMaxPower = fakePowerRefV;
-        if (fakePowerRefV < 0) { /* When reaching negative values, forge a range instead of an exact measurement to be more realistic */
-            fakeMinPower = fakePowerRefV/3;
-            fakeMaxPower = fakePowerRefV/4; /* If negative, corrects to -3000 to [-1000;-750] */
+        {
+            int fakePowerRefV = static_cast<int>(3000) - (static_cast<int>((lcdRefreshCount*30) % 6000)); /* Results in sweeping from +3000 to -3000W */
+            int fakeMinPower = fakePowerRefV;
+            int fakeMaxPower = fakePowerRefV;
+            if (fakePowerRefV < 0) { /* When reaching negative values, forge a range instead of an exact measurement to be more realistic */
+                fakeMinPower = fakePowerRefV/3;
+                fakeMaxPower = fakePowerRefV/4; /* If negative, corrects to -3000 to [-1000;-750] */
+            }
+            TicEvaluatedPower fakePower(fakeMinPower, fakeMaxPower);
+            char sampleHorodateAsCString[] = "e230502233000";
+            TIC::Horodate fakeTICFrameHorodate = TIC::Horodate::fromLabelBytes(reinterpret_cast<uint8_t*>(sampleHorodateAsCString), strlen(sampleHorodateAsCString));
+            fakeTICFrameHorodate.hour = fakeHorodate.hour;
+            fakeTICFrameHorodate.minute = fakeHorodate.minute;
+            fakeTICFrameHorodate.second = fakeHorodate.second;
+            fakeHorodate.addSeconds(30); /* Fast forward in time */
+            ticParser.lastFrameMeasurements.instPower = fakePower;
+            powerHistory.onNewPowerData(fakePower, fakeHorodate, ticContext.lastParsedFrameNb);
         }
-        TicEvaluatedPower fakePower(fakeMinPower, fakeMaxPower);
-        fakeHorodate.addSeconds(30); /* Fast forward in time */
-        ticParser.lastFrameMeasurements.instPower = fakePower;
-        powerHistory.onNewPowerData(fakePower, fakeHorodate, ticContext.lastParsedFrameNb);
         ticParser.nbFramesParsed++; /* Introspection for debug */
         ticContext.lastParsedFrameNb = ticParser.nbFramesParsed;
 #endif
@@ -314,32 +326,42 @@ int main(void) {
         else {
             pos += 8;
         }
-        pos++;
 
-        pos++; // 'T' like system time (or uptime)
-        unsigned int systemTimeHour = ticContext.currentTime.time.hour;
-        statusLine[pos++]=(systemTimeHour / 10) % 10 + '0';
-        statusLine[pos++]=(systemTimeHour / 1) % 10 + '0';
-        pos++;
-        unsigned int systemTimeMinute = ticContext.currentTime.time.minute;
-        statusLine[pos++]=(systemTimeMinute / 10) % 10 + '0';
-        statusLine[pos++]=(systemTimeMinute / 1) % 10 + '0';
-        pos++;
-        unsigned int systemTimeSecond = ticContext.currentTime.time.second;
-        statusLine[pos++]=(systemTimeSecond / 10) % 10 + '0';
-        statusLine[pos++]=(systemTimeSecond / 1) % 10 + '0';
-        pos++;
-
+        statusLine[pos] = '\0'; /* Temporarily terminate string, wiping the Txx:xx:xx text */
         BSP_LCD_SetFont(&Font24);
         lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
-        BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
-        BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
         auto get_font24_ptr = [](const char c) {
             unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
             return &(Font24.table[(c-' ') * bytesPerGlyph]);
         };
         
         lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+
+        statusLine[pos++] = ' ';
+        {
+            Stm32LcdDriver::LCD_Color textColor = Stm32LcdDriver::LCD_Color::Green;
+            if (ticContext.currentTime.relativeToBoot) {
+                textColor = Stm32LcdDriver::LCD_Color::Red;
+            }
+            char* statusLineSystemTime = &(statusLine[pos]);
+            pos++; // 'T' like system time (or uptime)
+            unsigned int systemTimeHour = ticContext.currentTime.time.hour;
+            statusLine[pos++]=(systemTimeHour / 10) % 10 + '0';
+            statusLine[pos++]=(systemTimeHour / 1) % 10 + '0';
+            pos++;
+            unsigned int systemTimeMinute = ticContext.currentTime.time.minute;
+            statusLine[pos++]=(systemTimeMinute / 10) % 10 + '0';
+            statusLine[pos++]=(systemTimeMinute / 1) % 10 + '0';
+            pos++;
+            unsigned int systemTimeSecond = ticContext.currentTime.time.second;
+            statusLine[pos++]=(systemTimeSecond / 10) % 10 + '0';
+            statusLine[pos++]=(systemTimeSecond / 1) % 10 + '0';
+            pos++;
+            
+            /* Draw only the system time part of statusLine (the trailing characters) */
+            lcd.drawText((statusLineSystemTime - statusLine)*17, 3*24, statusLineSystemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
+        }
+
 
         lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
         ticContext.lastDisplayedPowerFrameNb = ticContext.lastParsedFrameNb; /* Used to detect a new TIC frame and display it as soon as it appears */
