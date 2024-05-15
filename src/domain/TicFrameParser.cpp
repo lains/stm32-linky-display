@@ -331,6 +331,11 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
     Stm32DebugOutput::get().send(" bytes\n");
 #endif
     TIC::DatasetView dv(buf, cnt);    /* Decode the TIC dataset using a dataset view object */
+#ifdef EMBEDDED_DEBUG_CONSOLE
+    if (dv.decodedType == TIC::DatasetView::WrongCRC) {
+        Stm32DebugOutput::get().send("Dataset has wrong CRC\n");
+    }
+#endif
     //std::cout << "Above dataset is " << std::string(dv.isValid()?"":"in") << "valid\n";
     if (dv.isValid()) {
 #ifdef EMBEDDED_DEBUG_CONSOLE
