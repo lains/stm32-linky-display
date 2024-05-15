@@ -69,7 +69,7 @@ TEST(EndToEndDecoding_tests, MonophaseMidnightSample) {
             *newDayDetected = true;
         }
     };
-    ticParser.onDayOverInvoke(onDayOver, static_cast<void*>(&newDayDetected));
+    ticParser.invokeWhenDayOver(onDayOver, static_cast<void*>(&newDayDetected));
 
     auto onFrameCompleteBlinkGreenLedAndInvokeHandler = [](void* context) {
         TicFrameParser::unwrapInvokeOnFrameComplete(context);   /* Invoke the frameparser's onFrameComplete handler */
