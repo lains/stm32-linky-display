@@ -470,7 +470,7 @@ int main(void) {
             currentPencilYPos += 120;
         }
         currentPencilYPos -= 15; /* We are not using letters that go below the baseline on font58 (except for the semicolon ';'), so we can afford to go up a bit into that area */
-        drawHistory(lcd, 1, currentPencilYPos, lcd.getWidth()-2, lcd.getHeight() - currentPencilYPos - 1, powerHistory, static_cast<void*>(&debugContext));
+        drawHistory(lcd, 1, currentPencilYPos, lcd.getWidth()-2, lcd.getHeight() - currentPencilYPos - 1, powerHistory, nullptr/*static_cast<void*>(&debugContext)*/);
 
         debugContext = fullDisplayCycleTimeMs.get();
         /* Counts to 121-157ms depending on the number of columns drawn */
