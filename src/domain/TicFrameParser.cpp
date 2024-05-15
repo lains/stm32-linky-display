@@ -123,6 +123,8 @@ TicFrameParser::TicFrameParser(FOnNewPowerDataFunc onNewPowerData, void* onNewPo
     onNewPowerDataContext(onNewPowerDataContext),
     onDayOverFunc(nullptr),
     onDayOverFuncContext(nullptr),
+    onDatasetErrorFunc(nullptr),
+    onDatasetErrorFuncContext(nullptr),
     currentTimeGetterFunc(nullptr),
     currentTimeGetterFuncContext(nullptr),
     nbFramesParsed(0),
@@ -224,21 +226,31 @@ void TicFrameParser::guessFrameArrivalTime() {
     }
     if (this->currentTimeGetterFunc) {
         this->lastFrameMeasurements.timestamp = this->currentTimeGetterFunc(this->currentTimeGetterFuncContext);
-    }
 #ifdef EMBEDDED_DEBUG_CONSOLE
-    Stm32DebugOutput::get().send("Using the following systemtime instead of (missing) frame horodate: ");
-    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.hour));
-    Stm32DebugOutput::get().send(":");
-    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.minute));
-    Stm32DebugOutput::get().send(":");
-    Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.second));
-    Stm32DebugOutput::get().send("\n");
+        Stm32DebugOutput::get().send("Using systemtime (");
+        Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.hour));
+        Stm32DebugOutput::get().send(":");
+        Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.minute));
+        Stm32DebugOutput::get().send(":");
+        Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.second));
+        Stm32DebugOutput::get().send(") as horodate\n");
 #endif
+    }
+    else {
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("Missing time getter\n");
+#endif
+    }
 }
 
 void TicFrameParser::invokeWhenDayOver(FOnDayOverFunc dayOverFunc, void* context) {
     this->onDayOverFunc = dayOverFunc;
     this->onDayOverFuncContext = context;
+}
+
+void TicFrameParser::invokeOnDatasetError(FOnDatasetErrorFunc datasetErrorFunc, void* context) {
+    this->onDatasetErrorFunc = datasetErrorFunc;
+    this->onDatasetErrorFuncContext = context;
 }
 
 void TicFrameParser::setCurrentTimeGetter(FCurrentTimerGetterFunc currentTimeGetter, void* context) {
@@ -340,7 +352,12 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
     }
 #endif
     //std::cout << "Above dataset is " << std::string(dv.isValid()?"":"in") << "valid\n";
-    if (dv.isValid()) {
+    if (!dv.isValid()) {
+        if (this->onDatasetErrorFunc) {
+            this->onDatasetErrorFunc(this->onDatasetErrorFuncContext);
+        }
+    }
+    else {
 #ifdef EMBEDDED_DEBUG_CONSOLE
         Stm32DebugOutput::get().send("New dataset: ");
         Stm32DebugOutput::get().send(dv.labelBuffer, dv.labelSz);

@@ -69,6 +69,7 @@ public:
 /* Types */
     typedef void(*FOnNewPowerDataFunc)(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
     typedef void(*FOnDayOverFunc)(void* context); /*!< The prototype of callbacks invoked when we switch to the next day */
+    typedef void(*FOnDatasetErrorFunc)(void* context); /*!< The prototype of callbacks invoked when we detect an error in a dataset */
     typedef TimeOfDay(*FCurrentTimerGetterFunc)(void* context); /*!< The prototype of function to invoked to get the current TimeOfDay */
 
 /* Methods */
@@ -91,6 +92,14 @@ public:
      * @param context A context provided to the method
     */
     void invokeWhenDayOver(FOnDayOverFunc dayOverFunc, void* context);
+
+    /**
+     * @brief Set the method to invoke when we detect an error in a dataset
+     * 
+     * @param datasetErrorFunc The method to invoke
+     * @param context A context provided to the method
+    */
+    void invokeOnDatasetError(FOnDatasetErrorFunc datasetErrorFunc, void* context);
 
     /**
      * @brief Set the method to invoke to get the current TimeOfDay
@@ -116,7 +125,6 @@ protected:
      * @note This is required for historical TIC frames that include no date timestamp
     **/
     void guessFrameArrivalTime();
-
 
     /**
      * @brief Method invoked when we get data about the reference power
@@ -224,6 +232,8 @@ public:
     void* onNewPowerDataContext; /*!< A context pointer passed to onNewFrameBytes() and onFrameComplete() at invokation */
     FOnDayOverFunc onDayOverFunc; /*!< Pointer to a function invoked when we detect switching to the next day */
     void* onDayOverFuncContext; /*!< A context pointer passed as argument to the above method */
+    FOnDatasetErrorFunc onDatasetErrorFunc; /*!< Pointer to a function invoked when we detect an error in a dataset */
+    void* onDatasetErrorFuncContext; /*!< A context pointer passed as argument to the above method */
     FCurrentTimerGetterFunc currentTimeGetterFunc; /*!< Pointer to a function to invoke to get the current TimeOfDay */
     void* currentTimeGetterFuncContext; /*!< A context pointer passed as argument to the above method */
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
