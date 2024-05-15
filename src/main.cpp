@@ -241,6 +241,8 @@ int main(void) {
 
         Stm32MeasurementTimer fullDisplayCycleTimeMs(true);
 
+        uint16_t currentPencilYPos = 0;
+
 #ifdef SIMULATE_POWER_VALUES_WITHOUT_TIC
         {
             int fakePowerRefV = static_cast<int>(3000) - (static_cast<int>((lcdRefreshCount*30) % 6000)); /* Results in sweeping from +3000 to -3000W */
@@ -329,13 +331,14 @@ int main(void) {
 
         statusLine[pos] = '\0'; /* Temporarily terminate string, wiping the Txx:xx:xx text */
         BSP_LCD_SetFont(&Font24);
-        lcd.fillRect(0, 0, lcd.getWidth(), 3*24, Stm32LcdDriver::LCD_Color::Black);
         auto get_font24_ptr = [](const char c) {
             unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
             return &(Font24.table[(c-' ') * bytesPerGlyph]);
         };
+        //lcd.fillRect(0, 0, lcd.getWidth(), Font24.Height, Stm32LcdDriver::LCD_Color::Black);
         
-        lcd.drawText(0, 2*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+        currentPencilYPos += 24; /* Move a bit away from the very top of the screen. A few LCD display actually hide the very first pixels */
+        lcd.drawText(0, currentPencilYPos, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
         statusLine[pos++] = ' ';
         {
@@ -359,11 +362,11 @@ int main(void) {
             pos++;
             
             /* Draw only the system time part of statusLine (the trailing characters) */
-            lcd.drawText((statusLineSystemTime - statusLine)*17, 2*24, statusLineSystemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
+            lcd.drawText((statusLineSystemTime - statusLine)*17, currentPencilYPos, statusLineSystemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
         }
+        currentPencilYPos += Font24.Height;
 
-
-        lcd.fillRect(0, 3*24, lcd.getWidth(), lcd.getHeight() - 3*24, Stm32LcdDriver::LCD_Color::White);
+        lcd.fillRect(0, currentPencilYPos, lcd.getWidth(), lcd.getHeight() - currentPencilYPos, Stm32LcdDriver::LCD_Color::White);
         ticContext.lastDisplayedPowerFrameNb = ticContext.lastParsedFrameNb; /* Used to detect a new TIC frame and display it as soon as it appears */
 
         if (ticContext.instantaneousPower.isValid) {
@@ -463,9 +466,11 @@ int main(void) {
                     mainInstPowerText[12]='W';
                 }
             }
-            lcd.drawText(0, lcd.getHeight()/2 - 120, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
+            lcd.drawText(0, currentPencilYPos, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
+            currentPencilYPos += 120;
         }
-        drawHistory(lcd, 1, lcd.getHeight()/2, lcd.getWidth()-2, lcd.getHeight() - lcd.getHeight()/2 - 1, powerHistory, static_cast<void*>(&debugContext));
+        currentPencilYPos -= 15; /* We are not using letters that go below the baseline on font58 (except for the semicolon ';'), so we can afford to go up a bit into that area */
+        drawHistory(lcd, 1, currentPencilYPos, lcd.getWidth()-2, lcd.getHeight() - currentPencilYPos - 1, powerHistory, static_cast<void*>(&debugContext));
 
         debugContext = fullDisplayCycleTimeMs.get();
         /* Counts to 121-157ms depending on the number of columns drawn */
