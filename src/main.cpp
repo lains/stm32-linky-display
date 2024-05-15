@@ -267,7 +267,7 @@ int main(void) {
 #endif
         /* We can now work on draft buffer */
         uint8_t pos = 0;
-        char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X H@@:@@:@@ T@@:@@:@@";
+        char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X H@@:@@:@@ +@@:@@:@@";
         statusLine[pos++]=(lcdRefreshCount / 10000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
         statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
@@ -340,14 +340,18 @@ int main(void) {
         currentPencilYPos += 24; /* Move a bit away from the very top of the screen. A few LCD display actually hide the very first pixels */
         lcd.drawText(0, currentPencilYPos, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
-        statusLine[pos++] = ' ';
+        statusLine[pos] = ' ';
         {
+            char* statusLineSystemTime = &(statusLine[pos]);
+            pos++;
             Stm32LcdDriver::LCD_Color textColor = Stm32LcdDriver::LCD_Color::Green;
             if (ticContext.currentTime.relativeToBoot) {
                 textColor = Stm32LcdDriver::LCD_Color::Red;
+                statusLine[pos++]='+'; /* Time is relative to boot */
             }
-            char* statusLineSystemTime = &(statusLine[pos]);
-            pos++; // 'T' like system time (or uptime)
+            else {
+                statusLine[pos++]='T'; /* Time is absolute */
+            }
             unsigned int systemTimeHour = ticContext.currentTime.time.hour;
             statusLine[pos++]=(systemTimeHour / 10) % 10 + '0';
             statusLine[pos++]=(systemTimeHour / 1) % 10 + '0';
