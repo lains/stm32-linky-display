@@ -147,7 +147,12 @@ int main(void) {
         TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
         ticContext->currentTime.startNewDayAtMidnight();
     };
-    ticParser.onDayOverInvoke(performAtMidnight, static_cast<void*>(&ticContext));
+    ticParser.invokeWhenDayOver(performAtMidnight, static_cast<void*>(&ticContext));
+    auto currentTimeGetter = [](void* context) -> TimeOfDay {
+        TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
+        return ticContext->currentTime.time;
+    };
+    ticParser.setCurrentTimeGetter(currentTimeGetter, static_cast<void*>(&ticContext));
 
     powerHistory.setContext(&ticContext);
 

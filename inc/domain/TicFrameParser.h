@@ -68,7 +68,8 @@ class TicFrameParser {
 public:
 /* Types */
     typedef void(*FOnNewPowerDataFunc)(const TicEvaluatedPower& power, const TimeOfDay& timestamp, unsigned int frameId, void* context); /*!< The prototype of callbacks invoked on new power data */
-    typedef void(*FOnDayOverFunc)(void* context); /*!< The prototype of callbacks invoked we we switch to the next day */
+    typedef void(*FOnDayOverFunc)(void* context); /*!< The prototype of callbacks invoked when we switch to the next day */
+    typedef TimeOfDay(*FCurrentTimerGetterFunc)(void* context); /*!< The prototype of function to invoked to get the current TimeOfDay */
 
 /* Methods */
     /**
@@ -86,10 +87,18 @@ public:
     /**
      * @brief Set the method to invoke when we detect a switch to the next day
      * 
-     * @param power The method to invoke
+     * @param dayOverFunc The method to invoke
      * @param context A context provided to the method
     */
-    void onDayOverInvoke(FOnDayOverFunc dayOverFunc, void* context);
+    void invokeWhenDayOver(FOnDayOverFunc dayOverFunc, void* context);
+
+    /**
+     * @brief Set the method to invoke to get the current TimeOfDay
+     * 
+     * @param currentTimeGetter The method to invoke
+     * @param context A context provided to the method
+    */
+    void setCurrentTimeGetter(FCurrentTimerGetterFunc currentTimeGetter, void* context);
 
 protected:
     void onNewMeasurementAvailable();
@@ -215,6 +224,8 @@ public:
     void* onNewPowerDataContext; /*!< A context pointer passed to onNewFrameBytes() and onFrameComplete() at invokation */
     FOnDayOverFunc onDayOverFunc; /*!< Pointer to a function invoked when we detect switching to the next day */
     void* onDayOverFuncContext; /*!< A context pointer passed as argument to the above method */
+    FCurrentTimerGetterFunc currentTimeGetterFunc; /*!< Pointer to a function to invoke to get the current TimeOfDay */
+    void* currentTimeGetterFuncContext; /*!< A context pointer passed as argument to the above method */
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */

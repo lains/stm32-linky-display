@@ -121,8 +121,10 @@ void std::swap(TicMeasurements& first, TicMeasurements& second) {
 TicFrameParser::TicFrameParser(FOnNewPowerDataFunc onNewPowerData, void* onNewPowerDataContext) :
     onNewPowerData(onNewPowerData),
     onNewPowerDataContext(onNewPowerDataContext),
-    onDayOverFunc([](void* context) { }),
+    onDayOverFunc(nullptr),
     onDayOverFuncContext(nullptr),
+    currentTimeGetterFunc(nullptr),
+    currentTimeGetterFuncContext(nullptr),
     nbFramesParsed(0),
     de(ticFrameParserUnWrapDatasetExtractor, this),
     lastFrameMeasurements(),
@@ -220,15 +222,11 @@ void TicFrameParser::guessFrameArrivalTime() {
         Stm32DebugOutput::get().send("\n");
 #endif
     }
-    unsigned int emulatedSecond =  (this->nbFramesParsed * 3) % 60; /* Assume 1 historical TIC frame every 3 seconds */
-    unsigned int emulatedHorodateRemainder = (this->nbFramesParsed / 20); /* Counts total remainder as minutes */
-    unsigned int emulatedMinute = emulatedHorodateRemainder % 60;
-    emulatedHorodateRemainder = emulatedHorodateRemainder / 60; /* Now count total remainder as hours */
-    unsigned int emulatedHour = emulatedHorodateRemainder % 24;
-    /* Note: we discard days and month for now */
-    this->lastFrameMeasurements.timestamp = TimeOfDay(emulatedHour, emulatedMinute, emulatedSecond);
+    if (this->currentTimeGetterFunc) {
+        this->lastFrameMeasurements.timestamp = this->currentTimeGetterFunc(this->currentTimeGetterFuncContext);
+    }
 #ifdef EMBEDDED_DEBUG_CONSOLE
-    Stm32DebugOutput::get().send("Injecting timestamp in historical frame: ");
+    Stm32DebugOutput::get().send("Using the following systemtime instead of (missing) frame horodate: ");
     Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.hour));
     Stm32DebugOutput::get().send(":");
     Stm32DebugOutput::get().send(static_cast<unsigned int>(this->lastFrameMeasurements.timestamp.minute));
@@ -238,9 +236,14 @@ void TicFrameParser::guessFrameArrivalTime() {
 #endif
 }
 
-void TicFrameParser::onDayOverInvoke(FOnDayOverFunc dayOverFunc, void* context) {
+void TicFrameParser::invokeWhenDayOver(FOnDayOverFunc dayOverFunc, void* context) {
     this->onDayOverFunc = dayOverFunc;
     this->onDayOverFuncContext = context;
+}
+
+void TicFrameParser::setCurrentTimeGetter(FCurrentTimerGetterFunc currentTimeGetter, void* context) {
+    this->currentTimeGetterFunc = currentTimeGetter;
+    this->currentTimeGetterFuncContext = context;
 }
 
 void TicFrameParser::onRefPowerInfo(uint32_t power) {
