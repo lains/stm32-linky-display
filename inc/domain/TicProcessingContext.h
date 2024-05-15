@@ -39,6 +39,7 @@ struct TicProcessingContext {
     TIC::Unframer& ticUnframer;   /*!< The encapsulated TIC frame delimiter handler */
     unsigned int lostTicBytes;    /*!< How many TIC bytes were lost due to forwarding queue overflow? */
     unsigned int serialRxOverflowCount;  /*!< How many times we didnot read fast enough the serial buffer and bytes where thus lost due to incoming serial buffer overflow */
+    unsigned int datasetsWithErrors; /*!< How many times did we fail to decode a dataset due to format errors */
     TicEvaluatedPower instantaneousPower;    /*!< A place to store the instantaneous power measurement */
     unsigned int lastParsedFrameNb; /*!< The ID of the last received TIC frame */
     unsigned int lastDisplayedPowerFrameNb; /*!< The ID of the last TIC frame for which the instantanous power was displayed on the screen */

@@ -153,6 +153,12 @@ int main(void) {
         return ticContext->currentTime.time;
     };
     ticParser.setCurrentTimeGetter(currentTimeGetter, static_cast<void*>(&ticContext));
+    auto increaseDatasetErrorCount = [](void* context) {
+        TicProcessingContext* ticContext = static_cast<TicProcessingContext*>(context);
+        ticContext->datasetsWithErrors++;
+        Stm32DebugOutput::get().send("Dataset error\n");
+    };
+    ticParser.invokeOnDatasetError(increaseDatasetErrorCount, static_cast<void*>(&ticContext));
 
     powerHistory.setContext(&ticContext);
 
@@ -305,9 +311,9 @@ int main(void) {
 
         pos++;
 
-        unsigned int serialRxOverflowCount = ticContext.serialRxOverflowCount;
-        statusLine[pos++]=(serialRxOverflowCount / 10) % 10 + '0';
-        statusLine[pos++]=(serialRxOverflowCount / 1) % 10 + '0';
+        unsigned int errors = ticContext.serialRxOverflowCount + ticContext.datasetsWithErrors;
+        statusLine[pos++]=(errors / 10) % 10 + '0';
+        statusLine[pos++]=(errors / 1) % 10 + '0';
         pos++; // 'X'
 
         pos++;

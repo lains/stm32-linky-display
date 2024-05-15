@@ -17,6 +17,7 @@ TicProcessingContext::TicProcessingContext(Stm32SerialDriver& ticSerial, TIC::Un
     ticUnframer(ticUnframer),
     lostTicBytes(0),
     serialRxOverflowCount(0),
+    datasetsWithErrors(0),
     instantaneousPower(),
     lastParsedFrameNb(static_cast<unsigned int>(-1)),
     displayTimeMs(0),
