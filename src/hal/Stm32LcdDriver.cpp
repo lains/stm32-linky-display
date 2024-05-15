@@ -315,8 +315,6 @@ bool Stm32LcdDriver::start() {
     BSP_LCD_SelectLayer(0); 
 
     this->fillRect(0, 0, this->getWidth(), this->getHeight(), LCD_Color::White);
-    BSP_LCD_SetTextColor(LCD_COLOR_RED);
-    BSP_LCD_FillCircle(30, 30, 30);
 
     this->displayState = SwitchToDraftIsPending;
 

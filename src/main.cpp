@@ -329,13 +329,13 @@ int main(void) {
 
         statusLine[pos] = '\0'; /* Temporarily terminate string, wiping the Txx:xx:xx text */
         BSP_LCD_SetFont(&Font24);
-        lcd.fillRect(0, 3*24, lcd.getWidth(), 24, Stm32LcdDriver::LCD_Color::Black);
+        lcd.fillRect(0, 0, lcd.getWidth(), 3*24, Stm32LcdDriver::LCD_Color::Black);
         auto get_font24_ptr = [](const char c) {
             unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
             return &(Font24.table[(c-' ') * bytesPerGlyph]);
         };
         
-        lcd.drawText(0, 3*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
+        lcd.drawText(0, 2*24, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
         statusLine[pos++] = ' ';
         {
@@ -359,11 +359,11 @@ int main(void) {
             pos++;
             
             /* Draw only the system time part of statusLine (the trailing characters) */
-            lcd.drawText((statusLineSystemTime - statusLine)*17, 3*24, statusLineSystemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
+            lcd.drawText((statusLineSystemTime - statusLine)*17, 2*24, statusLineSystemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
         }
 
 
-        lcd.fillRect(0, 4*24, lcd.getWidth(), lcd.getHeight() - 4*24, Stm32LcdDriver::LCD_Color::White);
+        lcd.fillRect(0, 3*24, lcd.getWidth(), lcd.getHeight() - 3*24, Stm32LcdDriver::LCD_Color::White);
         ticContext.lastDisplayedPowerFrameNb = ticContext.lastParsedFrameNb; /* Used to detect a new TIC frame and display it as soon as it appears */
 
         if (ticContext.instantaneousPower.isValid) {

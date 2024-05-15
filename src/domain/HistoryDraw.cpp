@@ -259,5 +259,5 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         }
     }
     if (debugContext)
-        drawDebugLine(lcd, 4*24, history, nbHistoryEntries, debugX, debugYtop, debugYbottom, debugPower, debugPowerIsExact, debugValue, debugContext);
+        drawDebugLine(lcd, 3*24, history, nbHistoryEntries, debugX, debugYtop, debugYbottom, debugPower, debugPowerIsExact, debugValue, debugContext);
 }
