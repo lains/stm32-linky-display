@@ -218,6 +218,7 @@ public:
     unsigned int nbFramesParsed; /*!< Total number of complete frames parsed */
     TIC::DatasetExtractor de;   /*!< The encapsulated dataset extractor instance (programmed to call us back on newly decoded datasets) */
     TicMeasurements lastFrameMeasurements;    /*!< Gathers all interesting measurement of the last frame */
+    uint32_t lastKnownMaxPower; /*!< The last max power known from the content of a TIC frame (or 0 if unknown) */
 };
 
 #ifdef __UNIT_TEST__

@@ -4,6 +4,7 @@
 [submodule "ticdecodecpp"]
 	path = ticdecodecpp
 	url = https://github.com/lains/ticdecodecpp.git
+	branch = main
 [submodule "bsp/STM32CubeF7"]
 	path = bsp/STM32CubeF7
 	url = https://github.com/STMicroelectronics/STM32CubeF7

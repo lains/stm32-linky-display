@@ -125,7 +125,8 @@ TicFrameParser::TicFrameParser(FOnNewPowerDataFunc onNewPowerData, void* onNewPo
     onDayOverFuncContext(nullptr),
     nbFramesParsed(0),
     de(ticFrameParserUnWrapDatasetExtractor, this),
-    lastFrameMeasurements()
+    lastFrameMeasurements(),
+    lastKnownMaxPower(0)
 {
 }
 
@@ -247,11 +248,15 @@ void TicFrameParser::onRefPowerInfo(uint32_t power) {
 }
 
 void TicFrameParser::onMaxPowerInfo(uint32_t maxPower) {
-    static uint32_t lastKnownMaxPower = 0;
-    if (maxPower < lastKnownMaxPower) { /* Daily max power reduces (probably 0), this means we are starting a new day, we are at midnight */
-        //invoke our own onModnightInvoke callback
+    if (maxPower < this->lastKnownMaxPower) { /* Daily max power reduces (probably 0), this means we are starting a new day, we are at midnight */
+#ifdef EMBEDDED_DEBUG_CONSOLE
+        Stm32DebugOutput::get().send("Switch to new day detected\n");
+#endif
+        if (this->onDayOverFunc) {
+            this->onDayOverFunc(this->onDayOverFuncContext);
+        }
     }
-    lastKnownMaxPower = maxPower;
+    this->lastKnownMaxPower = maxPower;
 }
 
 void TicFrameParser::onNewInstVoltageMeasurement(uint32_t voltage) {
@@ -341,68 +346,43 @@ void TicFrameParser::onDatasetExtracted(const uint8_t* buf, unsigned int cnt) {
         }
         //std::vector<uint8_t> datasetLabel(dv.labelBuffer, dv.labelBuffer+dv.labelSz);
         //std::cout << "Dataset has label \"" << std::string(datasetLabel.begin(), datasetLabel.end()) << "\"\n";
-        if (dv.labelSz == 4 &&
-            memcmp(dv.labelBuffer, "DATE", 4) == 0) {
-            /* The current label is a DATE */
+        if (dv.labelEquals("DATE")) {
             if (dv.horodate.isValid) {
                 this->onNewDate(dv.horodate);
             }
         }
-        /* Search for SINSTS or PAPP */
-        else if ( (dv.labelSz == 6 &&
-                  memcmp(dv.labelBuffer, "SINSTS", 6) == 0) ||
-                  (dv.labelSz == 4 &&
-                  memcmp(dv.labelBuffer, "PAPP", 4) == 0)
-                ) {
+        /* Search for withdrawn power labels */
+        else if (dv.labelEquals("SINSTS") || dv.labelEquals("PAPP")) {
             //std::cout << "Found inst power dataset\n";
             if (dv.dataSz > 0) {
-                /* The current label is a SINSTS or PAPP with some value associated */
                 //std::vector<uint8_t> datasetValue(dv.dataBuffer, dv.dataBuffer+dv.dataSz);
                 //std::cout << "Power data received: \"" << std::string(datasetValue.begin(), datasetValue.end()) << "\"\n";
-                uint32_t withdrawnPower = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+                uint32_t withdrawnPower = dv.dataToUint32();
                 //std::cout << "interpreted as " << withdrawnPower << "W\n";
                 if (withdrawnPower != (uint32_t)-1)
                     this->onNewWithdrawnPowerMesurement(withdrawnPower);
             }
         }
-        /* Search for URMS1 */
-        else if (dv.labelSz == 5 &&
-            memcmp(dv.labelBuffer, "URMS1", 5) == 0 &&
-            dv.dataSz > 0) {
-            /* The current label is a URMS1 with some value associated */
-            uint32_t urms1 = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+        /* Search for rms voltage value */
+        else if (dv.labelEquals("URMS1")) {
+            uint32_t urms1 = dv.dataToUint32();
             if (urms1 != (uint32_t)-1)
                 this->onNewInstVoltageMeasurement(urms1);
         }
-        /* Search for IRMS1 */
-        else if (dv.labelSz == 5 &&
-            memcmp(dv.labelBuffer, "IRMS1", 5) == 0 &&
-            dv.dataSz > 0) {
-            /* The current label is a URMS1 with some value associated */
-            uint32_t irms1 = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+        /* Search for rms current value */
+        else if (dv.labelEquals("IRMS1")) {
+            uint32_t irms1 = dv.dataToUint32();
             if (irms1 != (uint32_t)-1)
                 this->onNewInstCurrentMeasurement(irms1);
         }
         /* Search for PREF */
-        else if (dv.labelSz == 4 &&
-            memcmp(dv.labelBuffer, "PREF", 4) == 0 &&
-            dv.dataSz > 0) {
-            /* The current label is a URMS1 with some value associated */
-            uint32_t pref = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+        else if (dv.labelEquals("PREF")) {
+            uint32_t pref = dv.dataToUint32();
             if (pref != (uint32_t)-1)
                 this->onRefPowerInfo(pref);
         }
-        else if (dv.labelSz == 4 &&
-            memcmp(dv.labelBuffer, "PMAX", 4) == 0 &&
-            dv.dataSz > 0) { /* Max withdrawn power today */
-            uint32_t pmax = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
-            if (pmax != (uint32_t)-1)
-                this->onMaxPowerInfo(pmax);
-        }
-        else if (dv.labelSz == 8 &&
-            memcmp(dv.labelBuffer, "SMAXSN", 6) == 0 &&
-            dv.dataSz > 0) { /* Max withdrawn power today */
-            uint32_t pmax = dv.uint32FromValueBuffer(dv.dataBuffer, dv.dataSz);
+        else if (dv.labelEquals("PMAX") || dv.labelEquals("SMAXSN")) {
+            uint32_t pmax = dv.dataToUint32();
             if (pmax != (uint32_t)-1)
                 this->onMaxPowerInfo(pmax);
         }
