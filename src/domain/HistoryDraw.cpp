@@ -108,6 +108,10 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     if (width == 0 || height == 0)
         return;
     
+    if (debugContext) { /* If the debug line needs to be drawn, reduce the history graph area height accordinly */
+        height -= Font24.Height;
+    }
+    
     uint16_t xright = x + width - 1;
 
     unsigned int nbHistoryEntries = width; /* Initially try to fill-in the full width of the area */
@@ -258,6 +262,8 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
                 lcd.drawVerticalLine(gridX, y, height, Stm32LcdDriver::LightGrey); /* Draw each other step of 5 mins */
         }
     }
-    if (debugContext)
-        drawDebugLine(lcd, 3*24, history, nbHistoryEntries, debugX, debugYtop, debugYbottom, debugPower, debugPowerIsExact, debugValue, debugContext);
+    if (debugContext) {
+        /* If debug line needs to be drawn, draw it just under the history graph */
+        drawDebugLine(lcd, y+height, history, nbHistoryEntries, debugX, debugYtop, debugYbottom, debugPower, debugPowerIsExact, debugValue, debugContext);
+    }
 }
