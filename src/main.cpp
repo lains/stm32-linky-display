@@ -15,6 +15,7 @@
 extern "C" {
 #include "main.h"
 #include <stdio.h>
+#include <string.h> // For strlen()
 #include "font58.h"
 
 static void SystemClock_Config(void); /* Defined below */
@@ -75,7 +76,7 @@ void Error_Handler() {
  * @param framesCount The number of TIC frames received
  * @param rxBytesCount The number of TIC serial bytes received
  * @param errors The number of decoding errors
- * @param[in] displayedHorodate The current horodate (if known), or nullptr do disable display of the horodate
+ * @param[in] displayedHorodate The current horodate (if known), or nullptr to exclude the horodate from the returned string
  * 
  * @note The returned status string is a static buffer owned by this function.
  *       It is thus always properly allocated and has valid content until the next call of this function.
@@ -346,9 +347,9 @@ int main(void) {
             fakeHorodate.addSeconds(30); /* Fast forward in time */
             ticParser.lastFrameMeasurements.instPower = fakePower;
             powerHistory.onNewPowerData(fakePower, fakeHorodate, ticContext.lastParsedFrameNb);
+            ticParser.nbFramesParsed++; /* Introspection for debug */
+            ticContext.lastParsedFrameNb = ticParser.nbFramesParsed;
         }
-        ticParser.nbFramesParsed++; /* Introspection for debug */
-        ticContext.lastParsedFrameNb = ticParser.nbFramesParsed;
 #endif
         /* Compute and display the status line */
         unsigned int errors = ticContext.serialRxOverflowCount + ticContext.datasetsWithErrors;
