@@ -130,7 +130,7 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     int debugValue = INT_MIN;
 
     const int maxPower = 3000;
-    const int minPower = -1500;
+    const int minPower = -2100;
     uint16_t zeroSampleAbsoluteY = y;
     zeroSampleAbsoluteY += static_cast<uint16_t>(static_cast<unsigned long int>(maxPower) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     for (unsigned int measurementAge = 0; measurementAge < nbHistoryEntries; measurementAge++) {
@@ -225,7 +225,8 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         return &(Font24.table[(c-' ') * bytesPerGlyph]);
     };
 
-    lcd.drawHorizontalLine(x, zeroSampleAbsoluteY, width, Stm32LcdDriver::Black); /* Draw 0 */
+    lcd.drawHorizontalLine(x, zeroSampleAbsoluteY, width, Stm32LcdDriver::Black); /* Draw 0 (double/thick black line) */
+    lcd.drawHorizontalLine(x, zeroSampleAbsoluteY+1, width, Stm32LcdDriver::Black);
     uint16_t gridY;
     uint16_t gridWidth = nbHistoryEntries;
     uint16_t gridX = x;
@@ -245,6 +246,8 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
         lcd.drawText(gridX + 2, gridY - 22, "1000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Black); /* Draw -1000W */
+    gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 2000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
+    lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Black); /* Draw -2000W */
 
     debugValue = nbHistoryEntries * (4*3) / history.getPowerRecordsPerHour(); /* We divide hours in 12 steps, thus each step is 5 mins */
     for (unsigned int fiveMinStep = 1; fiveMinStep <= nbHistoryEntries * (4*3) / history.getPowerRecordsPerHour(); fiveMinStep++) {
