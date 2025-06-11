@@ -69,6 +69,80 @@ void Error_Handler() {
 }
 
 /**
+ * @brief Genenate a status string
+ * 
+ * @param lcdRefreshCount The number of LCD refreshes
+ * @param framesCount The number of TIC frames received
+ * @param rxBytesCount The number of TIC serial bytes received
+ * @param errors The number of decoding errors
+ * @param[in] displayedHorodate The current horodate (if known), or nullptr do disable display of the horodate
+ * 
+ * @note The returned status string is a static buffer owned by this function.
+ *       It is thus always properly allocated and has valid content until the next call of this function.
+ */
+const char* getStatusString(unsigned int lcdRefreshCount, unsigned int framesCount, unsigned long rxBytesCount, unsigned int errors, const TimeOfDay* displayedHorodate) {
+    static char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X H@@:@@:@@";
+    uint8_t pos = 0;
+    statusLine[pos++]=(lcdRefreshCount / 10000) % 10 + '0';
+    statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
+    statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
+    statusLine[pos++]=(lcdRefreshCount / 10) % 10 + '0';
+    statusLine[pos++]=(lcdRefreshCount / 1) % 10 + '0';
+    pos++; // 'L'
+
+    pos++;
+
+    statusLine[pos++]=(framesCount / 10000) % 10 + '0';
+    statusLine[pos++]=(framesCount / 1000) % 10 + '0';
+    statusLine[pos++]=(framesCount / 100) % 10 + '0';
+    statusLine[pos++]=(framesCount / 10) % 10 + '0';
+    statusLine[pos++]=(framesCount / 1) % 10 + '0';
+    pos++; // 'F'
+
+    pos++;
+
+    statusLine[pos++]=(rxBytesCount / 10000000) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 1000000) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 100000) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 10000) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 1000) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 100) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 10) % 10 + '0';
+    statusLine[pos++]=(rxBytesCount / 1) % 10 + '0';
+    pos++; // 'B'
+
+    pos++;
+
+    statusLine[pos++]=(errors / 10) % 10 + '0';
+    statusLine[pos++]=(errors / 1) % 10 + '0';
+    pos++; // 'X'
+
+    pos++;
+
+    pos++; // 'H' like time from Horodate
+
+    if (displayedHorodate && displayedHorodate->isValid) {
+        unsigned int horodateHour = displayedHorodate->hour;
+        statusLine[pos++]=(horodateHour / 10) % 10 + '0';
+        statusLine[pos++]=(horodateHour / 1) % 10 + '0';
+        pos++;
+        unsigned int horodateMinute = displayedHorodate->minute;
+        statusLine[pos++]=(horodateMinute / 10) % 10 + '0';
+        statusLine[pos++]=(horodateMinute / 1) % 10 + '0';
+        pos++;
+        unsigned int horodateSecond = displayedHorodate->second;
+        statusLine[pos++]=(horodateSecond / 10) % 10 + '0';
+        statusLine[pos++]=(horodateSecond / 1) % 10 + '0';
+    }
+    else {
+        pos += 8;
+    }
+
+    statusLine[pos] = '\0'; /* Terminate string */
+    return statusLine;
+}
+
+/**
  * @brief  Main program
  */
 int main(void) {
@@ -276,71 +350,16 @@ int main(void) {
         ticParser.nbFramesParsed++; /* Introspection for debug */
         ticContext.lastParsedFrameNb = ticParser.nbFramesParsed;
 #endif
-        /* We can now work on draft buffer */
-        uint8_t pos = 0;
-        char statusLine[]="@@@@@L @@@@@F @@@@@@@@B @@X H@@:@@:@@ +@@:@@:@@";
-        statusLine[pos++]=(lcdRefreshCount / 10000) % 10 + '0';
-        statusLine[pos++]=(lcdRefreshCount / 1000) % 10 + '0';
-        statusLine[pos++]=(lcdRefreshCount / 100) % 10 + '0';
-        statusLine[pos++]=(lcdRefreshCount / 10) % 10 + '0';
-        statusLine[pos++]=(lcdRefreshCount / 1) % 10 + '0';
-        pos++; // 'L'
-
-        pos++;
-
-        unsigned int framesCount = ticParser.nbFramesParsed;
-        statusLine[pos++]=(framesCount / 10000) % 10 + '0';
-        statusLine[pos++]=(framesCount / 1000) % 10 + '0';
-        statusLine[pos++]=(framesCount / 100) % 10 + '0';
-        statusLine[pos++]=(framesCount / 10) % 10 + '0';
-        statusLine[pos++]=(framesCount / 1) % 10 + '0';
-        pos++; // 'F'
-
-        pos++;
-
-        unsigned long rxBytesCount = ticSerial.getRxBytesTotal();
-        statusLine[pos++]=(rxBytesCount / 10000000) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 1000000) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 100000) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 10000) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 1000) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 100) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 10) % 10 + '0';
-        statusLine[pos++]=(rxBytesCount / 1) % 10 + '0';
-        pos++; // 'B'
-
-        pos++;
-
+        /* Compute and display the status line */
         unsigned int errors = ticContext.serialRxOverflowCount + ticContext.datasetsWithErrors;
-        statusLine[pos++]=(errors / 10) % 10 + '0';
-        statusLine[pos++]=(errors / 1) % 10 + '0';
-        pos++; // 'X'
-
-        pos++;
-
-        pos++; // 'H' like time from Horodate
         unsigned int nbSamples = 1;
         PowerHistoryEntry lastMeasurement;
         powerHistory.getLastPower(nbSamples, &lastMeasurement);
+        const TimeOfDay* horodateToDisplay = nullptr;
         if (nbSamples == 1 && lastMeasurement.timestamp.isValid) {   /* We have a valid last measurement */
-            const TimeOfDay& displayedHorodate = lastMeasurement.timestamp;
-            unsigned int horodateHour = displayedHorodate.hour;
-            statusLine[pos++]=(horodateHour / 10) % 10 + '0';
-            statusLine[pos++]=(horodateHour / 1) % 10 + '0';
-            pos++;
-            unsigned int horodateMinute = displayedHorodate.minute;
-            statusLine[pos++]=(horodateMinute / 10) % 10 + '0';
-            statusLine[pos++]=(horodateMinute / 1) % 10 + '0';
-            pos++;
-            unsigned int horodateSecond = displayedHorodate.second;
-            statusLine[pos++]=(horodateSecond / 10) % 10 + '0';
-            statusLine[pos++]=(horodateSecond / 1) % 10 + '0';
+            horodateToDisplay = &(lastMeasurement.timestamp);
         }
-        else {
-            pos += 8;
-        }
-
-        statusLine[pos] = '\0'; /* Temporarily terminate string, wiping the Txx:xx:xx text */
+        const char* statusLine = getStatusString(lcdRefreshCount, ticParser.nbFramesParsed, ticSerial.getRxBytesTotal(), errors, horodateToDisplay);
         BSP_LCD_SetFont(&Font24);
         auto get_font24_ptr = [](const char c) {
             unsigned int bytesPerGlyph = Font24.Height * ((Font24.Width + 7) / 8);
@@ -351,33 +370,33 @@ int main(void) {
         currentPencilYPos += 24; /* Move a bit away from the very top of the screen. A few LCD display actually hide the very first pixels */
         lcd.drawText(0, currentPencilYPos, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
-        statusLine[pos] = ' ';
+        static char systemTime[]=" +@@:@@:@@";
+        uint8_t pos = 1; /* Skip the first space */
         {
-            char* statusLineSystemTime = &(statusLine[pos]);
-            pos++;
-            Stm32LcdDriver::LCD_Color textColor = Stm32LcdDriver::LCD_Color::Green;
+            Stm32LcdDriver::LCD_Color textColor;
             if (ticContext.currentTime.relativeToBoot) {
                 textColor = Stm32LcdDriver::LCD_Color::Red;
-                statusLine[pos++]='+'; /* Time is relative to boot */
+                systemTime[pos++]='+'; /* Time is relative to boot */
             }
             else {
-                statusLine[pos++]='T'; /* Time is absolute */
+                textColor = Stm32LcdDriver::LCD_Color::Green;
+                systemTime[pos++]='T'; /* Time is absolute */
             }
             unsigned int systemTimeHour = ticContext.currentTime.time.hour;
-            statusLine[pos++]=(systemTimeHour / 10) % 10 + '0';
-            statusLine[pos++]=(systemTimeHour / 1) % 10 + '0';
+            systemTime[pos++]=(systemTimeHour / 10) % 10 + '0';
+            systemTime[pos++]=(systemTimeHour / 1) % 10 + '0';
             pos++;
             unsigned int systemTimeMinute = ticContext.currentTime.time.minute;
-            statusLine[pos++]=(systemTimeMinute / 10) % 10 + '0';
-            statusLine[pos++]=(systemTimeMinute / 1) % 10 + '0';
+            systemTime[pos++]=(systemTimeMinute / 10) % 10 + '0';
+            systemTime[pos++]=(systemTimeMinute / 1) % 10 + '0';
             pos++;
             unsigned int systemTimeSecond = ticContext.currentTime.time.second;
-            statusLine[pos++]=(systemTimeSecond / 10) % 10 + '0';
-            statusLine[pos++]=(systemTimeSecond / 1) % 10 + '0';
+            systemTime[pos++]=(systemTimeSecond / 10) % 10 + '0';
+            systemTime[pos++]=(systemTimeSecond / 1) % 10 + '0';
             pos++;
             
-            /* Draw only the system time part of statusLine (the trailing characters) */
-            lcd.drawText((statusLineSystemTime - statusLine)*17, currentPencilYPos, statusLineSystemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
+            /* Draw the system time part of the status line (string systemTime) right after statusLine */
+            lcd.drawText(strlen(statusLine)*17, currentPencilYPos, systemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
         }
         currentPencilYPos += Font24.Height;
 
