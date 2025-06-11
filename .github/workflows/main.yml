@@ -27,7 +27,7 @@ jobs:
           arm-none-eabi-gcc --version
           arm-none-eabi-g++ --version
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Build for STM32F469I-DISCO
@@ -48,7 +48,7 @@ jobs:
           gcc --version
           g++ --version
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check out ticdecodecpp submodule
         run: |
           git submodule init ticdecodecpp
