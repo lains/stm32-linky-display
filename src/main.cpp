@@ -144,6 +144,152 @@ const char* getStatusString(unsigned int lcdRefreshCount, unsigned int framesCou
 }
 
 /**
+ * @brief Genenate a system time string
+ * 
+ * @param[in] currentTime The current time (if known), if nullptr, we will return an empty string
+ * 
+ * @note The returned status string is a static buffer owned by this function.
+ *       It is thus always properly allocated and has valid content until the next call of this function.
+ */
+const char* getSystemTimeString(const SystemCurrentTime* currentTime) {
+    static char systemTime[]=" +@@:@@:@@";
+    uint8_t pos = 0;
+
+    if (!currentTime) {
+        systemTime[0]='\0'; /* Set empty string */
+        return systemTime;
+    }
+    systemTime[pos++]=' ';
+    Stm32LcdDriver::LCD_Color textColor;
+    if (currentTime->relativeToBoot) {
+        systemTime[pos++]='+'; /* Time is relative to boot */
+    }
+    else {
+        systemTime[pos++]='T'; /* Time is absolute */
+    }
+    unsigned int systemTimeHour = currentTime->time.hour;
+    systemTime[pos++]=(systemTimeHour / 10) % 10 + '0';
+    systemTime[pos++]=(systemTimeHour / 1) % 10 + '0';
+    pos++;
+    unsigned int systemTimeMinute = currentTime->time.minute;
+    systemTime[pos++]=(systemTimeMinute / 10) % 10 + '0';
+    systemTime[pos++]=(systemTimeMinute / 1) % 10 + '0';
+    pos++;
+    unsigned int systemTimeSecond = currentTime->time.second;
+    systemTime[pos++]=(systemTimeSecond / 10) % 10 + '0';
+    systemTime[pos++]=(systemTimeSecond / 1) % 10 + '0';
+    pos++;
+    systemTime[pos] = '\0'; /* Terminate string */
+    return systemTime;
+}
+
+/**
+ * @brief Genenate an instantaneous power string
+ * 
+ * @param[in] evaluatedPower The current time (if known), if nullptr, we will return an empty string
+ * 
+ * @note The returned status string is a static buffer owned by this function.
+ *       It is thus always properly allocated and has valid content until the next call of this function.
+ */
+const char* getInstantaneousPowerString(const TicEvaluatedPower* evaluatedPower) {
+    static char mainInstPowerString[] = "-[9999;9999]WW";
+    if (!evaluatedPower)
+        return "";
+    if (evaluatedPower->isExact && evaluatedPower->minValue>0) {  /* We are withdrawing power */
+        unsigned int withdrawnPower = static_cast<unsigned int>(evaluatedPower->minValue);
+        if (withdrawnPower <= 9999) {
+            for (unsigned int pos=0; pos<8; pos++)
+                mainInstPowerString[pos] = ' ';   /* Fill leading characters with blank */
+            
+            if (withdrawnPower < 1000) {
+                mainInstPowerString[8]=' ';
+            } else {
+                uint8_t digit1000 = (withdrawnPower / 1000) % 10;
+                mainInstPowerString[8]=digit1000 + '0';
+            }
+            if (withdrawnPower < 100) {
+                mainInstPowerString[9]=' ';
+            } else {
+                uint8_t digit100 = (withdrawnPower / 100) % 10;
+                mainInstPowerString[9]=digit100 + '0';
+            }
+            if (withdrawnPower < 10) {
+                mainInstPowerString[10]=' ';
+            } else {
+                uint8_t digit10 = (withdrawnPower / 10) % 10;
+                mainInstPowerString[10]=digit10  + '0';
+            }
+            {
+                uint8_t digit1 = (withdrawnPower / 1) % 10;
+                mainInstPowerString[11]=digit1 + '0';
+            }
+            mainInstPowerString[12]='W';
+        }
+        else {
+            for (unsigned int pos=0; pos<sizeof(mainInstPowerString)-1; pos++)
+                mainInstPowerString[pos] = '?';   /* Fill all characters with blank */
+        }
+    }
+    else { /* We are injecting power */
+        if (evaluatedPower->isValid) {
+            unsigned int minPower = -(evaluatedPower->minValue); /* min and max will be negative */
+            unsigned int maxPower = -(evaluatedPower->maxValue);
+            mainInstPowerString[0]='-';
+            mainInstPowerString[1]='[';
+            if (minPower < 1000) {
+                mainInstPowerString[2]=' ';
+            } else {
+                uint8_t digit1000 = (minPower / 1000) % 10;
+                mainInstPowerString[2]=digit1000 + '0';
+            }
+            if (minPower < 100) {
+                mainInstPowerString[3]=' ';
+            } else {
+                uint8_t digit100 = (minPower / 100) % 10;
+                mainInstPowerString[3]=digit100 + '0';
+            }
+            if (minPower < 10) {
+                mainInstPowerString[4]=' ';
+            } else {
+                uint8_t digit10 = (minPower / 10) % 10;
+                mainInstPowerString[4]=digit10  + '0';
+            }
+            {
+                uint8_t digit1 = (minPower / 1) % 10;
+                mainInstPowerString[5]=digit1 + '0';
+            }
+            mainInstPowerString[6]=';';
+
+            if (maxPower < 1000) {
+                mainInstPowerString[7]=' ';
+            } else {
+                uint8_t digit1000 = (maxPower / 1000) % 10;
+                mainInstPowerString[7]=digit1000 + '0';
+            }
+            if (maxPower < 100) {
+                mainInstPowerString[8]=' ';
+            } else {
+                uint8_t digit100 = (maxPower / 100) % 10;
+                mainInstPowerString[8]=digit100 + '0';
+            }
+            if (maxPower < 10) {
+                mainInstPowerString[9]=' ';
+            } else {
+                uint8_t digit10 = (maxPower / 10) % 10;
+                mainInstPowerString[9]=digit10  + '0';
+            }
+            {
+                uint8_t digit1 = (maxPower / 1) % 10;
+                mainInstPowerString[10]=digit1 + '0';
+            }
+            mainInstPowerString[11]=']';
+            mainInstPowerString[12]='W';
+        }
+    }
+    return mainInstPowerString;
+}
+
+/**
  * @brief  Main program
  */
 int main(void) {
@@ -368,37 +514,19 @@ int main(void) {
         };
         //lcd.fillRect(0, 0, lcd.getWidth(), Font24.Height, Stm32LcdDriver::LCD_Color::Black);
         
-        currentPencilYPos += 24; /* Move a bit away from the very top of the screen. A few LCD display actually hide the very first pixels */
+        currentPencilYPos += Font24.Height;
         lcd.drawText(0, currentPencilYPos, statusLine, Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::White, Stm32LcdDriver::LCD_Color::Black);
 
-        static char systemTime[]=" +@@:@@:@@";
-        uint8_t pos = 1; /* Skip the first space */
-        {
-            Stm32LcdDriver::LCD_Color textColor;
-            if (ticContext.currentTime.relativeToBoot) {
-                textColor = Stm32LcdDriver::LCD_Color::Red;
-                systemTime[pos++]='+'; /* Time is relative to boot */
-            }
-            else {
-                textColor = Stm32LcdDriver::LCD_Color::Green;
-                systemTime[pos++]='T'; /* Time is absolute */
-            }
-            unsigned int systemTimeHour = ticContext.currentTime.time.hour;
-            systemTime[pos++]=(systemTimeHour / 10) % 10 + '0';
-            systemTime[pos++]=(systemTimeHour / 1) % 10 + '0';
-            pos++;
-            unsigned int systemTimeMinute = ticContext.currentTime.time.minute;
-            systemTime[pos++]=(systemTimeMinute / 10) % 10 + '0';
-            systemTime[pos++]=(systemTimeMinute / 1) % 10 + '0';
-            pos++;
-            unsigned int systemTimeSecond = ticContext.currentTime.time.second;
-            systemTime[pos++]=(systemTimeSecond / 10) % 10 + '0';
-            systemTime[pos++]=(systemTimeSecond / 1) % 10 + '0';
-            pos++;
-            
-            /* Draw the system time part of the status line (string systemTime) right after statusLine */
-            lcd.drawText(strlen(statusLine)*17, currentPencilYPos, systemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
+        const char* systemTime = getSystemTimeString(&(ticContext.currentTime));
+        Stm32LcdDriver::LCD_Color textColor;
+        if (ticContext.currentTime.relativeToBoot) {
+            textColor = Stm32LcdDriver::LCD_Color::Red;
         }
+        else {
+            textColor = Stm32LcdDriver::LCD_Color::Green;
+        }
+        /* Draw the system time part of the status line (string systemTime) right after statusLine */
+        lcd.drawText(strlen(statusLine)*17, currentPencilYPos, systemTime, Font24.Width, Font24.Height, get_font24_ptr, textColor, Stm32LcdDriver::LCD_Color::Black);
         currentPencilYPos += Font24.Height;
 
         lcd.fillRect(0, currentPencilYPos, lcd.getWidth(), lcd.getHeight() - currentPencilYPos, Stm32LcdDriver::LCD_Color::White);
@@ -408,102 +536,11 @@ int main(void) {
             lastReceivedPower = ticContext.instantaneousPower;
         }
         if (lastReceivedPower.isValid) {   /* We have a valid last measurement */
-            char mainInstPowerText[] = "-[9999;9999]W";
-            const TicEvaluatedPower& instantaneousPower = lastReceivedPower;
-            if (instantaneousPower.isExact && instantaneousPower.minValue>0) {  /* We are withdrawing power */
-                unsigned int withdrawnPower = static_cast<unsigned int>(instantaneousPower.minValue);
-                if (withdrawnPower <= 9999) {
-                    for (unsigned int pos=0; pos<8; pos++)
-                        mainInstPowerText[pos] = ' ';   /* Fill leading characters with blank */
-                    
-                    if (withdrawnPower < 1000) {
-                        mainInstPowerText[8]=' ';
-                    } else {
-                        uint8_t digit1000 = (withdrawnPower / 1000) % 10;
-                        mainInstPowerText[8]=digit1000 + '0';
-                    }
-                    if (withdrawnPower < 100) {
-                        mainInstPowerText[9]=' ';
-                    } else {
-                        uint8_t digit100 = (withdrawnPower / 100) % 10;
-                        mainInstPowerText[9]=digit100 + '0';
-                    }
-                    if (withdrawnPower < 10) {
-                        mainInstPowerText[10]=' ';
-                    } else {
-                        uint8_t digit10 = (withdrawnPower / 10) % 10;
-                        mainInstPowerText[10]=digit10  + '0';
-                    }
-                    {
-                        uint8_t digit1 = (withdrawnPower / 1) % 10;
-                        mainInstPowerText[11]=digit1 + '0';
-                    }
-                    mainInstPowerText[12]='W';
-                }
-                else {
-                    for (unsigned int pos=0; pos<sizeof(mainInstPowerText)-1; pos++)
-                        mainInstPowerText[pos] = '?';   /* Fill all characters with blank */
-                }
-            }
-            else { /* We are injecting power */
-                if (instantaneousPower.isValid) {
-                    unsigned int minPower = -(instantaneousPower.minValue); /* min and max will be negative */
-                    unsigned int maxPower = -(instantaneousPower.maxValue);
-                    mainInstPowerText[0]='-';
-                    mainInstPowerText[1]='[';
-                    if (minPower < 1000) {
-                        mainInstPowerText[2]=' ';
-                    } else {
-                        uint8_t digit1000 = (minPower / 1000) % 10;
-                        mainInstPowerText[2]=digit1000 + '0';
-                    }
-                    if (minPower < 100) {
-                        mainInstPowerText[3]=' ';
-                    } else {
-                        uint8_t digit100 = (minPower / 100) % 10;
-                        mainInstPowerText[3]=digit100 + '0';
-                    }
-                    if (minPower < 10) {
-                        mainInstPowerText[4]=' ';
-                    } else {
-                        uint8_t digit10 = (minPower / 10) % 10;
-                        mainInstPowerText[4]=digit10  + '0';
-                    }
-                    {
-                        uint8_t digit1 = (minPower / 1) % 10;
-                        mainInstPowerText[5]=digit1 + '0';
-                    }
-                    mainInstPowerText[6]=';';
-
-                    if (maxPower < 1000) {
-                        mainInstPowerText[7]=' ';
-                    } else {
-                        uint8_t digit1000 = (maxPower / 1000) % 10;
-                        mainInstPowerText[7]=digit1000 + '0';
-                    }
-                    if (maxPower < 100) {
-                        mainInstPowerText[8]=' ';
-                    } else {
-                        uint8_t digit100 = (maxPower / 100) % 10;
-                        mainInstPowerText[8]=digit100 + '0';
-                    }
-                    if (maxPower < 10) {
-                        mainInstPowerText[9]=' ';
-                    } else {
-                        uint8_t digit10 = (maxPower / 10) % 10;
-                        mainInstPowerText[9]=digit10  + '0';
-                    }
-                    {
-                        uint8_t digit1 = (maxPower / 1) % 10;
-                        mainInstPowerText[10]=digit1 + '0';
-                    }
-                    mainInstPowerText[11]=']';
-                    mainInstPowerText[12]='W';
-                }
-            }
-            lcd.drawText(0, currentPencilYPos, mainInstPowerText, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
-            currentPencilYPos += 120;
+            const char* mainInstPower = getInstantaneousPowerString(&lastReceivedPower);
+   
+            lcd.drawText(0, currentPencilYPos, mainInstPower, 60, 120, get_font58_ptr, Stm32LcdDriver::LCD_Color::Blue, Stm32LcdDriver::LCD_Color::White);
         }
+        currentPencilYPos += 120; /* Skip the area where last received power was drawn */
         currentPencilYPos -= 15; /* We are not using letters that go below the baseline on font58 (except for the semicolon ';'), so we can afford to go up a bit into that area */
         drawHistory(lcd, 1, currentPencilYPos, lcd.getWidth()-2, lcd.getHeight() - currentPencilYPos - 1, powerHistory, nullptr/*static_cast<void*>(&debugContext)*/);
 
