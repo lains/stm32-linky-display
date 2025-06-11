@@ -237,17 +237,21 @@ void drawHistory(Stm32LcdDriver& lcd, uint16_t x, uint16_t y, uint16_t width, ui
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 2000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Black); /* Draw +2000W */
 
-    bool drawLabels = (gridWidth > 24*5 + 10 && width > 24*5 + 10); /* Enough room to draw 1000W and 2000W label (5 chars)? */
-    if (drawLabels) /* Enough room to draw 2000W label (5 chars). Draw above the line (substracting text height from y) */
-        lcd.drawText(gridX + 2, gridY - 22, "2000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
+    bool drawLabels = (gridWidth > 20*6 && width > 20*6); /* Enough room to draw abcefW labels (6 chars)? */
+    if (drawLabels) /* Draw label above the line (substracting text height from y) */
+        lcd.drawText(gridX + 2, gridY - 22, " 2000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower - 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Black); /* Draw +1000W */
-    if (drawLabels) /* Enough room to draw 1000W label (5 chars). Draw above the line (substracting text height from y) */
-        lcd.drawText(gridX + 2, gridY - 22, "1000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
+    if (drawLabels) /* Draw label above the line (substracting text height from y) */
+        lcd.drawText(gridX + 2, gridY - 22, " 1000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 1000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Black); /* Draw -1000W */
+    if (drawLabels) /* Draw label above the line (substracting text height from y) */
+        lcd.drawText(gridX + 2, gridY - 22, "-1000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
     gridY = y + static_cast<uint16_t>(static_cast<unsigned long int>(maxPower + 2000) * static_cast<unsigned long int>(height) / static_cast<unsigned long int>(maxPower - minPower));
     lcd.drawHorizontalLine(gridX, gridY, gridWidth, Stm32LcdDriver::Black); /* Draw -2000W */
+    if (drawLabels) /* Draw label above the line (substracting text height from y) */
+        lcd.drawText(gridX + 2, gridY - 22, "-2000W", Font24.Width, Font24.Height, get_font24_ptr, Stm32LcdDriver::LCD_Color::Black, Stm32LcdDriver::LCD_Color::Transparent); /* Draw above the line (substracting text height from y) */
 
     debugValue = nbHistoryEntries * (4*3) / history.getPowerRecordsPerHour(); /* We divide hours in 12 steps, thus each step is 5 mins */
     for (unsigned int fiveMinStep = 1; fiveMinStep <= nbHistoryEntries * (4*3) / history.getPowerRecordsPerHour(); fiveMinStep++) {
