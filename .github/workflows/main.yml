@@ -1,23 +1,28 @@
 name: CI
 
-on: [push, pull_request]
-
-env:
-  CONTAINER: stronglytyped/arm-none-eabi-gcc
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: lains/gcc-arm-none-eabi-docker:10-2021-major
 
     steps:
+      - name: Dump versions
+        run: |
+          lsb_release -a 2>/dev/null || cat /etc/issue
+          git --version
+          make --version
+          arm-none-eabi-gcc --version
+          arm-none-eabi-g++ --version
       - name: Check out repository code
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Start Docker Container
-            run: |
-              docker pull $CONTAINER
-              docker run --name build-container -d -v ${{ github.workspace }}:/workspace $CONTAINER tail -f /dev/null
+      - name: Build for STM32F469I-DISCO
+        run: make TARGET_BOARD=STM32F469I_DISCO TOOLCHAIN_PATH_PREFIX= clean elf
+      - name: Build for STM32F769I-DISCO
+        run: make TARGET_BOARD=STM32F769I_DISCO TOOLCHAIN_PATH_PREFIX= clean elf
 
   test:
     runs-on: ubuntu-latest
